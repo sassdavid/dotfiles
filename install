@@ -176,7 +176,7 @@ fi
 # Install zsh plugins
 ###############################################################################
 
-chmod +x "${clone_path}/.local/bin/update-zsh-plugins"
+chmod +x ${clone_path}/.local/bin/update-zsh-plugins
 "${clone_path}/.local/bin/update-zsh-plugins"
 
 ###############################################################################
