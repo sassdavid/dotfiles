@@ -1,0 +1,20 @@
+if command -v brew > /dev/null 2>&1; then
+  alias ls="ls -G"
+  alias grep="grep -G"
+  alias fgrep="fgrep -G"
+  alias egrep="egrep -G"
+else
+  alias ls="ls --color=auto"
+  alias grep="grep --color=auto"
+  alias fgrep="fgrep --color=auto"
+  alias egrep="egrep --color=auto"
+fi
+
+alias ll="ls -alF"
+alias la="ls -A"
+alias l="ls -CF"
+
+alias cfa='${EDITOR} ${ZDOTDIR}/.aliases'
+alias cfp='${EDITOR} ${ZDOTDIR}/.zprofile'
+alias cfr='${EDITOR} ${ZDOTDIR}/.zshrc'
+alias sfr='. ${ZDOTDIR}/.zshrc'
