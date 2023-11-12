@@ -6,7 +6,7 @@ skip_system_packages="${1}"
 
 os_type="$(uname -s)"
 
-apt_packages="curl git zsh"
+apt_packages="curl git ripgrep zsh"
 apt_packages_optional="jq zip unzip"
 
 ###############################################################################
