@@ -22,11 +22,11 @@ System package installation isn't supported with your OS / distro.
 
 Please install any dependent packages on your own. You can view the list at:
 
-    https://github.com/nickjj/dotfiles/blob/master/install
+    https://github.com/sassdavid/dotfiles/blob/main/install
 
 Then re-run the script and explicitly skip installing system packages:
 
-    bash <(curl -sS https://raw.githubusercontent.com/nickjj/dotfiles/master/install) --skip-system-packages
+    bash <(curl -sS https://raw.githubusercontent.com/sassdavid/dotfiles/main/install) --skip-system-packages
 EOF
 
   exit 1
@@ -142,7 +142,7 @@ echo
 if [ "${DEBUG}" == "1" ]; then
   cp -R "${PWD}/." "${clone_path}"
 else
-  git clone git@github.com:sassdavid/dotfiles.git "${clone_path}"
+  git clone https://github.com/sassdavid/dotfiles.git "${clone_path}"
 fi
 
 ###############################################################################
