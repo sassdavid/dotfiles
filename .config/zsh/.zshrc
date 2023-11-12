@@ -74,6 +74,9 @@ if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
 fi
 
+# Allows your gpg passphrase prompt to spawn (useful for signing commits).
+export GPG_TTY="$(tty)"
+
 # zsh-autosuggestions settings.
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
@@ -84,6 +87,3 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 # Load aliases if they exist.
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
-
-# Load paste fix if exists.
-[ -f "${XDG_CONFIG_HOME}/zsh/.paste" ] && . "${XDG_CONFIG_HOME}/zsh/.paste"

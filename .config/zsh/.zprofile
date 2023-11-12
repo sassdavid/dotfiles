@@ -15,7 +15,7 @@ export EDITOR="vim"
 
 # Add colors to the less and man commands.
 export LESS=-R
-export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
+export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
 export LESS_TERMCAP_mb=$'\e[1;31mm'    # begin blinking
 export LESS_TERMCAP_md=$'\e[1;36m'     # begin bold
 export LESS_TERMCAP_us=$'\e[1;332m'    # begin underline
