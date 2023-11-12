@@ -7,6 +7,22 @@ stty stop undef
 # Enable comments when working in an interactive shell.
 setopt interactive_comments
 
+# Prompt. Using single quotes around the PROMPT is very important, otherwise
+# the git branch will always be empty. Using single quotes delays the
+# evaluation of the prompt. Also PROMPT is an alias to PS1.
+git_prompt() {
+    local branch="$(git symbolic-ref HEAD 2> /dev/null | cut -d'/' -f3-)"
+    local branch_truncated="${branch:0:30}"
+    if (( ${#branch} > ${#branch_truncated} )); then
+        branch="${branch_truncated}..."
+    fi
+
+    [ -n "${branch}" ] && echo " (${branch})"
+}
+setopt PROMPT_SUBST
+PROMPT='%B%{$fg[green]%}%n@%{$fg[green]%}%M %{$fg[blue]%}%~%{$fg[yellow]%}$(git_prompt)%{$reset_color%} %(?.$.%{$fg[red]%}$)%b '
+
+
 # History settings.
 export HISTFILE="${XDG_CACHE_HOME}/zsh/.history"
 export HISTTIMEFORMAT="%Y/%m/%d %H:%M:%S:   "
