@@ -68,6 +68,14 @@ bindkey '\e[F' end-of-line
 bindkey '\e[8~' end-of-line
 bindkey '\e[3~' delete-char
 
+# Enable FZF (this replaces needing ~/.fzf.zsh in your home directory).
+if [[ ! "${PATH}" == *${XDG_DATA_HOME}/fzf/bin* ]]; then
+    export PATH="${PATH:+${PATH}:}${XDG_DATA_HOME}/fzf/bin"
+fi
+[[ $- == *i* ]] && . "${XDG_DATA_HOME}/fzf/shell/completion.zsh" 2> /dev/null
+. "${XDG_DATA_HOME}/fzf/shell/key-bindings.zsh"
+
+
 # WSL 2 specific settings.
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
@@ -76,6 +84,11 @@ fi
 
 # Allows your gpg passphrase prompt to spawn (useful for signing commits).
 export GPG_TTY="$(tty)"
+
+# Configure FZF.
+export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
+export FZF_DEFAULT_OPTS="--color=dark"
+export FZF_CTRL_T_OPTS="--preview='less {}' --height=100% --bind shift-up:preview-page-up,shift-down:preview-page-down"
 
 # zsh-autosuggestions settings.
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
