@@ -167,15 +167,10 @@ if [ "${os_type}" == "macOS" ]; then
 fi
 
 ###############################################################################
-# Install oh-my-zsh
-###############################################################################
-
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-###############################################################################
 # Install zsh plugins
 ###############################################################################
 
+# shellcheck disable=SC2086
 chmod +x ${clone_path}/.local/bin/update-zsh-plugins
 "${clone_path}/.local/bin/update-zsh-plugins"
 
