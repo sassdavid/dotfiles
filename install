@@ -6,7 +6,7 @@ skip_system_packages="${1}"
 
 os_type="$(uname -s)"
 
-apt_packages="curl git ripgrep zsh"
+apt_packages="curl git tmux ripgrep zsh"
 apt_packages_optional="jq zip unzip"
 
 ###############################################################################
@@ -141,6 +141,13 @@ chmod +x ${clone_path}/.local/bin/update-zsh-plugins
 "${clone_path}/.local/bin/update-zsh-plugins"
 
 ###############################################################################
+# Install tpm (tmux plugin manager)
+###############################################################################
+
+rm -rf "${HOME}/.tmux/plugins/tpm"
+git clone --depth 1 https://github.com/tmux-plugins/tpm "${HOME}/.tmux/plugins/tpm"
+
+###############################################################################
 # Install fzf (fuzzy finder on the terminal and used by a Vim plugin)
 ###############################################################################
 
@@ -160,6 +167,7 @@ ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv"
 ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc"
 ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile"
 ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
+ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf"
 ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
 
 # And if you happen to be using WSL:
@@ -194,6 +202,7 @@ ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv" &&
   ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
   ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
   ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
+  ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf" &&
   ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
 
 if grep -qE "(Microsoft|microsoft|WSL)" /proc/version &>/dev/null; then
@@ -208,6 +217,15 @@ fi
 
 # shellcheck disable=SC1090
 . "${HOME}/.config/zsh/.zprofile"
+
+###############################################################################
+# Install tmux plugins
+###############################################################################
+
+printf "\n\nInstalling tmux plugins...\n"
+
+export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
+"${HOME}/.tmux/plugins/tpm/bin/install_plugins"
 
 ###############################################################################
 # Done!
