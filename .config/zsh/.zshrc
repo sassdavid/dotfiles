@@ -22,7 +22,6 @@ git_prompt() {
 setopt PROMPT_SUBST
 PROMPT='%B%{$fg[green]%}%n@%{$fg[green]%}%M %{$fg[blue]%}%~%{$fg[yellow]%}$(git_prompt)%{$reset_color%} %(?.$.%{$fg[red]%}$)%b '
 
-
 # History settings.
 export HISTFILE="${XDG_CACHE_HOME}/zsh/.history"
 export HISTTIMEFORMAT="%Y/%m/%d %H:%M:%S:   "
