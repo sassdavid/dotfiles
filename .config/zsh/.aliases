@@ -30,8 +30,10 @@ alias vdt="rm /tmp/%*"
 
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 
+alias g="git"
 alias k="kubectl"
 alias tf="terraform"
+alias tg="terragrunt"
 
 # This is specific to WSL 2. If the WSL 2 VM goes rogue and decides not to free
 # up memory, this command will free your memory after about 20-30 seconds.
