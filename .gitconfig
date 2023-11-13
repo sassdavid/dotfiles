@@ -1,9 +1,8 @@
 [core]
-	editor = '/mnt/c/Program\ Files/Notepad++/notepad++.exe' -multiInst -notabbar -nosession -noPlugin
- 	sshCommand = '/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+	editor = vim
 
-[rerere]
-    enabled = true
+[color "diff"]
+	whitespace = red reverse
 
 [include]
 	path = ~/.gitconfig.user

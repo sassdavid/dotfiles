@@ -216,6 +216,7 @@ ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv" &&
   ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
   ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
   ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
+  ln -fs "${clone_path}/.gitconfig" "${HOME}/.gitconfig" &&
   ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf" &&
   ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
 
