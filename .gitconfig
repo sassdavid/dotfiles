@@ -1,5 +1,6 @@
 [core]
 	editor = '/mnt/c/Program\ Files/Notepad++/notepad++.exe' -multiInst -notabbar -nosession -noPlugin
+	sshCommand = '/mnt/c/Program\ Files/OpenSSH/ssh.exe'
 
 [rerere]
     enabled = true
