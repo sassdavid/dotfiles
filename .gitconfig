@@ -1,6 +1,7 @@
 [core]
 	editor = vim
  	sshCommand = '/mnt/c/Program Files/OpenSSH/ssh.exe'
+ 	longpaths = true
 
 [color "diff"]
 	whitespace = red reverse
