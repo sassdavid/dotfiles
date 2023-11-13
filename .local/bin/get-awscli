@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -e
+
+# https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html#cliv2-linux-install
+
+printf "* Switching to tmp folder...\n"
+
+test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
+cd "${TMPDIR}"
+
+printf "* Downloading the AWS cli into '%s'...\n" "${TMPDIR}"
+
+#Version temporary pinned to 2.13.33 because of a known issue https://github.com/aws/aws-cli/issues/8320
+wget -q "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.13.33.zip" -O awscliv2.zip
+
+printf "* Unzipping it...\n"
+
+unzip -q awscliv2.zip
+
+if [ -f /usr/local/bin/aws ]; then
+  printf "* Current version is:\n"
+
+  /usr/local/bin/aws --version
+
+  printf "* Updating...\n"
+
+  sudo ./aws/install --update
+else
+  printf "* Installing...\n"
+
+  sudo ./aws/install
+fi
+
+cd ~
+rm -rf "${TMPDIR}"
+
+printf "* Installed version is:\n"
+
+aws --version
