@@ -1,0 +1,9 @@
+[core]
+	editor = '/mnt/c/Program\ Files/Notepad++/notepad++.exe' -multiInst -notabbar -nosession -noPlugin
+
+[rerere]
+    enabled = true
+
+[include]
+	path = ~/.gitconfig.user
+    path = ~/.config/gitalias/gitalias.txt
