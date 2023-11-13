@@ -149,8 +149,6 @@ curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "$
 # Install zsh plugins
 ###############################################################################
 
-# shellcheck disable=SC2086
-chmod +x ${clone_path}/.local/bin/update-zsh-plugins
 "${clone_path}/.local/bin/update-zsh-plugins"
 
 ###############################################################################
@@ -248,8 +246,6 @@ export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 
 printf "\n\nInstalling latest terragrunt binary...\n"
 
-# shellcheck disable=SC2086
-chmod +x ${clone_path}/.local/bin/get-terragrunt
 "${clone_path}/.local/bin/get-terragrunt"
 
 ###############################################################################
