@@ -7,7 +7,7 @@ skip_system_packages="${1}"
 os_type="$(uname -s)"
 
 apt_packages="curl git tmux ripgrep zsh"
-apt_packages_optional="jq zip unzip"
+apt_packages_optional="jq zip unzip terraform"
 
 ###############################################################################
 # Detect OS and distro type
@@ -52,6 +52,9 @@ esac
 ###############################################################################
 
 function apt_install_packages {
+  wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
   sudo add-apt-repository -y ppa:git-core/ppa
 
   # shellcheck disable=SC2086
@@ -228,6 +231,16 @@ printf "\n\nInstalling tmux plugins...\n"
 
 export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 "${HOME}/.tmux/plugins/tpm/bin/install_plugins"
+
+###############################################################################
+# Install latest terragrunt binary
+###############################################################################
+
+printf "\n\nInstalling latest terragrunt binary...\n"
+
+# shellcheck disable=SC2086
+chmod +x ${clone_path}/.local/bin/get-terragrunt
+"${clone_path}/.local/bin/get-terragrunt"
 
 ###############################################################################
 # Done!

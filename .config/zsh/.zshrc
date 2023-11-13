@@ -90,6 +90,10 @@ export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
 export FZF_DEFAULT_OPTS="--color=dark"
 export FZF_CTRL_T_OPTS="--preview='less {}' --height=100% --bind shift-up:preview-page-up,shift-down:preview-page-down"
 
+# Configure OpenSSH in order to 1password ssh will be usable
+export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+export GIT_SSH_COMMAND='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+
 # zsh-autosuggestions settings.
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 

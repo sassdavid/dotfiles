@@ -1,3 +1,6 @@
+alias ssh='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+alias ssh-add='/mnt/c/Program\ Files/OpenSSH/ssh-add.exe'
+
 if command -v brew > /dev/null 2>&1; then
   alias ls="ls -G"
   alias grep="grep -G"
