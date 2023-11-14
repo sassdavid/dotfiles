@@ -1,40 +1,34 @@
 #!/usr/bin/env bash
 
-set -e
-
 # https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2-linux.html#cliv2-linux-install
 
-printf "* Switching to tmp folder...\n"
+set -e
 
-test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
-cd "${TMPDIR}"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
+ZIP_FILE="${TMPDIR}/awscliv2.zip"
 
-printf "* Downloading the AWS cli into '%s'...\n" "${TMPDIR}"
+download() {
+  rm -f "${ZIP_FILE}"
 
-wget -q "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -O awscliv2.zip
+  local DOWNLOAD_PATH="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 
-printf "* Unzipping it...\n"
+  printf "Download aws from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
 
-unzip -q awscliv2.zip
+  curl -s -L -o "${ZIP_FILE}" \
+    "${DOWNLOAD_PATH}"
 
+  printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE}" "${TMPDIR}"
+  unzip -q "${ZIP_FILE}" -d "${TMPDIR}"
+}
+
+download
 if [ -f /usr/local/bin/aws ]; then
-  printf "* Current version is:\n"
-
-  /usr/local/bin/aws --version
-
-  printf "* Updating...\n"
-
-  sudo ./aws/install --update
+  sudo "${TMPDIR}"/aws/install --update
 else
-  printf "* Installing...\n"
-
-  sudo ./aws/install
+  sudo "${TMPDIR}"/aws/install
 fi
 
-cd ~
-printf "* Cleanup...\n"
-rm -rf "${TMPDIR}"
-
-printf "* Installed version is:\n"
-
 aws --version
+
+printf "Cleanup...\n"
+rm -rf "${TMPDIR}"
