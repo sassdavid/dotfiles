@@ -7,7 +7,7 @@ skip_system_packages="${1}"
 os_type="$(uname -s)"
 
 apt_packages="curl git tmux ripgrep zsh"
-apt_packages_optional="jq zip unzip"
+apt_packages_optional="jq zip unzip maven"
 
 ###############################################################################
 # Detect OS and distro type
@@ -285,6 +285,14 @@ printf "\n\nInstalling latest argocd binary...\n"
 printf "\n\nInstalling helm binary...\n"
 
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+###############################################################################
+# Install nvm
+###############################################################################
+
+printf "\n\nInstalling nvm without profile...\n"
+
+PROFILE=/dev/null bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash'
 
 ###############################################################################
 # Done!
