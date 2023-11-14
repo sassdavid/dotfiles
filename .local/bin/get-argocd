@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+set -e
+
+RELEASES_URL="https://github.com/argoproj/argo-cd/releases"
+test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
+BIN_FILE="$TMPDIR/argocd"
+
+download() {
+  local ARGOCD_VERSION="latest"
+
+  rm -f "$BIN_FILE"
+
+  local OS
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+  local ARC
+  ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
+
+  local DOWNLOAD_PATH="$RELEASES_URL/${ARGOCD_VERSION}/download/argocd-${OS}-${ARC}"
+
+  printf "Download argocd from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  curl -sSL -o "${BIN_FILE}" \
+    "${DOWNLOAD_PATH}"
+}
+
+download
+chmod +x "${BIN_FILE}"
+"${BIN_FILE}" version --client
+
+sudo mv "${BIN_FILE}" /usr/local/bin/argocd
+
+rm -rf "${TMPDIR}"
