@@ -107,7 +107,7 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
 
-complete -C '/usr/local/bin/aws_completer' aws
+complete -o nospace -C '/usr/local/bin/aws_completer' aws
 complete -o nospace -C '/usr/bin/terraform' terraform
 source <(kubectl completion zsh)
 source <(helm completion zsh)
