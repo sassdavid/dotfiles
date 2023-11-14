@@ -17,7 +17,7 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
-  curl -s -LO -o "${BIN_FILE}" \
+  curl -s -L -o "${BIN_FILE}" \
     "$RELEASE_URL/${KUBECTL_VERSION}/bin/$OS/$ARC/kubectl"
 }
 
