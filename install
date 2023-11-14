@@ -266,6 +266,14 @@ printf "\n\nInstalling kubectl binary...\n"
 "${clone_path}/.local/bin/get-kubectl"
 
 ###############################################################################
+# Install latest helm binary
+###############################################################################
+
+printf "\n\nInstalling helm binary...\n"
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+###############################################################################
 # Install latest argocd binary
 ###############################################################################
 
