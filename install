@@ -292,7 +292,7 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 printf "\n\nInstalling sdkman without profile...\n"
 
-SDKMAN_DIR="${HOME}/.config/sdkman" &&
+export SDKMAN_DIR="${HOME}/.config/sdkman" &&
   curl -s "https://get.sdkman.io?rcupdate=false" | bash
 
 ###############################################################################
