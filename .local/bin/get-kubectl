@@ -26,6 +26,6 @@ download() {
 
 download
 chmod +x "${BIN_FILE}"
-"${BIN_FILE}" version --client
+"${BIN_FILE}" version --client --output=yaml
 
 sudo mv "${BIN_FILE}" /usr/local/bin/kubectl
