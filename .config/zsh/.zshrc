@@ -105,4 +105,5 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
 
-source <(kubectl completion zsh)
+kubectl completion zsh > "${fpath[1]}/_kubectl"
+helm completion zsh > "${fpath[1]}/_helm"
