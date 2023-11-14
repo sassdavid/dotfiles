@@ -27,8 +27,11 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
+  local DOWNLOAD_PATH="$RELEASES_URL/download/$VERSION/terragrunt_${OS}_${ARC}"
+
+  printf "Download terragrunt from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
   curl -s -L -o "$BIN_FILE" \
-    "$RELEASES_URL/download/$VERSION/terragrunt_${OS}_${ARC}"
+    "${DOWNLOAD_PATH}"
 }
 
 download
@@ -36,3 +39,5 @@ chmod +x "${BIN_FILE}"
 "${BIN_FILE}" --version
 
 sudo mv "$BIN_FILE" /usr/local/bin/terragrunt
+
+rm -rf "${TMPDIR}"

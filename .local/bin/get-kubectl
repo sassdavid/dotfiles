@@ -19,7 +19,7 @@ download() {
 
   local DOWNLOAD_PATH="$RELEASE_URL/${KUBECTL_VERSION}/bin/$OS/$ARC/kubectl"
 
-  printf "Download kubectl from %s\n" "${DOWNLOAD_PATH}"
+  printf "Download kubectl from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
   curl -s -L -o "${BIN_FILE}" \
     "${DOWNLOAD_PATH}"
 }
@@ -29,3 +29,5 @@ chmod +x "${BIN_FILE}"
 "${BIN_FILE}" version --client --output=yaml
 
 sudo mv "${BIN_FILE}" /usr/local/bin/kubectl
+
+rm -rf "${TMPDIR}"
