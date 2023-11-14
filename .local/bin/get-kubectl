@@ -17,8 +17,11 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
+  local DOWNLOAD_PATH="$RELEASE_URL/${KUBECTL_VERSION}/bin/$OS/$ARC/kubectl"
+
+  printf "Download kubectl from %s\n" "${DOWNLOAD_PATH}"
   curl -s -L -o "${BIN_FILE}" \
-    "$RELEASE_URL/${KUBECTL_VERSION}/bin/$OS/$ARC/kubectl"
+    "${DOWNLOAD_PATH}"
 }
 
 download
