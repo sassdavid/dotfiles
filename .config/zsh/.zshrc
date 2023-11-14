@@ -38,6 +38,8 @@ autoload -U compinit
 compinit
 _comp_options+=(globdots)
 
+autoload bashcompinit && bashcompinit
+
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*' auto-description 'specify: %d'
 zstyle ':completion:*' completer _expand _complete _correct _approximate
