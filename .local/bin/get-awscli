@@ -11,8 +11,7 @@ cd "${TMPDIR}"
 
 printf "* Downloading the AWS cli into '%s'...\n" "${TMPDIR}"
 
-#Version temporary pinned to 2.13.33 because of a known issue https://github.com/aws/aws-cli/issues/8320
-wget -q "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.13.33.zip" -O awscliv2.zip
+wget -q "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -O awscliv2.zip
 
 printf "* Unzipping it...\n"
 
