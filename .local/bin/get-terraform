@@ -2,7 +2,7 @@
 
 set -e
 
-test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
 ZIP_FILE="${TMPDIR}/terraform.zip"
 BIN_FILE="${TMPDIR}/terraform"
 
@@ -29,6 +29,7 @@ download() {
   }
 
   rm -f "${ZIP_FILE}"
+  rm -f "${BIN_FILE}"
 
   printf "Download terraform from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
   curl -s -L -o "${ZIP_FILE}" \
