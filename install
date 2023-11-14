@@ -239,6 +239,14 @@ export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 "${HOME}/.tmux/plugins/tpm/bin/install_plugins"
 
 ###############################################################################
+# Install latest aws binary
+###############################################################################
+
+printf "\n\nInstalling latest aws binary...\n"
+
+"${clone_path}/.local/bin/get-awscli"
+
+###############################################################################
 # Install latest terraform binary
 ###############################################################################
 
@@ -255,14 +263,6 @@ printf "\n\nInstalling latest terragrunt binary...\n"
 "${clone_path}/.local/bin/get-terragrunt"
 
 ###############################################################################
-# Install latest aws binary
-###############################################################################
-
-printf "\n\nInstalling latest aws binary...\n"
-
-"${clone_path}/.local/bin/get-awscli"
-
-###############################################################################
 # Install kubectl binary
 ###############################################################################
 
@@ -271,20 +271,20 @@ printf "\n\nInstalling kubectl binary...\n"
 "${clone_path}/.local/bin/get-kubectl"
 
 ###############################################################################
-# Install latest helm binary
-###############################################################################
-
-printf "\n\nInstalling helm binary...\n"
-
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-###############################################################################
 # Install latest argocd binary
 ###############################################################################
 
 printf "\n\nInstalling latest argocd binary...\n"
 
 "${clone_path}/.local/bin/get-argocd"
+
+###############################################################################
+# Install latest helm binary
+###############################################################################
+
+printf "\n\nInstalling helm binary...\n"
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 ###############################################################################
 # Done!
