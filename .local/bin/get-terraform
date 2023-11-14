@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+
+set -e
+
+test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
+ZIP_FILE="${TMPDIR}/terraform.zip"
+BIN_FILE="${TMPDIR}/terraform"
+
+last_version() {
+  local OS
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+  local ARC
+  ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
+
+  curl -sL https://releases.hashicorp.com/terraform/index.json |
+    jq -r ".versions[].builds[].url" |
+    sort |
+    grep -E -v "rc|beta|alpha" |
+    grep -E "${OS}.*${ARC}" |
+    tail -1
+}
+
+download() {
+  test -z "${DOWNLOAD_PATH}" && local DOWNLOAD_PATH && DOWNLOAD_PATH="$(last_version)"
+  test -z "${DOWNLOAD_PATH}" && {
+    echo "Unable to get terraform version." >&2
+    exit 1
+  }
+
+  rm -f "${ZIP_FILE}"
+
+  printf "Download terraform from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  curl -s -L -o "${ZIP_FILE}" \
+    "${DOWNLOAD_PATH}"
+
+  printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE}" "${TMPDIR}"
+  unzip -q "${ZIP_FILE}" -d "${TMPDIR}"
+}
+
+download
+chmod +x "${BIN_FILE}"
+"${BIN_FILE}" --version
+
+sudo mv "${BIN_FILE}" /usr/local/bin/terraform
+
+printf "Cleanup...\n"
+rm -rf "${TMPDIR}"

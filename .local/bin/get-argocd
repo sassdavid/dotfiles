@@ -30,4 +30,5 @@ chmod +x "${BIN_FILE}"
 
 sudo mv "${BIN_FILE}" /usr/local/bin/argocd
 
+printf "Cleanup...\n"
 rm -rf "${TMPDIR}"

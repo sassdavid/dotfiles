@@ -40,4 +40,5 @@ chmod +x "${BIN_FILE}"
 
 sudo mv "$BIN_FILE" /usr/local/bin/terragrunt
 
+printf "Cleanup...\n"
 rm -rf "${TMPDIR}"
