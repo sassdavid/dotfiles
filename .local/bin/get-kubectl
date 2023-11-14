@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -e
+
+RELEASE_URL="https://dl.k8s.io/release"
+test -z "$TMPDIR" && TMPDIR="$(mktemp -d)"
+BIN_FILE="$TMPDIR/kubectl"
+
+download() {
+  local KUBECTL_VERSION="v1.25.15"
+
+  rm -f "$BIN_FILE"
+
+  local OS
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+  local ARC
+  ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
+
+  curl -s -LO -o "${BIN_FILE}" \
+    "$RELEASE_URL/${KUBECTL_VERSION}/bin/$OS/$ARC/kubectl"
+}
+
+download
+chmod +x "${BIN_FILE}"
+"${BIN_FILE}" version --client
+
+sudo mv "${BIN_FILE}" /usr/local/bin/kubectl

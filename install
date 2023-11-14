@@ -135,7 +135,8 @@ fi
 
 mkdir -p "${HOME}/.config/zsh" "${HOME}/.config/gitalias" \
   "${HOME}/.cache/zsh" "${HOME}/.local/bin" \
-  "${HOME}/.local/share" "${HOME}/.local/state"
+  "${HOME}/.local/share" "${HOME}/.local/state" \
+  "${HOME}/.aws" "${HOME}/.kube"
 
 ###############################################################################
 # Personalize git user and setup gitalias
@@ -255,6 +256,14 @@ printf "\n\nInstalling latest terragrunt binary...\n"
 printf "\n\nInstalling latest aws binary...\n"
 
 "${clone_path}/.local/bin/get-awscli"
+
+###############################################################################
+# Install kubectl binary
+###############################################################################
+
+printf "\n\nInstalling kubectl binary...\n"
+
+"${clone_path}/.local/bin/get-kubectl"
 
 ###############################################################################
 # Done!
