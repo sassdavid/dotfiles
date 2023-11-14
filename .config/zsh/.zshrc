@@ -105,5 +105,7 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
 
-kubectl completion zsh > "${fpath[1]}/_kubectl"
-helm completion zsh > "${fpath[1]}/_helm"
+complete -C '/usr/local/bin/aws_completer' aws
+source <(kubectl completion zsh)
+source <(helm completion zsh)
+source <(argocd completion zsh)
