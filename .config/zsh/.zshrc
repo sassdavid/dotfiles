@@ -107,6 +107,17 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
 
+# Load sdkman
+readonly sdkman_home="${XDG_CONFIG_HOME}/sdkman"
+
+if [ -d "${sdkman_home}" ]; then
+  export SDKMAN_DIR="${sdkman_home}"
+
+  if [ -s "${sdkman_home}/bin/sdkman-init.sh" ]; then
+    source "${sdkman_home}/bin/sdkman-init.sh"
+  fi
+fi
+
 # Load nvm and its completion
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" --no-use

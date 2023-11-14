@@ -287,6 +287,15 @@ printf "\n\nInstalling helm binary...\n"
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 ###############################################################################
+# Install sdkman
+###############################################################################
+
+printf "\n\nInstalling sdkman without profile...\n"
+
+SDKMAN_DIR="${HOME}/.config/sdkman" &&
+  curl -s "https://get.sdkman.io?rcupdate=false" | bash
+
+###############################################################################
 # Install nvm
 ###############################################################################
 
