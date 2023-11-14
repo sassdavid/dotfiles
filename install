@@ -7,7 +7,7 @@ skip_system_packages="${1}"
 os_type="$(uname -s)"
 
 apt_packages="curl git tmux ripgrep zsh"
-apt_packages_optional="jq zip unzip maven"
+apt_packages_optional="jq zip unzip"
 
 ###############################################################################
 # Detect OS and distro type
