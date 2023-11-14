@@ -27,6 +27,7 @@ alias dt='cd ${HOME}/src/github/dotfiles'
 alias drun='docker run --rm -it -v "${PWD}":/app -w /app'
 
 alias vdt="rm /tmp/%*"
+alias ac=sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 
