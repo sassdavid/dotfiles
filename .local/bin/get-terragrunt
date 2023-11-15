@@ -3,7 +3,7 @@
 set -e
 
 RELEASES_URL="https://github.com/gruntwork-io/terragrunt/releases"
-test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d -t terragrunt.XXXXXXXXXX)"
 BIN_FILE="${TMPDIR}/terragrunt"
 
 last_version() {
@@ -28,11 +28,11 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
-  local DOWNLOAD_PATH="${RELEASES_URL}/download/${VERSION}/terragrunt_${OS}_${ARC}"
+  local DOWNLOAD_URL="${RELEASES_URL}/download/${VERSION}/terragrunt_${OS}_${ARC}"
 
-  printf "Download terragrunt from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  printf "Download terragrunt from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR}"
   curl -s -L -o "${BIN_FILE}" \
-    "${DOWNLOAD_PATH}"
+    "${DOWNLOAD_URL}"
 }
 
 download

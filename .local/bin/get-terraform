@@ -2,11 +2,15 @@
 
 set -e
 
-test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
-ZIP_FILE="${TMPDIR}/terraform.zip"
-BIN_FILE="${TMPDIR}/terraform"
+test -z "${TMPDIR_TERRAFORM}" && TMPDIR_TERRAFORM="$(mktemp -d -t terraform.XXXXXXXXXX)"
+ZIP_FILE_TERRAFORM="${TMPDIR_TERRAFORM}/terraform.zip"
+BIN_FILE_TERRAFORM="${TMPDIR_TERRAFORM}/terraform"
 
-last_version() {
+test -z "${TMPDIR_TERRAFORM_DOCS}" && TMPDIR_TERRAFORM_DOCS="$(mktemp -d -t terraformdocs.XXXXXXXXXX)"
+ZIP_FILE_TERRAFORM_DOCS="${TMPDIR_TERRAFORM_DOCS}/terraform-docs.tar.gz"
+BIN_FILE_TERRAFORM_DOCS="${TMPDIR_TERRAFORM_DOCS}/terraform-docs"
+
+last_version_terraform() {
   local OS
   OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
@@ -21,29 +25,71 @@ last_version() {
     tail -1
 }
 
-download() {
-  test -z "${DOWNLOAD_PATH}" && local DOWNLOAD_PATH && DOWNLOAD_PATH="$(last_version)"
+last_version_terraform_docs() {
+  curl -sS "https://api.github.com/repos/terraform-docs/terraform-docs/releases/latest" |
+    grep '"tag_name":' |
+    sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+download_terraform() {
+  test -z "${DOWNLOAD_PATH}" && local DOWNLOAD_PATH && DOWNLOAD_PATH="$(last_version_terraform)"
   test -z "${DOWNLOAD_PATH}" && {
     echo "Unable to get terraform version." >&2
     exit 1
   }
 
-  rm -f "${ZIP_FILE}"
-  rm -f "${BIN_FILE}"
+  rm -f "${ZIP_FILE_TERRAFORM}"
+  rm -f "${BIN_FILE_TERRAFORM}"
 
-  printf "Download terraform from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
-  curl -s -L -o "${ZIP_FILE}" \
+  printf "Download terraform from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR_TERRAFORM}"
+  curl -s -L -o "${ZIP_FILE_TERRAFORM}" \
     "${DOWNLOAD_PATH}"
 
-  printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE}" "${TMPDIR}"
-  unzip -q "${ZIP_FILE}" -d "${TMPDIR}"
+  printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE_TERRAFORM}" "${TMPDIR_TERRAFORM}"
+  unzip -q "${ZIP_FILE_TERRAFORM}" -d "${TMPDIR_TERRAFORM}"
 }
 
-download
-chmod +x "${BIN_FILE}"
-"${BIN_FILE}" --version
+download_terraform_docs() {
+  test -z "${VERSION}" && local VERSION && VERSION="$(last_version_terraform_docs)"
+  test -z "${VERSION}" && {
+    echo "Unable to get terraform-docs version." >&2
+    exit 1
+  }
 
-sudo mv "${BIN_FILE}" /usr/local/bin/terraform
+  rm -f "${ZIP_FILE_TERRAFORM_DOCS}"
+  rm -f "${BIN_FILE_TERRAFORM_DOCS}"
+
+  local OS
+  OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+  local ARC
+  ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
+
+  local DOWNLOAD_URL_BASE="https://github.com/terraform-docs/terraform-docs/releases/download"
+  local DOWNLOAD_URL="${DOWNLOAD_URL_BASE}/${VERSION}/terraform-docs-${VERSION}-${OS}-${ARC}.tar.gz"
+
+  printf "Download terraform-docs from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR_TERRAFORM_DOCS}"
+  curl -s -L -o "${ZIP_FILE_TERRAFORM_DOCS}" \
+    "${DOWNLOAD_URL}"
+
+  printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE_TERRAFORM_DOCS}" "${TMPDIR_TERRAFORM_DOCS}"
+  tar -xzf "${ZIP_FILE_TERRAFORM_DOCS}" -C "${TMPDIR_TERRAFORM_DOCS}"
+}
+
+download_terraform
+chmod +x "${BIN_FILE_TERRAFORM}"
+"${BIN_FILE_TERRAFORM}" -v
+sudo mv "${BIN_FILE_TERRAFORM}" /usr/local/bin/terraform
 
 printf "Cleanup...\n"
-rm -rf "${TMPDIR}"
+rm -rf "${TMPDIR_TERRAFORM}"
+
+download_terraform_docs
+chmod +x "${BIN_FILE_TERRAFORM_DOCS}"
+"${BIN_FILE_TERRAFORM_DOCS}" -v
+sudo mv "${BIN_FILE_TERRAFORM_DOCS}" /usr/local/bin/terraform-docs
+
+printf "Cleanup...\n\n"
+rm -rf "${TMPDIR_TERRAFORM_DOCS}"
+
+curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash

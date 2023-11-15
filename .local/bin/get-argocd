@@ -3,7 +3,7 @@
 set -e
 
 RELEASES_URL="https://github.com/argoproj/argo-cd/releases"
-test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d -t argocd.XXXXXXXXXX)"
 BIN_FILE="${TMPDIR}/argocd"
 
 download() {
@@ -17,11 +17,11 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
-  local DOWNLOAD_PATH="${RELEASES_URL}/${ARGOCD_VERSION}/download/argocd-${OS}-${ARC}"
+  local DOWNLOAD_URL="${RELEASES_URL}/${ARGOCD_VERSION}/download/argocd-${OS}-${ARC}"
 
-  printf "Download argocd from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  printf "Download argocd from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR}"
   curl -sSL -o "${BIN_FILE}" \
-    "${DOWNLOAD_PATH}"
+    "${DOWNLOAD_URL}"
 }
 
 download

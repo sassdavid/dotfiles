@@ -3,7 +3,7 @@
 set -e
 
 RELEASE_URL="https://dl.k8s.io/release"
-test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d -t kubectl.XXXXXXXXXX)"
 BIN_FILE="${TMPDIR}/kubectl"
 
 download() {
@@ -17,11 +17,11 @@ download() {
   local ARC
   ARC=$([ "$(uname -m)" = "x86_64" ] && echo "amd64" || echo "386")
 
-  local DOWNLOAD_PATH="${RELEASE_URL}/${KUBECTL_VERSION}/bin/${OS}/${ARC}/kubectl"
+  local DOWNLOAD_URL="${RELEASE_URL}/${KUBECTL_VERSION}/bin/${OS}/${ARC}/kubectl"
 
-  printf "Download kubectl from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  printf "Download kubectl from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR}"
   curl -s -L -o "${BIN_FILE}" \
-    "${DOWNLOAD_PATH}"
+    "${DOWNLOAD_URL}"
 }
 
 download

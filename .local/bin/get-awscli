@@ -4,18 +4,18 @@
 
 set -e
 
-test -z "${TMPDIR}" && TMPDIR="$(mktemp -d)"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d -t awscliv2.XXXXXXXXXX)"
 ZIP_FILE="${TMPDIR}/awscliv2.zip"
 
 download() {
   rm -f "${ZIP_FILE}"
 
-  local DOWNLOAD_PATH="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+  local DOWNLOAD_URL="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 
-  printf "Download aws from %s to '%s'\n" "${DOWNLOAD_PATH}" "${TMPDIR}"
+  printf "Download aws from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR}"
 
   curl -s -L -o "${ZIP_FILE}" \
-    "${DOWNLOAD_PATH}"
+    "${DOWNLOAD_URL}"
 
   printf "Unzip file '%s' to '%s'\n" "${ZIP_FILE}" "${TMPDIR}"
   unzip -q "${ZIP_FILE}" -d "${TMPDIR}"

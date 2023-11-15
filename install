@@ -250,7 +250,7 @@ printf "\n\nInstalling latest aws binary...\n"
 # Install latest terraform binary
 ###############################################################################
 
-printf "\n\nInstalling latest terraform binary...\n"
+printf "\n\nInstalling latest terraform, tflint and terraform-docs binaries...\n"
 
 "${clone_path}/.local/bin/get-terraform"
 
