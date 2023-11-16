@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+
+# Exit immediately if a command exits with a non-zero status.
+set -e
+
+# Check if .m2 directory exists in the home directory, if not create it
+if [ ! -d "${HOME}/.m2" ]; then
+  mkdir "${HOME}/.m2"
+fi
+
+# Define a function to generate the settings-security.xml file
+generate_settings_security() {
+  # Encrypt the input password
+  local encrypted_password
+  encrypted_password=$(mvn --encrypt-master-password "${1}")
+
+  # Create the settings-security.xml file with the encrypted password
+  cat <<EOF >"${HOME}"/.m2/settings-security.xml
+<settingsSecurity>
+  <master>${encrypted_password}</master>
+</settingsSecurity>
+EOF
+
+  printf "Master password encrypted and saved into %s/.m2/settings-security.xml\n" "${HOME}"
+}
+
+# Define a function to generate the settings.xml file
+generate_settings() {
+  # Encrypt the input password
+  local encrypted_password
+  encrypted_password=$(mvn --encrypt-password "${3}")
+
+  # Create the settings.xml file with the encrypted password, repository, and username
+  cat <<EOF >"${HOME}"/.m2/settings.xml
+<settings>
+    <servers>
+        <server>
+            <id>${1}</id>
+            <username>${2}</username>
+            <password>${encrypted_password}</password>
+        </server>
+    </servers>
+</settings>
+EOF
+
+  printf "Password encrypted and saved into %s/.m2/settings.xml" "${HOME}"
+}
+
+# Check if all necessary inputs are supplied
+if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
+  printf "Error: Missing input. Usage: ./script.sh [master_password] [repository] [username] [server_password]\n"
+  exit 1
+fi
+
+# Call the functions with the input parameters
+generate_settings_security "${1}"
+generate_settings "${2}" "${3}" "${4}"
