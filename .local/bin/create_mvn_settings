@@ -3,6 +3,16 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
+disable_settings_security=0
+disable_settings=0
+disable_internal_settings=0
+
+# Define usage function
+usage() {
+  echo "Usage: $0 [-m master_password] [-r repository] [-u username] [-s server_password] [-l url] [-v version] [-d (disable generate_settings_security)] [-e (disable generate_settings)] [-f (disable generate_internal_settings)]"
+  exit 1
+}
+
 # Check if .m2 directory exists in the home directory, if not create it
 if [ ! -d "${HOME}/.m2" ]; then
   mkdir "${HOME}/.m2"
@@ -17,7 +27,7 @@ generate_settings_security() {
   # Create the settings-security.xml file with the encrypted password
   cat <<EOF >"${HOME}"/.m2/settings-security.xml
 <settingsSecurity>
-  <master>${encrypted_password}</master>
+	<master>${encrypted_password}</master>
 </settingsSecurity>
 EOF
 
@@ -43,15 +53,104 @@ generate_settings() {
 </settings>
 EOF
 
-  printf "Password encrypted and saved into %s/.m2/settings.xml" "${HOME}"
+  printf "Password encrypted and saved into %s/.m2/settings.xml\n" "${HOME}"
 }
 
+# Define a function to create the Maven settings.xml file in the specified version directory
+generate_internal_settings() {
+  local settings_file="${SDKMAN_CANDIDATES_DIR}/maven/${3}/conf/settings.xml"
+
+  # Create or overwrite the settings.xml file with the provided content
+  cat <<EOF >"${settings_file}"
+<settings>
+	<profiles>
+		<profile>
+			<id>default-repositories</id>
+			<repositories>
+				<repository>
+					<id>${1}</id>
+					<url>${2}</url>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</repository>
+			</repositories>
+			<pluginRepositories>
+				<pluginRepository>
+					<id>${1}</id>
+					<url>${2}</url>
+					<snapshots>
+						<enabled>false</enabled>
+					</snapshots>
+				</pluginRepository>
+			</pluginRepositories>
+		</profile>
+	</profiles>
+	<activeProfiles>
+		<activeProfile>default-repositories</activeProfile>
+	</activeProfiles>
+</settings>
+EOF
+
+  printf "Internal maven settings.xml created at %s\n" "${settings_file}"
+}
+
+# Parse input options
+while getopts ":m:r:u:s:l:v:def" opt; do
+  case ${opt} in
+  d)
+    disable_settings_security=1
+    ;;
+  e)
+    disable_settings=1
+    ;;
+  f)
+    disable_internal_settings=1
+    ;;
+  m)
+    master_password=$OPTARG
+    ;;
+  r)
+    repository=$OPTARG
+    ;;
+  u)
+    username=$OPTARG
+    ;;
+  s)
+    server_password=$OPTARG
+    ;;
+  l)
+    url=$OPTARG
+    ;;
+  v)
+    version=$OPTARG
+    ;;
+  \?)
+    usage
+    ;;
+  :)
+    echo "Invalid option: $OPTARG requires an argument" 1>&2
+    usage
+    ;;
+  esac
+done
+shift $((OPTIND - 1))
+
 # Check if all necessary inputs are supplied
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
-  printf "Error: Missing input. Usage: ./script.sh [master_password] [repository] [username] [server_password]\n"
-  exit 1
+if [ -z "${master_password}" ] || [ -z "${repository}" ] || [ -z "${username}" ] || [ -z "${server_password}" ] || [ -z "${url}" ] || [ -z "${version}" ]; then
+  echo "All inputs are required."
+  usage
 fi
 
-# Call the functions with the input parameters
-generate_settings_security "${1}"
-generate_settings "${2}" "${3}" "${4}"
+# Call the functions to generate the necessary files
+if [ $disable_settings_security -eq 0 ]; then
+  generate_settings_security "${master_password}"
+fi
+
+if [ $disable_settings -eq 0 ]; then
+  generate_settings "${repository}" "${username}" "${server_password}"
+fi
+
+if [ $disable_internal_settings -eq 0 ]; then
+  generate_internal_settings "${repository}" "${url}" "${version}"
+fi
