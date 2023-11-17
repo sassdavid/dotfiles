@@ -22,6 +22,7 @@ alias cfp='${EDITOR} ${ZDOTDIR}/.zprofile'
 alias cfr='${EDITOR} ${ZDOTDIR}/.zshrc'
 alias sfr='. ${ZDOTDIR}/.zshrc'
 alias cft='${EDITOR} ${HOME}/.tmux.conf'
+alias cfg='${EDITOR} ${HOME}/.gitconfig.user'
 alias dt='cd ${HOME}/src/github/dotfiles'
 
 alias drun='docker run --rm -it -v "${PWD}":/app -w /app'
@@ -32,6 +33,7 @@ alias csdk="find ${XDG_CONFIG_HOME}/sdkman/tmp/ -maxdepth 1 -type f -print -dele
 alias ctg="find . -type d -path '*/.terragrunt-cache' -prune -exec rm -rf {} \;"
 
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
+alias assol="aws sso login --no-browser --profile"
 
 alias g="git"
 alias k="kubectl"
