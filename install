@@ -55,7 +55,9 @@ function apt_install_packages {
   sudo add-apt-repository -y ppa:git-core/ppa
 
   # shellcheck disable=SC2086
-  sudo apt-get update && sudo apt-get install -y ${apt_packages} ${apt_packages_optional}
+  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${apt_packages} ${apt_packages_optional}
+
+  sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
 }
 
 function display_packages {
@@ -277,6 +279,14 @@ printf "\n\nInstalling kubectl binary...\n"
 printf "\n\nInstalling latest argocd binary...\n"
 
 "${clone_path}/.local/bin/get-argocd"
+
+###############################################################################
+# Install pip and pre-commit
+###############################################################################
+
+printf "\n\nInstalling pip and pre-commit...\n"
+
+"${clone_path}/.local/bin/get-precommit"
 
 ###############################################################################
 # Install latest helm binary

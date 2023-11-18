@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+
+RELEASE_URL="https://bootstrap.pypa.io/get-pip.py"
+test -z "${TMPDIR}" && TMPDIR="$(mktemp -d -t pip.XXXXXXXXXX)"
+INSTALL_FILE="${TMPDIR}/get-pip.py"
+
+download() {
+  rm -f "${INSTALL_FILE}"
+
+  local DOWNLOAD_URL="${RELEASE_URL}"
+
+  printf "Download pip from %s to '%s'\n" "${DOWNLOAD_URL}" "${TMPDIR}"
+  curl -s -L -o "${INSTALL_FILE}" \
+    "${DOWNLOAD_URL}"
+}
+
+download
+python3 "${INSTALL_FILE}" --user
+
+printf "Installing 'pre-commit' via 'pip'...\n"
+pip install pre-commit --user
+
+printf "Cleanup...\n"
+rm -rf "${TMPDIR}"
