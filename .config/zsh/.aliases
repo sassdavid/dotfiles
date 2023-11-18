@@ -31,6 +31,7 @@ alias vdt="rm /tmp/%*"
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
 alias csdk="find ${XDG_CONFIG_HOME}/sdkman/tmp/ -maxdepth 1 -type f -print -delete"
 alias ctg="find . -type d -path '*/.terragrunt-cache' -prune -exec rm -rf {} \;"
+alias ctf="find . -type d -path '*/.terraform' -prune -exec rm -rf {} \;"
 
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 alias assol="aws sso login --no-browser --profile"
