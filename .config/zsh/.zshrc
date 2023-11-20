@@ -126,6 +126,7 @@ export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || pr
 # Set autosuggestions
 complete -C '/usr/local/bin/aws_completer' aws
 complete -C '/usr/local/bin/terraform' terraform
+complete -C '/usr/local/bin/terragrunt' terragrunt
 source <(kubectl completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
