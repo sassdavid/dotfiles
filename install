@@ -287,7 +287,7 @@ printf "\n\nInstalling latest argocd binary...\n"
 
 printf "\n\nInstalling latest go binary...\n"
 
-"${clone_path}/.local/bin/get_go"
+"${clone_path}/.local/bin/get-go"
 
 ###############################################################################
 # Install pip and pre-commit
