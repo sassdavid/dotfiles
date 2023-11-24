@@ -2,10 +2,11 @@
 	editor = vim
  	sshCommand = '/mnt/c/Program Files/OpenSSH/ssh.exe'
  	longpaths = true
+ 	autocrlf = input
 
 [color "diff"]
 	whitespace = red reverse
 
 [include]
 	path = ~/.gitconfig.user
-    path = ~/.config/gitalias/gitalias.txt
+	path = ~/.config/gitalias/gitalias.txt
