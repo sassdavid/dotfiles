@@ -32,6 +32,12 @@ setopt HIST_IGNORE_ALL_DUPS  # Never add duplicate entries.
 setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
+# Enable asdf to manage various programming runtime versions.
+[ -f "${XDG_DATA_HOME}/asdf/asdf.sh" ] && . "${XDG_DATA_HOME}/asdf/asdf.sh"
+
+# Enable asdf completion
+fpath=(${ASDF_DIR}/completions $fpath)
+
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
 autoload -U compinit
@@ -76,7 +82,6 @@ if [[ ! "${PATH}" == *${XDG_DATA_HOME}/fzf/bin* ]]; then
 fi
 [[ $- == *i* ]] && . "${XDG_DATA_HOME}/fzf/shell/completion.zsh" 2> /dev/null
 . "${XDG_DATA_HOME}/fzf/shell/key-bindings.zsh"
-
 
 # WSL 2 specific settings.
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then

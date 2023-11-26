@@ -9,6 +9,8 @@ os_type="$(uname -s)"
 apt_packages="curl git tmux ripgrep zsh"
 apt_packages_optional="jq zip unzip python3.10 python3.10-venv python3.11 python3.11-venv python3.12 python3.12-venv"
 
+install_asdf_version="v0.13.1"
+
 ###############################################################################
 # Detect OS and distro type
 ###############################################################################
@@ -231,6 +233,19 @@ fi
 
 # shellcheck disable=SC1090
 . "${HOME}/.config/zsh/.zprofile"
+
+###############################################################################
+# Install asdf and Node (Node is used for 1 Vim plugin)
+###############################################################################
+
+printf "\n\nInstalling asdf %s...\n" "${install_asdf_version}"
+
+rm -rf "${HOME}/.local/share/asdf"
+git clone --depth 1 https://github.com/asdf-vm/asdf.git --branch "${install_asdf_version}" \
+  "${HOME}/.local/share/asdf"
+
+# shellcheck disable=SC1090
+. "${HOME}/.local/share/asdf/asdf.sh"
 
 ###############################################################################
 # Install tmux plugins
