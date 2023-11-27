@@ -33,6 +33,10 @@ setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
 # Enable asdf to manage various programming runtime versions.
+export ASDF_CONFIG_FILE="${XDG_CONFIG_HOME}/.asdfrc"
+export ASDF_DIR="${XDG_CONFIG_HOME}/asdf"
+export ASDF_DATA_DIR="${HOME}/.asdf"
+
 [ -f "${XDG_DATA_HOME}/asdf/asdf.sh" ] && . "${XDG_DATA_HOME}/asdf/asdf.sh"
 
 # Enable asdf completion
@@ -114,17 +118,6 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
 # Load sources from other repository if they exist.
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
-
-# Load sdkman
-readonly sdkman_home="${XDG_CONFIG_HOME}/sdkman"
-
-if [ -d "${sdkman_home}" ]; then
-  export SDKMAN_DIR="${sdkman_home}"
-
-  if [ -s "${sdkman_home}/bin/sdkman-init.sh" ]; then
-    source "${sdkman_home}/bin/sdkman-init.sh"
-  fi
-fi
 
 # Load nvm and its completion
 export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"

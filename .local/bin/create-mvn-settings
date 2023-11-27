@@ -58,7 +58,7 @@ EOF
 
 # Define a function to create the Maven settings.xml file in the specified version directory
 generate_internal_settings() {
-  local settings_file="${SDKMAN_CANDIDATES_DIR}/maven/${3}/conf/settings.xml"
+  local settings_file="${ASDF_DATA_DIR}/installs/maven/${3}/conf/settings.xml"
 
   # Create or overwrite the settings.xml file with the provided content
   cat <<EOF >"${settings_file}"
