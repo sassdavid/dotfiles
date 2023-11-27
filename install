@@ -365,7 +365,7 @@ asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
 
 asdf install golang latest
 
-asdf gobal golang latest
+asdf global golang latest
 
 ###############################################################################
 # Install latest java and maven binaries
@@ -383,12 +383,28 @@ asdf global java latest:corretto-17
 asdf global maven latest
 
 ###############################################################################
-# Install pip and pre-commit
+# Install kafka binaries
 ###############################################################################
 
-printf "\n\nInstalling pip and pre-commit...\n"
+printf "\n\nInstalling kafka...\n"
 
-#"${clone_path}/.local/bin/get-precommit"
+asdf plugin add kafka https://github.com/ueisele/asdf-kafka.git
+
+asdf install kafka apache-3.3.2
+
+asdf global kafka apache-3.3.2
+
+###############################################################################
+# Install pre-commit
+###############################################################################
+
+printf "\n\nInstalling pre-commit...\n"
+
+asdf plugin add pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
+
+asdf install pre-commit latest
+
+asdf global pre-commit latest
 
 ###############################################################################
 # Done!
