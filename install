@@ -251,7 +251,7 @@ git clone --depth 1 https://github.com/asdf-vm/asdf.git --branch "${install_asdf
   "${ASDF_DIR}"
 
 # shellcheck disable=SC1090
-. "${HOME}/.local/share/asdf/asdf.sh"
+. "${ASDF_DIR}/asdf.sh"
 
 ###############################################################################
 # Install tmux plugins
