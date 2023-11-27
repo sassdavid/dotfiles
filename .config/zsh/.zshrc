@@ -37,7 +37,7 @@ export ASDF_CONFIG_FILE="${XDG_CONFIG_HOME}/.asdfrc"
 export ASDF_DIR="${XDG_CONFIG_HOME}/asdf"
 export ASDF_DATA_DIR="${HOME}/.asdf"
 
-[ -f "${XDG_DATA_HOME}/asdf/asdf.sh" ] && . "${XDG_DATA_HOME}/asdf/asdf.sh"
+[ -f "${ASDF_DIR}/asdf.sh" ] && . "${ASDF_DIR}/asdf.sh"
 
 # Enable asdf completion
 fpath=(${ASDF_DIR}/completions $fpath)
@@ -118,11 +118,6 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
 # Load sources from other repository if they exist.
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
-
-# Load nvm and its completion
-export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "${HOME}/.nvm" || printf %s "${XDG_CONFIG_HOME}/nvm")"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" --no-use
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 
 # Set autosuggestions
 complete -C '/usr/local/bin/aws_completer' aws

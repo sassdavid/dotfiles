@@ -291,17 +291,9 @@ asdf install terraform-docs latest
 asdf install tflint latest
 
 asdf global terraform latest
-asdf install terragrunt latest
-asdf install terraform-docs latest
-asdf install tflint latest
-
-###############################################################################
-# Install latest terragrunt binary
-###############################################################################
-
-printf "\n\nInstalling latest terragrunt binary...\n"
-
-"${clone_path}/.local/bin/get-terragrunt"
+asdf global terragrunt latest
+asdf global terraform-docs latest
+asdf global tflint latest
 
 ###############################################################################
 # Install kubectl binary
@@ -309,7 +301,23 @@ printf "\n\nInstalling latest terragrunt binary...\n"
 
 printf "\n\nInstalling kubectl binary...\n"
 
-"${clone_path}/.local/bin/get-kubectl"
+asdf plugin-add kubectl https://github.com/asdf-community/asdf-kubectl.git
+
+asdf install kubectl 1.25.16
+
+asdf global kubectl 1.25.16
+
+###############################################################################
+# Install latest helm binary
+###############################################################################
+
+printf "\n\nInstalling helm binary...\n"
+
+asdf plugin-add helm https://github.com/Antiarchitect/asdf-helm.git
+
+asdf install helm latest
+
+asdf global helm latest
 
 ###############################################################################
 # Install latest argocd binary
@@ -317,7 +325,11 @@ printf "\n\nInstalling kubectl binary...\n"
 
 printf "\n\nInstalling latest argocd binary...\n"
 
-"${clone_path}/.local/bin/get-argocd"
+asdf plugin-add argocd https://github.com/beardix/asdf-argocd.git
+
+asdf install argocd latest
+
+asdf global argocd latest
 
 ###############################################################################
 # Install latest docker-credential-ecr-login binary
@@ -344,28 +356,12 @@ printf "\n\nInstalling pip and pre-commit...\n"
 "${clone_path}/.local/bin/get-precommit"
 
 ###############################################################################
-# Install latest helm binary
-###############################################################################
-
-printf "\n\nInstalling helm binary...\n"
-
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-###############################################################################
 # Install k9s binary
 ###############################################################################
 
 printf "\n\nInstalling k9s binary...\n"
 
 "${clone_path}/.local/bin/get-k9s"
-
-###############################################################################
-# Install nvm
-###############################################################################
-
-printf "\n\nInstalling nvm without profile...\n"
-
-PROFILE=/dev/null bash -c 'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash'
 
 ###############################################################################
 # Done!
