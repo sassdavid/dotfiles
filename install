@@ -301,11 +301,23 @@ asdf global tflint latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-asdf plugin-add kubectl https://github.com/asdf-community/asdf-kubectl.git
+asdf plugin add kubectl https://github.com/asdf-community/asdf-kubectl.git
 
 asdf install kubectl 1.25.16
 
 asdf global kubectl 1.25.16
+
+###############################################################################
+# Install k9s binary
+###############################################################################
+
+printf "\n\nInstalling k9s binary...\n"
+
+asdf plugin add k9s https://github.com/looztra/asdf-k9s
+
+asdf install k9s 0.26.7
+
+asdf global k9s 0.26.7
 
 ###############################################################################
 # Install latest helm binary
@@ -313,7 +325,7 @@ asdf global kubectl 1.25.16
 
 printf "\n\nInstalling helm binary...\n"
 
-asdf plugin-add helm https://github.com/Antiarchitect/asdf-helm.git
+asdf plugin add helm https://github.com/Antiarchitect/asdf-helm.git
 
 asdf install helm latest
 
@@ -325,7 +337,7 @@ asdf global helm latest
 
 printf "\n\nInstalling latest argocd binary...\n"
 
-asdf plugin-add argocd https://github.com/beardix/asdf-argocd.git
+asdf plugin add argocd https://github.com/beardix/asdf-argocd.git
 
 asdf install argocd latest
 
@@ -337,7 +349,11 @@ asdf global argocd latest
 
 printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 
-"${clone_path}/.local/bin/get-amazon-ecr-credential-helper"
+asdf plugin add amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
+
+asdf install amazon-ecr-credential-helper latest
+
+asdf global amazon-ecr-credential-helper latest
 
 ###############################################################################
 # Install latest go binary
@@ -345,7 +361,26 @@ printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 
 printf "\n\nInstalling latest go binary...\n"
 
-"${clone_path}/.local/bin/get-go"
+asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
+
+asdf install golang latest
+
+asdf gobal golang latest
+
+###############################################################################
+# Install latest java and maven binaries
+###############################################################################
+
+printf "\n\nInstalling latest java and maven binaries...\n"
+
+asdf plugin add java https://github.com/halcyon/asdf-java.git
+asdf plugin add maven https://github.com/halcyon/asdf-maven.git
+
+asdf install java latest:corretto-17
+asdf install maven latest
+
+asdf global java latest:corretto-17
+asdf global maven latest
 
 ###############################################################################
 # Install pip and pre-commit
@@ -353,15 +388,7 @@ printf "\n\nInstalling latest go binary...\n"
 
 printf "\n\nInstalling pip and pre-commit...\n"
 
-"${clone_path}/.local/bin/get-precommit"
-
-###############################################################################
-# Install k9s binary
-###############################################################################
-
-printf "\n\nInstalling k9s binary...\n"
-
-"${clone_path}/.local/bin/get-k9s"
+#"${clone_path}/.local/bin/get-precommit"
 
 ###############################################################################
 # Done!

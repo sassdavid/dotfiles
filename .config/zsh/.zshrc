@@ -42,6 +42,10 @@ export ASDF_DATA_DIR="${HOME}/.asdf"
 # Enable asdf completion
 fpath=(${ASDF_DIR}/completions $fpath)
 
+# Load additional asdf scripts
+[ -f "${ASDF_DATA_DIR}/plugins/golang/set-env.zsh" ] && . "${ASDF_DATA_DIR}/plugins/golang/set-env.zsh"
+[ -f "${ASDF_DATA_DIR}/plugins/java/set-java-home.zsh" ] && . "${ASDF_DATA_DIR}/plugins/java/set-java-home.zsh"
+
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
 autoload -U compinit
