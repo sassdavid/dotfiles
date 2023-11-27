@@ -1,6 +1,6 @@
 asdf_update_maven_home() {
   local maven_path
-  maven_path="$(asdf which maven)"
+  maven_path="$(asdf which mvn)"
   if [[ -n "${maven_path}" ]]; then
     export MAVEN_HOME
     MAVEN_HOME="$(dirname "$(dirname "${maven_path:A}")")"
