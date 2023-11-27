@@ -10,6 +10,10 @@ export XDG_STATE_HOME="${HOME}/.local/state"
 # Add all local binaries to the system path.
 export PATH="${PATH}:${HOME}/.local/bin:${HOME}/.local/bin/private"
 
+# Add go binaries to the system path.
+export GOPATH="${HOME}/go"
+export PATH="${PATH}:${GOPATH}/bin"
+
 # Default programs to run.
 export EDITOR="vim"
 
