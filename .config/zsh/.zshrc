@@ -126,8 +126,8 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
 # Set autosuggestions
 complete -C '$(asdf which aws_completer)' aws
-complete -C '/usr/local/bin/terraform' terraform
-complete -C '/usr/local/bin/terragrunt' terragrunt
+complete -C '$(asdf which terraform)' terraform
+complete -C '$(asdf which terragrunt)' terragrunt
 source <(kubectl completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
