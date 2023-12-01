@@ -14,6 +14,9 @@ export PATH="${PATH}:${HOME}/.local/bin:${HOME}/.local/bin/private"
 export GOPATH="${HOME}/go"
 export PATH="${PATH}:${GOPATH}/bin"
 
+# Set rtx fetch remote versions timeout
+export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
+
 # Default programs to run.
 export EDITOR="vim"
 
