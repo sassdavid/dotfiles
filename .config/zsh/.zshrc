@@ -34,6 +34,7 @@ setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
 # Enable rtx to manage various programming runtime versions.
 eval "$(${XDG_DATA_HOME}/rtx/bin/rtx activate zsh)"
+eval "$(${XDG_DATA_HOME}/rtx/bin/rtx hook-env)"
 
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
