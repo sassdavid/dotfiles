@@ -9,8 +9,6 @@ os_type="$(uname -s)"
 apt_packages="curl git tmux ripgrep zsh"
 apt_packages_optional="jq zip unzip python3.10 python3.10-venv python3.11 python3.11-venv python3.12 python3.12-venv"
 
-install_asdf_version="v0.13.1"
-
 ###############################################################################
 # Detect OS and distro type
 ###############################################################################
@@ -181,7 +179,6 @@ ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv"
 ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc"
 ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile"
 ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
-ln -fs "${clone_path}/.config/zsh/.asdfrc" "${HOME}/.config/zsh/.asdfrc"
 ln -fs "${clone_path}/.gitconfig" "${HOME}/.gitconfig"
 ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf"
 ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
@@ -218,7 +215,6 @@ ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv" &&
   ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
   ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
   ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
-  ln -fs "${clone_path}/.config/zsh/.asdfrc" "${HOME}/.config/zsh/.asdfrc" &&
   ln -fs "${clone_path}/.gitconfig" "${HOME}/.gitconfig" &&
   ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf" &&
   ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
@@ -237,21 +233,17 @@ fi
 . "${HOME}/.config/zsh/.zprofile"
 
 ###############################################################################
-# Install asdf and Node (Node is used for 1 Vim plugin)
+# Install rtx
 ###############################################################################
 
-printf "\n\nInstalling asdf %s...\n" "${install_asdf_version}"
+printf "\n\nInstalling latest rtx...\n"
 
-export ASDF_CONFIG_FILE="${HOME}/.config/.asdfrc"
-export ASDF_DIR="${HOME}/.config/asdf"
-export ASDF_DATA_DIR="${HOME}/.asdf"
-
-rm -rf "${ASDF_DIR}"
-git clone --depth 1 https://github.com/asdf-vm/asdf.git --branch "${install_asdf_version}" \
-  "${ASDF_DIR}"
+curl https://rtx.pub/install.sh | sh
 
 # shellcheck disable=SC1090
-. "${ASDF_DIR}/asdf.sh"
+eval "$("${HOME}"/.local/share/rtx/bin/rtx activate zsh)"
+
+sudo bash -c "${HOME}/.local/share/rtx/bin/rtx completion zsh > /usr/local/share/zsh/site-functions/_rtx"
 
 ###############################################################################
 # Install tmux plugins
@@ -268,11 +260,11 @@ export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 
 printf "\n\nInstalling latest aws binary...\n"
 
-asdf plugin add awscli https://github.com/MetricMike/asdf-awscli.git
+rtx plugins install awscli https://github.com/MetricMike/asdf-awscli.git
 
-asdf install awscli latest
+rtx install awscli@latest
 
-asdf global awscli latest
+rtx use --pin awscli@latest && rtx use -g awscli@latest
 
 ###############################################################################
 # Install latest terraform binary
@@ -280,20 +272,20 @@ asdf global awscli latest
 
 printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
 
-asdf plugin add terraform https://github.com/asdf-community/asdf-hashicorp.git
-asdf plugin add terragrunt https://github.com/ohmer/asdf-terragrunt
-asdf plugin add terraform-docs https://github.com/looztra/asdf-terraform-docs
-asdf plugin add tflint https://github.com/skyzyx/asdf-tflint
+rtx plugins install terraform https://github.com/asdf-community/asdf-hashicorp.git
+rtx plugins install terragrunt https://github.com/ohmer/asdf-terragrunt
+rtx plugins install terraform-docs https://github.com/looztra/asdf-terraform-docs
+rtx plugins install tflint https://github.com/skyzyx/asdf-tflint
 
-asdf install terraform latest
-asdf install terragrunt latest
-asdf install terraform-docs latest
-asdf install tflint latest
+rtx install terraform@latest
+rtx install terragrunt@latest
+rtx install terraform-docs@latest
+rtx install tflint@latest
 
-asdf global terraform latest
-asdf global terragrunt latest
-asdf global terraform-docs latest
-asdf global tflint latest
+rtx use --pin terraform@latest && rtx use -g terraform@latest
+rtx use --pin terragrunt@latest && rtx use -g terragrunt@latest
+rtx use --pin terraform-docs@latest && rtx use -g terraform-docs@latest
+rtx use --pin tflint@latest && rtx use -g tflint@latest
 
 ###############################################################################
 # Install kubectl binary
@@ -301,11 +293,11 @@ asdf global tflint latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-asdf plugin add kubectl https://github.com/asdf-community/asdf-kubectl.git
+rtx plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
-asdf install kubectl 1.25.16
+rtx install kubectl@1.25.16
 
-asdf global kubectl 1.25.16
+rtx use --pin kubectl@1.25.16 && rtx use -g kubectl@1.25.16
 
 ###############################################################################
 # Install k9s binary
@@ -313,11 +305,11 @@ asdf global kubectl 1.25.16
 
 printf "\n\nInstalling k9s binary...\n"
 
-asdf plugin add k9s https://github.com/looztra/asdf-k9s
+rtx plugins install k9s https://github.com/looztra/asdf-k9s
 
-asdf install k9s 0.26.7
+rtx install k9s@0.26.7
 
-asdf global k9s 0.26.7
+rtx use --pin k9s@0.26.7 && rtx use -g k9s@0.26.7
 
 ###############################################################################
 # Install latest helm binary
@@ -325,11 +317,11 @@ asdf global k9s 0.26.7
 
 printf "\n\nInstalling helm binary...\n"
 
-asdf plugin add helm https://github.com/Antiarchitect/asdf-helm.git
+rtx plugins install helm https://github.com/Antiarchitect/asdf-helm.git
 
-asdf install helm latest
+rtx install helm@latest
 
-asdf global helm latest
+rtx use --pin helm@latest && rtx use -g helm@latest
 
 ###############################################################################
 # Install latest argocd binary
@@ -337,11 +329,11 @@ asdf global helm latest
 
 printf "\n\nInstalling latest argocd binary...\n"
 
-asdf plugin add argocd https://github.com/beardix/asdf-argocd.git
+rtx plugins install argocd https://github.com/beardix/asdf-argocd.git
 
-asdf install argocd latest
+rtx install argocd@latest
 
-asdf global argocd latest
+rtx use --pin argocd@latest && rtx use -g argocd@latest
 
 ###############################################################################
 # Install latest docker-credential-ecr-login binary
@@ -349,11 +341,11 @@ asdf global argocd latest
 
 printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 
-asdf plugin add amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
+rtx plugins install amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
 
-asdf install amazon-ecr-credential-helper latest
+rtx install amazon-ecr-credential-helper@latest
 
-asdf global amazon-ecr-credential-helper latest
+rtx use --pin amazon-ecr-credential-helper@latest && rtx use -g amazon-ecr-credential-helper@latest
 
 ###############################################################################
 # Install latest go binary
@@ -361,11 +353,11 @@ asdf global amazon-ecr-credential-helper latest
 
 printf "\n\nInstalling latest go binary...\n"
 
-asdf plugin add golang https://github.com/asdf-community/asdf-golang.git
+rtx plugins install golang https://github.com/asdf-community/asdf-golang.git
 
-asdf install golang latest
+rtx install golang@latest
 
-asdf global golang latest
+rtx use --pin golang@latest && rtx use -g golang@latest
 
 ###############################################################################
 # Install latest java and maven binaries
@@ -373,14 +365,14 @@ asdf global golang latest
 
 printf "\n\nInstalling latest java and maven binaries...\n"
 
-asdf plugin add java https://github.com/halcyon/asdf-java.git
-asdf plugin add maven https://github.com/halcyon/asdf-maven.git
+rtx plugins install java https://github.com/halcyon/asdf-java.git
+rtx plugins install maven https://github.com/halcyon/asdf-maven.git
 
-asdf install java latest:corretto-17
-asdf install maven latest
+rtx install java@corretto-17
+rtx install maven@latest
 
-asdf global java latest:corretto-17
-asdf global maven latest
+rtx use --pin java@corretto-17 && rtx use -g java@corretto-17
+rtx use --pin maven@latest && rtx use -g maven@latest
 
 ###############################################################################
 # Install kafka binaries
@@ -388,11 +380,11 @@ asdf global maven latest
 
 printf "\n\nInstalling kafka...\n"
 
-asdf plugin add kafka https://github.com/ueisele/asdf-kafka.git
+rtx plugins install kafka https://github.com/ueisele/asdf-kafka.git
 
-asdf install kafka apache-3.3.2
+rtx install kafka@apache-3.3.2
 
-asdf global kafka apache-3.3.2
+rtx use --pin kafka@apache-3.3.2 && rtx use -g kafka@apache-3.3.2
 
 ###############################################################################
 # Install pre-commit
@@ -400,11 +392,11 @@ asdf global kafka apache-3.3.2
 
 printf "\n\nInstalling pre-commit...\n"
 
-asdf plugin add pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
+rtx plugins install pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
 
-asdf install pre-commit latest
+rtx install pre-commit@latest
 
-asdf global pre-commit latest
+rtx use --pin pre-commit@latest && rtx use -g pre-commit@latest
 
 ###############################################################################
 # Done!

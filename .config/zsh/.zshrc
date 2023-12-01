@@ -32,20 +32,8 @@ setopt HIST_IGNORE_ALL_DUPS  # Never add duplicate entries.
 setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
-# Enable asdf to manage various programming runtime versions.
-export ASDF_CONFIG_FILE="${XDG_CONFIG_HOME}/.asdfrc"
-export ASDF_DIR="${XDG_CONFIG_HOME}/asdf"
-export ASDF_DATA_DIR="${HOME}/.asdf"
-
-[ -f "${ASDF_DIR}/asdf.sh" ] && . "${ASDF_DIR}/asdf.sh"
-
-# Enable asdf completion
-fpath=(${ASDF_DIR}/completions $fpath)
-
-# Load additional asdf scripts
-[ -f "${ASDF_DATA_DIR}/plugins/golang/set-env.zsh" ] && . "${ASDF_DATA_DIR}/plugins/golang/set-env.zsh"
-[ -f "${ASDF_DATA_DIR}/plugins/java/set-java-home.zsh" ] && . "${ASDF_DATA_DIR}/plugins/java/set-java-home.zsh"
-[ -f "${HOME}/.local/bin/set-maven-home.zsh" ] && . "${HOME}/.local/bin/set-maven-home.zsh"
+# Enable rtx to manage various programming runtime versions.
+eval "$(${XDG_DATA_HOME}/rtx/bin/rtx activate zsh)"
 
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
@@ -125,9 +113,9 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
 
 # Set autosuggestions
-complete -C '$(asdf which aws_completer)' aws
-complete -C '$(asdf which terraform)' terraform
-complete -C '$(asdf which terragrunt)' terragrunt
+complete -C '$(which aws_completer)' aws
+complete -C '$(which terraform)' terraform
+complete -C '$(which terragrunt)' terragrunt
 source <(kubectl completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
