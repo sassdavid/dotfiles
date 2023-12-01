@@ -240,8 +240,7 @@ printf "\n\nInstalling latest rtx...\n"
 
 curl https://rtx.pub/install.sh | sh
 
-# shellcheck disable=SC1090
-eval "$("${HOME}"/.local/share/rtx/bin/rtx activate zsh)"
+eval "$("${HOME}"/.local/share/rtx/bin/rtx activate bash)"
 
 sudo bash -c "${HOME}/.local/share/rtx/bin/rtx completion zsh > /usr/local/share/zsh/site-functions/_rtx"
 
@@ -264,7 +263,7 @@ rtx plugins install awscli https://github.com/MetricMike/asdf-awscli.git
 
 rtx install awscli@latest
 
-rtx use --pin awscli@latest && rtx use -g awscli@latest
+rtx use -g --pin awscli@latest
 
 ###############################################################################
 # Install latest terraform binary
@@ -282,10 +281,10 @@ rtx install terragrunt@latest
 rtx install terraform-docs@latest
 rtx install tflint@latest
 
-rtx use --pin terraform@latest && rtx use -g terraform@latest
-rtx use --pin terragrunt@latest && rtx use -g terragrunt@latest
-rtx use --pin terraform-docs@latest && rtx use -g terraform-docs@latest
-rtx use --pin tflint@latest && rtx use -g tflint@latest
+rtx use -g --pin terraform@latest
+rtx use -g --pin terragrunt@latest
+rtx use -g --pin terraform-docs@latest
+rtx use -g --pin tflint@latest
 
 ###############################################################################
 # Install kubectl binary
@@ -297,7 +296,7 @@ rtx plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
 rtx install kubectl@1.25.16
 
-rtx use --pin kubectl@1.25.16 && rtx use -g kubectl@1.25.16
+rtx use -g --pin kubectl@1.25.16
 
 ###############################################################################
 # Install k9s binary
@@ -309,7 +308,7 @@ rtx plugins install k9s https://github.com/looztra/asdf-k9s
 
 rtx install k9s@0.26.7
 
-rtx use --pin k9s@0.26.7 && rtx use -g k9s@0.26.7
+rtx use -g --pin k9s@0.26.7
 
 ###############################################################################
 # Install latest helm binary
@@ -321,7 +320,7 @@ rtx plugins install helm https://github.com/Antiarchitect/asdf-helm.git
 
 rtx install helm@latest
 
-rtx use --pin helm@latest && rtx use -g helm@latest
+rtx use -g --pin helm@latest
 
 ###############################################################################
 # Install latest argocd binary
@@ -333,7 +332,7 @@ rtx plugins install argocd https://github.com/beardix/asdf-argocd.git
 
 rtx install argocd@latest
 
-rtx use --pin argocd@latest && rtx use -g argocd@latest
+rtx use -g --pin argocd@latest
 
 ###############################################################################
 # Install latest docker-credential-ecr-login binary
@@ -345,7 +344,7 @@ rtx plugins install amazon-ecr-credential-helper https://github.com/dex4er/asdf-
 
 rtx install amazon-ecr-credential-helper@latest
 
-rtx use --pin amazon-ecr-credential-helper@latest && rtx use -g amazon-ecr-credential-helper@latest
+rtx use -g --pin amazon-ecr-credential-helper@latest
 
 ###############################################################################
 # Install latest go binary
@@ -357,7 +356,7 @@ rtx plugins install golang https://github.com/asdf-community/asdf-golang.git
 
 rtx install golang@latest
 
-rtx use --pin golang@latest && rtx use -g golang@latest
+rtx use -g --pin golang@latest
 
 ###############################################################################
 # Install latest java and maven binaries
@@ -371,8 +370,8 @@ rtx plugins install maven https://github.com/halcyon/asdf-maven.git
 rtx install java@corretto-17
 rtx install maven@latest
 
-rtx use --pin java@corretto-17 && rtx use -g java@corretto-17
-rtx use --pin maven@latest && rtx use -g maven@latest
+rtx use -g --pin java@corretto-17
+rtx use -g --pin maven@latest
 
 ###############################################################################
 # Install kafka binaries
@@ -384,7 +383,7 @@ rtx plugins install kafka https://github.com/ueisele/asdf-kafka.git
 
 rtx install kafka@apache-3.3.2
 
-rtx use --pin kafka@apache-3.3.2 && rtx use -g kafka@apache-3.3.2
+rtx use -g --pin kafka@apache-3.3.2
 
 ###############################################################################
 # Install pre-commit
@@ -396,7 +395,7 @@ rtx plugins install pre-commit https://github.com/jonathanmorley/asdf-pre-commit
 
 rtx install pre-commit@latest
 
-rtx use --pin pre-commit@latest && rtx use -g pre-commit@latest
+rtx use -g --pin pre-commit@latest
 
 ###############################################################################
 # Done!
