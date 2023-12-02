@@ -246,6 +246,8 @@ sudo bash -c "${HOME}/.local/share/rtx/bin/rtx completion zsh > /usr/local/share
 
 export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
 
+rtx settings set legacy_version_file false
+
 ###############################################################################
 # Install tmux plugins
 ###############################################################################
@@ -354,8 +356,6 @@ rtx use -g --pin amazon-ecr-credential-helper@latest
 
 printf "\n\nInstalling latest go binary...\n"
 
-rtx plugins install golang https://github.com/asdf-community/asdf-golang.git
-
 rtx install golang@latest
 
 rtx use -g --pin golang@latest
@@ -366,7 +366,6 @@ rtx use -g --pin golang@latest
 
 printf "\n\nInstalling latest java and maven binaries...\n"
 
-rtx plugins install java https://github.com/halcyon/asdf-java.git
 rtx plugins install maven https://github.com/halcyon/asdf-maven.git
 
 rtx install java@corretto-17
