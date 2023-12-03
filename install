@@ -7,7 +7,7 @@ skip_system_packages="${1}"
 os_type="$(uname -s)"
 
 apt_packages="curl git tmux ripgrep zsh"
-apt_packages_optional="jq zip unzip"
+apt_packages_optional="zip unzip"
 
 ###############################################################################
 # Detect OS and distro type
@@ -255,6 +255,21 @@ printf "\n\nInstalling tmux plugins...\n"
 
 export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 "${HOME}/.tmux/plugins/tpm/bin/install_plugins"
+
+###############################################################################
+# Install latest jq and yq binaries
+###############################################################################
+
+printf "\n\nInstalling latest jq and yq binaries...\n"
+
+rtx plugins install jq https://github.com/lsanwick/asdf-jq.git
+rtx plugins install yq https://github.com/sudermanjr/asdf-yq.git
+
+rtx install jq@latest
+rtx install yq@latest
+
+rtx use -g --pin jq@latest
+rtx use -g --pin yq@latest
 
 ###############################################################################
 # Install latest aws binary
