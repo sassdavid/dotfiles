@@ -237,11 +237,9 @@ fi
 
 printf "\n\nInstalling latest rtx...\n"
 
-curl https://rtx.pub/install.sh | sh
+curl https://rtx.jdx.dev/install.sh | sh
 
 eval "$("${HOME}"/.local/share/rtx/bin/rtx activate bash)"
-
-sudo bash -c "${HOME}/.local/share/rtx/bin/rtx completion zsh > /usr/local/share/zsh/site-functions/_rtx"
 
 export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
 

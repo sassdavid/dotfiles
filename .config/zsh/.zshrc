@@ -114,9 +114,12 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
 
 # Set autosuggestions
+eval "$(${XDG_DATA_HOME}/rtx/bin/rtx completion zsh)"
+
 complete -C '$(which aws_completer)' aws
 complete -C '$(which terraform)' terraform
 complete -C '$(which terragrunt)' terragrunt
+
 source <(kubectl completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
