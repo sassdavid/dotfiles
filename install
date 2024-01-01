@@ -242,8 +242,9 @@ curl https://rtx.jdx.dev/install.sh | sh
 eval "$("${HOME}"/.local/share/rtx/bin/rtx activate bash)"
 
 export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
-
-rtx settings set legacy_version_file false
+export RTX_GO_SET_GOPATH="false"
+export RTX_LEGACY_VERSION_FILE="false"
+export RTX_NOT_FOUND_AUTO_INSTALL="false"
 
 ###############################################################################
 # Install tmux plugins
@@ -368,9 +369,9 @@ rtx use -g --pin amazon-ecr-credential-helper@latest
 
 printf "\n\nInstalling latest go binary...\n"
 
-rtx install golang@latest
+rtx install go@latest
 
-rtx use -g --pin golang@latest
+rtx use -g --pin go@latest
 
 ###############################################################################
 # Install latest java and maven binaries
