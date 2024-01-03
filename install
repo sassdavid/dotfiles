@@ -239,7 +239,7 @@ printf "\n\nInstalling latest mise...\n"
 
 curl https://mise.jdx.dev/install.sh | sh
 
-eval "$("${HOME}"/.local/share/mise/bin/mise activate bash)"
+eval "$("${HOME}"/.local/bin/mise activate bash)"
 
 export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
 export MISE_GO_SET_GOPATH="false"

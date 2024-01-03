@@ -33,8 +33,8 @@ setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
 # Enable mise to manage various programming runtime versions.
-eval "$(${XDG_DATA_HOME}/mise/bin/mise activate zsh)"
-eval "$(${XDG_DATA_HOME}/mise/bin/mise hook-env)"
+eval "$(${HOME}/.local/bin/mise activate zsh)"
+eval "$(${HOME}/.local/bin/mise hook-env)"
 
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
@@ -114,7 +114,7 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
 
 # Set autosuggestions
-eval "$(${XDG_DATA_HOME}/mise/bin/mise completion zsh)"
+eval "$(${HOME}/.local/bin/mise completion zsh)"
 
 complete -C '$(which aws_completer)' aws
 complete -C '$(which terraform)' terraform
