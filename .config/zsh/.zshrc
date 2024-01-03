@@ -32,9 +32,9 @@ setopt HIST_IGNORE_ALL_DUPS  # Never add duplicate entries.
 setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
-# Enable rtx to manage various programming runtime versions.
-eval "$(${XDG_DATA_HOME}/rtx/bin/rtx activate zsh)"
-eval "$(${XDG_DATA_HOME}/rtx/bin/rtx hook-env)"
+# Enable mise to manage various programming runtime versions.
+eval "$(${XDG_DATA_HOME}/mise/bin/mise activate zsh)"
+eval "$(${XDG_DATA_HOME}/mise/bin/mise hook-env)"
 
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
@@ -85,6 +85,10 @@ fi
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
     export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
+
+    # Configure OpenSSH in order to 1password ssh will be usable
+    export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+    export GIT_SSH_COMMAND='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
 fi
 
 # Allows your gpg passphrase prompt to spawn (useful for signing commits).
@@ -94,10 +98,6 @@ export GPG_TTY="$(tty)"
 export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
 export FZF_DEFAULT_OPTS="--color=dark"
 export FZF_CTRL_T_OPTS="--preview='less {}' --height=100% --bind shift-up:preview-page-up,shift-down:preview-page-down"
-
-# Configure OpenSSH in order to 1password ssh will be usable
-export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
-export GIT_SSH_COMMAND='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
 
 # zsh-autosuggestions settings.
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
@@ -114,7 +114,7 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"
 
 # Set autosuggestions
-eval "$(${XDG_DATA_HOME}/rtx/bin/rtx completion zsh)"
+eval "$(${XDG_DATA_HOME}/mise/bin/mise completion zsh)"
 
 complete -C '$(which aws_completer)' aws
 complete -C '$(which terraform)' terraform

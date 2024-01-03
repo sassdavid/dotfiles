@@ -14,11 +14,11 @@ export PATH="${PATH}:${HOME}/.local/bin:${HOME}/.local/bin/private"
 export GOPATH="${HOME}/go"
 export PATH="${PATH}:${GOPATH}/bin"
 
-# Set rtx environment variables
-export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
-export RTX_GO_SET_GOPATH="false"
-export RTX_LEGACY_VERSION_FILE="false"
-export RTX_NOT_FOUND_AUTO_INSTALL="false"
+# Set mise environment variables
+export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
+export MISE_GO_SET_GOPATH="false"
+export MISE_LEGACY_VERSION_FILE="false"
+export MISE_NOT_FOUND_AUTO_INSTALL="false"
 
 # Default programs to run.
 export EDITOR="vim"

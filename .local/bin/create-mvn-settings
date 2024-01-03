@@ -58,7 +58,7 @@ EOF
 
 # Define a function to create the Maven settings.xml file in the gathered latest directory
 generate_internal_settings() {
-  local maven_dir && maven_dir=$(rtx where maven)
+  local maven_dir && maven_dir=$(mise where maven)
   local settings_file="${maven_dir}/conf/settings.xml"
 
   # Create or overwrite the settings.xml file with the provided content

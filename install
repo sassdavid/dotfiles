@@ -232,19 +232,19 @@ fi
 . "${HOME}/.config/zsh/.zprofile"
 
 ###############################################################################
-# Install rtx
+# Install mise
 ###############################################################################
 
-printf "\n\nInstalling latest rtx...\n"
+printf "\n\nInstalling latest mise...\n"
 
-curl https://rtx.jdx.dev/install.sh | sh
+curl https://mise.jdx.dev/install.sh | sh
 
-eval "$("${HOME}"/.local/share/rtx/bin/rtx activate bash)"
+eval "$("${HOME}"/.local/share/mise/bin/mise activate bash)"
 
-export RTX_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
-export RTX_GO_SET_GOPATH="false"
-export RTX_LEGACY_VERSION_FILE="false"
-export RTX_NOT_FOUND_AUTO_INSTALL="false"
+export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
+export MISE_GO_SET_GOPATH="false"
+export MISE_LEGACY_VERSION_FILE="false"
+export MISE_NOT_FOUND_AUTO_INSTALL="false"
 
 ###############################################################################
 # Install tmux plugins
@@ -261,14 +261,14 @@ export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 
 printf "\n\nInstalling latest jq and yq binaries...\n"
 
-rtx plugins install jq https://github.com/lsanwick/asdf-jq.git
-rtx plugins install yq https://github.com/sudermanjr/asdf-yq.git
+mise plugins install jq https://github.com/lsanwick/asdf-jq.git
+mise plugins install yq https://github.com/sudermanjr/asdf-yq.git
 
-rtx install jq@latest
-rtx install yq@latest
+mise install jq@latest
+mise install yq@latest
 
-rtx use -g --pin jq@latest
-rtx use -g --pin yq@latest
+mise use -g --pin jq@latest
+mise use -g --pin yq@latest
 
 ###############################################################################
 # Install latest aws binary
@@ -276,11 +276,11 @@ rtx use -g --pin yq@latest
 
 printf "\n\nInstalling latest aws binary...\n"
 
-rtx plugins install awscli https://github.com/MetricMike/asdf-awscli.git
+mise plugins install awscli https://github.com/MetricMike/asdf-awscli.git
 
-rtx install awscli@latest
+mise install awscli@latest
 
-rtx use -g --pin awscli@latest
+mise use -g --pin awscli@latest
 
 ###############################################################################
 # Install latest terraform binary
@@ -288,20 +288,20 @@ rtx use -g --pin awscli@latest
 
 printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
 
-rtx plugins install terraform https://github.com/asdf-community/asdf-hashicorp.git
-rtx plugins install terragrunt https://github.com/ohmer/asdf-terragrunt
-rtx plugins install terraform-docs https://github.com/looztra/asdf-terraform-docs
-rtx plugins install tflint https://github.com/skyzyx/asdf-tflint
+mise plugins install terraform https://github.com/asdf-community/asdf-hashicorp.git
+mise plugins install terragrunt https://github.com/ohmer/asdf-terragrunt
+mise plugins install terraform-docs https://github.com/looztra/asdf-terraform-docs
+mise plugins install tflint https://github.com/skyzyx/asdf-tflint
 
-rtx install terraform@latest
-rtx install terragrunt@latest
-rtx install terraform-docs@latest
-rtx install tflint@latest
+mise install terraform@latest
+mise install terragrunt@latest
+mise install terraform-docs@latest
+mise install tflint@latest
 
-rtx use -g --pin terraform@latest
-rtx use -g --pin terragrunt@latest
-rtx use -g --pin terraform-docs@latest
-rtx use -g --pin tflint@latest
+mise use -g --pin terraform@latest
+mise use -g --pin terragrunt@latest
+mise use -g --pin terraform-docs@latest
+mise use -g --pin tflint@latest
 
 ###############################################################################
 # Install kubectl binary
@@ -309,11 +309,11 @@ rtx use -g --pin tflint@latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-rtx plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
+mise plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
-rtx install kubectl@1.25.16
+mise install kubectl@1.25.16
 
-rtx use -g --pin kubectl@1.25.16
+mise use -g --pin kubectl@1.25.16
 
 ###############################################################################
 # Install k9s binary
@@ -321,11 +321,11 @@ rtx use -g --pin kubectl@1.25.16
 
 printf "\n\nInstalling k9s binary...\n"
 
-rtx plugins install k9s https://github.com/looztra/asdf-k9s
+mise plugins install k9s https://github.com/looztra/asdf-k9s
 
-rtx install k9s@0.26.7
+mise install k9s@0.26.7
 
-rtx use -g --pin k9s@0.26.7
+mise use -g --pin k9s@0.26.7
 
 ###############################################################################
 # Install latest helm binary
@@ -333,11 +333,11 @@ rtx use -g --pin k9s@0.26.7
 
 printf "\n\nInstalling helm binary...\n"
 
-rtx plugins install helm https://github.com/Antiarchitect/asdf-helm.git
+mise plugins install helm https://github.com/Antiarchitect/asdf-helm.git
 
-rtx install helm@latest
+mise install helm@latest
 
-rtx use -g --pin helm@latest
+mise use -g --pin helm@latest
 
 ###############################################################################
 # Install latest argocd binary
@@ -345,11 +345,11 @@ rtx use -g --pin helm@latest
 
 printf "\n\nInstalling latest argocd binary...\n"
 
-rtx plugins install argocd https://github.com/beardix/asdf-argocd.git
+mise plugins install argocd https://github.com/beardix/asdf-argocd.git
 
-rtx install argocd@latest
+mise install argocd@latest
 
-rtx use -g --pin argocd@latest
+mise use -g --pin argocd@latest
 
 ###############################################################################
 # Install latest docker-credential-ecr-login binary
@@ -357,11 +357,11 @@ rtx use -g --pin argocd@latest
 
 printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 
-rtx plugins install amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
+mise plugins install amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
 
-rtx install amazon-ecr-credential-helper@latest
+mise install amazon-ecr-credential-helper@latest
 
-rtx use -g --pin amazon-ecr-credential-helper@latest
+mise use -g --pin amazon-ecr-credential-helper@latest
 
 ###############################################################################
 # Install latest go binary
@@ -369,9 +369,9 @@ rtx use -g --pin amazon-ecr-credential-helper@latest
 
 printf "\n\nInstalling latest go binary...\n"
 
-rtx install go@latest
+mise install go@latest
 
-rtx use -g --pin go@latest
+mise use -g --pin go@latest
 
 ###############################################################################
 # Install latest java and maven binaries
@@ -379,13 +379,13 @@ rtx use -g --pin go@latest
 
 printf "\n\nInstalling latest java and maven binaries...\n"
 
-rtx plugins install maven https://github.com/halcyon/asdf-maven.git
+mise plugins install maven https://github.com/halcyon/asdf-maven.git
 
-rtx install java@corretto-17
-rtx install maven@latest
+mise install java@corretto-17
+mise install maven@latest
 
-rtx use -g --pin java@corretto-17
-rtx use -g --pin maven@latest
+mise use -g --pin java@corretto-17
+mise use -g --pin maven@latest
 
 ###############################################################################
 # Install kafka binaries
@@ -393,11 +393,11 @@ rtx use -g --pin maven@latest
 
 printf "\n\nInstalling kafka...\n"
 
-rtx plugins install kafka https://github.com/ueisele/asdf-kafka.git
+mise plugins install kafka https://github.com/ueisele/asdf-kafka.git
 
-rtx install kafka@apache-3.3.2
+mise install kafka@apache-3.3.2
 
-rtx use -g --pin kafka@apache-3.3.2
+mise use -g --pin kafka@apache-3.3.2
 
 ###############################################################################
 # Install pre-commit
@@ -405,11 +405,11 @@ rtx use -g --pin kafka@apache-3.3.2
 
 printf "\n\nInstalling pre-commit...\n"
 
-rtx plugins install pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
+mise plugins install pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
 
-rtx install pre-commit@latest
+mise install pre-commit@latest
 
-rtx use -g --pin pre-commit@latest
+mise use -g --pin pre-commit@latest
 
 ###############################################################################
 # Done!
