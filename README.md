@@ -1,13 +1,16 @@
 # dotfiles
 
-### Documentation
+## Documentation
 
 - [Quickly get set up with these dotfiles](#quickly-get-set-up-with-these-dotfiles)
-    - [Extra WSL 1 and WSL 2 steps](#extra-wsl-1-and-wsl-2-steps)
+- [Extra WSL 1 and WSL 2 steps](#extra-wsl-2-steps)
+    - [Extra WSL 2 configurations](#extra-wsl-2-configurations)
+    - [Extra 1Password configurations](#extra-1password-configurations)
+- [Did you install everything successfully?](#did-you-install-everything-successfully)
 - [FAQ](#faq)
     - [How to personalize these dotfiles?](#how-to-personalize-these-dotfiles)
 
-## Quickly Get Set Up with These Dotfiles
+### Quickly Get Set Up with These Dotfiles
 
 There's an `./install` script you can run to automate installing everything.
 That includes installing system packages such as tmux, zsh, etc. and
@@ -38,7 +41,7 @@ what it does. Each section is commented. Sudo is only used to install system
 packages. Alternatively you can look around this repo and reference the config
 files directly without using any script.*
 
-You can also run the script without installing system packages:
+**You can also run the script without installing system packages:**
 
 ```sh
 bash <(curl -sS https://raw.githubusercontent.com/sassdavid/dotfiles/main/install) --skip-system-packages
@@ -53,39 +56,9 @@ with files in your home directory.
 My set up targets zsh 5.0+ and tmux 3.0+. As long as you can meet
 those requirements you're good to go.
 
-### Did you install everything successfully?
+### Extra WSL 2 steps
 
-Nice!
-
-If you haven't done so already please close your terminal and open a new
-one, then follow the step(s) below:
-
-#### 1. Configure your git name and email
-
-One of the things the install script did was copy a git ignored git config file
-into your home directory. You're meant to put in your name and email address so
-that your details are used when you make git commits.
-
-```sh
-vim ~/.gitconfig.user
-```
-
-#### 2. (Optional) confirm that a few things work
-
-```sh
-# Check to make sure git is configured with your name and email.
-git config --list
-
-# Sanity check to see if you can run some of the tools we installed.
-tmux -V
-terraform -v
-kubectl version --client --output=yaml
-```
-
-Before you start customizing certain config files, take a look at the
-[personalization question in the FAQ](#how-to-personalize-these-dotfiles).
-
-### Extra WSL 1 and WSL 2 steps
+#### Extra WSL 2 configurations
 
 In addition to the Linux side of things, there's a few config files that I have
 in various directories of this dotfiles repo. These have long Windows paths.
@@ -128,9 +101,61 @@ Also, you should reboot to activate your `/etc/wsl.conf` file (the install
 script created this). That will be necessary if you want to access your mounted
 drives at `/c` or `/d` instead of `/mnt/c` or `/mnt/d`.
 
-## FAQ
+#### Extra 1Password configurations
 
-### How to personalize these dotfiles?
+If you want to use the 1Password SSH agent integration with WSL 2, you'll need to set up a few things.
+
+First, you need to set up the 1Password SSH integration. You can find some details
+at [1Password SSH agent integration](https://developer.1password.com/docs/ssh/get-started).
+
+For more details especially for WSL 2,see
+the [1Password SSH agent WSL 2 integration](https://developer.1password.com/docs/ssh/integrations/wsl) documentation.
+
+I have configured a few aliases in my `.aliases` and `.zshrc` files to make it easier to use the 1Password SSH agent
+integration:
+
+- In my `.aliases` file, I have aliases for `ssh` and `ssh-add`.
+- In my `.zshrc` file, I set `GIT_SSH_COMMAND` and `GIT_SSH` environment variables.
+- In my `~/.gitconfig` file, I set `sshCommand`.
+
+The above settings allow me to use the 1Password SSH agent integration with Git in WSL 2, pointing to my Windows OpenSSH
+client (`/mnt/c/Program Files/OpenSSH/ssh.exe`).
+
+### Did you install everything successfully?
+
+Nice!
+
+If you haven't done so already please close your terminal and open a new
+one, then follow the step(s) below:
+
+1. **Configure your git name and email**
+
+   One of the things the install script did was copy a git ignored git config file
+   into your home directory. You're meant to put in your name and email address so
+   that your details are used when you make git commits.
+
+   ```sh
+   vim ~/.gitconfig.user
+   ```
+
+2. **(Optional) confirm that a few things work**
+
+   ```sh
+   # Check to make sure git is configured with your name and email.
+   git config --list
+   
+   # Sanity check to see if you can run some of the tools we installed.
+   tmux -V
+   terraform -v
+   kubectl version --client --output=yaml
+   ```
+
+Before you start customizing certain config files, take a look at the
+[personalization question in the FAQ](#how-to-personalize-these-dotfiles).
+
+### FAQ
+
+#### How to personalize these dotfiles?
 
 Chances are you'll want to personalize some of these files, such as various settings. Since this is a git repo you can
 always do a `git pull` to get the
