@@ -37,7 +37,7 @@ alias drun='docker run --rm -it -v "${PWD}":/app -w /app'
 alias vdt="rm /tmp/%*"
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
 alias ctg="find . -type d -path '*/.terragrunt-cache' -prune -exec rm -rf {} \;"
-alias ctf="find . -type d -path '*/.terraform' -prune -exec rm -rf {} \;"
+alias ctf="find . -type d -path '*/.terraform' -prune -exec rm -rf {} \; ; find . -type f -path '*/terraform-aws-loxon-*/.terraform.lock.hcl' -exec rm -f {} +"
 alias cnode="find . -type d \( -path '*/node_modules' -or -path '*/dist' \) -prune -exec rm -rf {} \;"
 alias cng="find . -type d -path '*/.angular/cache' -prune -exec rm -rf {} \;"
 

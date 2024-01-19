@@ -243,8 +243,11 @@ eval "$("${HOME}"/.local/bin/mise activate bash)"
 
 export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
 export MISE_GO_SET_GOPATH="false"
+export MISE_GO_SKIP_CHECKSUM="true"
 export MISE_LEGACY_VERSION_FILE="false"
 export MISE_NOT_FOUND_AUTO_INSTALL="false"
+export MISE_PARANOID="false"
+export MISE_DISABLE_DEFAULT_SHORTHANDS="true"
 
 ###############################################################################
 # Install tmux plugins
