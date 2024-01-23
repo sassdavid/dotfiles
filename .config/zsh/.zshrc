@@ -84,7 +84,8 @@ fi
 # WSL 2 specific settings.
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
-    export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
+    # Temporarily disable this because I don't use vcxsrv (or alternative) yet
+    # export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
 
     # Configure OpenSSH in order to 1password ssh will be usable
     export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
