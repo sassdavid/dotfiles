@@ -415,6 +415,18 @@ mise install pre-commit@latest
 mise use -g --pin pre-commit@latest
 
 ###############################################################################
+# Install 1password cli
+###############################################################################
+
+printf "\n\nInstalling 1password cli...\n"
+
+mise plugins install 1password-cli https://github.com/NeoHsu/asdf-1password-cli.git
+
+mise install 1password-cli@latest
+
+mise use -g --pin 1password-cli@latest
+
+###############################################################################
 # Done!
 ###############################################################################
 
