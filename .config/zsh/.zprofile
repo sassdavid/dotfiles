@@ -15,6 +15,7 @@ export GOPATH="${HOME}/go"
 export PATH="${PATH}:${GOPATH}/bin"
 
 # Set mise environment variables
+export MISE_EXPERIMENTAL="true"
 export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
 export MISE_GO_SET_GOPATH="false"
 export MISE_GO_SKIP_CHECKSUM="true"
@@ -22,6 +23,7 @@ export MISE_LEGACY_VERSION_FILE="false"
 export MISE_NOT_FOUND_AUTO_INSTALL="false"
 export MISE_PARANOID="false"
 export MISE_DISABLE_DEFAULT_SHORTHANDS="true"
+export ASDF_HASHICORP_SKIP_VERIFY="true"
 
 # Default programs to run.
 export EDITOR="vim"

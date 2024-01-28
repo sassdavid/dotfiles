@@ -172,3 +172,13 @@ updates into your branch.
 
 Another option is to fork this repo and use that, then periodically pull and
 merge updates. It's really up to you.
+
+## Acknowledgements
+
+This project has been developed based on the foundational work provided by
+the [dotfiles repository](https://github.com/nickjj/dotfiles), originally created
+by [Nick Janetakis](https://github.com/nickjj). I would like to acknowledge and thank Nick for making his repository
+publicly available, which has greatly assisted in the development of my own version.
+
+I am grateful for the opportunity to utilize such a well-structured framework as a starting point for my project. Thank
+you to Nick and all contributors to the original repository for their valuable work.
