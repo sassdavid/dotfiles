@@ -321,6 +321,18 @@ mise install kubectl@1.25.16
 mise use -g --pin kubectl@1.25.16
 
 ###############################################################################
+# Install eksctl binary
+###############################################################################
+
+printf "\n\nInstalling eksctl binary...\n"
+
+mise plugins install eksctl https://github.com/elementalvoid/asdf-eksctl.git
+
+mise install eksctl@latest
+
+mise use -g --pin eksctl@latest
+
+###############################################################################
 # Install k9s binary
 ###############################################################################
 
