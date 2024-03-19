@@ -24,6 +24,13 @@ export MISE_PARANOID="false"
 export MISE_DISABLE_DEFAULT_SHORTHANDS="true"
 export ASDF_HASHICORP_SKIP_VERIFY="true"
 
+# Set rust-lang environment variables
+export RUST_LANG_HOME="${HOME}/rust-lang"
+export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"
+export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
+
+export PATH="${PATH}:${CARGO_HOME}/bin"
+
 # Default programs to run.
 export EDITOR="vim"
 

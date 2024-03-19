@@ -260,6 +260,23 @@ export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
 "${HOME}/.tmux/plugins/tpm/bin/install_plugins"
 
 ###############################################################################
+# Install rust-lang
+###############################################################################
+
+printf "\n\nInstalling rust-lang...\n"
+
+export RUST_LANG_HOME="${HOME}/rust-lang"
+export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"
+export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
+export CARGO_BIN_HOME="${RUST_LANG_HOME}/.cargo/bin"
+export RUST_LANG_COMPLETIONS_HOME="${RUST_LANG_HOME}/.zfunc"
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+
+"${CARGO_BIN_HOME}/rustup" completions zsh >"${RUST_LANG_COMPLETIONS_HOME}/_rustup"
+"${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${RUST_LANG_COMPLETIONS_HOME}/_cargo"
+
+###############################################################################
 # Install latest jq and yq binaries
 ###############################################################################
 
@@ -315,9 +332,9 @@ printf "\n\nInstalling kubectl binary...\n"
 
 mise plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
-mise install kubectl@1.25.16
+mise install kubectl@1.26
 
-mise use -g --pin kubectl@1.25.16
+mise use -g --pin kubectl@1.26
 
 ###############################################################################
 # Install eksctl binary
