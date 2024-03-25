@@ -284,7 +284,7 @@ mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
 
 printf "\n\nInstalling latest jq and yq binaries...\n"
 
-mise plugins install jq https://github.com/lsanwick/asdf-jq.git
+mise plugins install jq https://github.com/mise-plugins/asdf-jq.git
 mise plugins install yq https://github.com/sudermanjr/asdf-yq.git
 
 mise install jq@latest
