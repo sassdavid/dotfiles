@@ -268,10 +268,12 @@ printf "\n\nInstalling rust-lang...\n"
 export RUST_LANG_HOME="${HOME}/rust-lang"
 export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"
 export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
-export CARGO_BIN_HOME="${RUST_LANG_HOME}/.cargo/bin"
+export CARGO_BIN_HOME="${CARGO_HOME}/bin"
 export RUST_LANG_COMPLETIONS_HOME="${RUST_LANG_HOME}/.zfunc"
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+
+mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
 
 "${CARGO_BIN_HOME}/rustup" completions zsh >"${RUST_LANG_COMPLETIONS_HOME}/_rustup"
 "${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${RUST_LANG_COMPLETIONS_HOME}/_cargo"
