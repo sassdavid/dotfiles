@@ -1,5 +1,6 @@
 [wsl2]
-memory=8GB
+memory=12GB
+networkingMode=mirrored
 swapFile=C:\\Software\\__wsl\\wsl2-swap.vhdx
 
 # Another option is to disable swap but if the VM goes out of memory, the
