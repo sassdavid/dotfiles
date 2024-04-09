@@ -41,11 +41,10 @@ eval "$(${HOME}/.local/bin/mise hook-env)"
 
 fpath+=${RUST_LANG_HOME}/.zfunc
 
-autoload -U compinit
-compinit
+autoload -Uz compinit && compinit
 _comp_options+=(globdots)
 
-autoload bashcompinit && bashcompinit
+autoload -U +X bashcompinit && bashcompinit
 
 zstyle ':completion:*' menu select=2
 zstyle ':completion:*' auto-description 'specify: %d'

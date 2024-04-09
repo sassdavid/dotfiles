@@ -279,6 +279,18 @@ mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
 "${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${RUST_LANG_COMPLETIONS_HOME}/_cargo"
 
 ###############################################################################
+# Install usage, it is needed to use mise completion
+###############################################################################
+
+printf "\n\nInstalling usage binary...\n"
+
+mise plugins install usage https://github.com/jdx/mise-usage.git
+
+mise install usage@latest
+
+mise use -g --pin usage@latest
+
+###############################################################################
 # Install latest jq and yq binaries
 ###############################################################################
 
