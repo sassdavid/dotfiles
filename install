@@ -347,8 +347,9 @@ printf "\n\nInstalling kubectl binary...\n"
 mise plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
 mise install kubectl@1.26
+mise install kubectl@1.29
 
-mise use -g --pin kubectl@1.26
+mise use -g --pin kubectl@1.29
 
 ###############################################################################
 # Install eksctl binary
@@ -426,7 +427,7 @@ mise use -g --pin go@latest
 
 printf "\n\nInstalling latest java and maven binaries...\n"
 
-mise plugins install maven https://github.com/halcyon/asdf-maven.git
+mise plugins install maven https://github.com/mise-plugins/asdf-maven.git
 
 mise install java@corretto-17
 mise install maven@latest
