@@ -371,9 +371,9 @@ printf "\n\nInstalling k9s binary...\n"
 
 mise plugins install k9s https://github.com/looztra/asdf-k9s
 
-mise install k9s@0.26.7
+mise install k9s@latest
 
-mise use -g --pin k9s@0.26.7
+mise use -g --pin k9s@latest
 
 ###############################################################################
 # Install latest helm binary
