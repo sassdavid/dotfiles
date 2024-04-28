@@ -436,6 +436,18 @@ mise use -g --pin java@corretto-17
 mise use -g --pin maven@latest
 
 ###############################################################################
+# Install node binaries (14,16,20)
+###############################################################################
+
+printf "\n\nInstalling node 14,16,20 binaries...\n"
+
+mise install node@14
+mise install node@16
+mise install node@20
+
+mise use -g --pin node@20
+
+###############################################################################
 # Install kafka binaries
 ###############################################################################
 
