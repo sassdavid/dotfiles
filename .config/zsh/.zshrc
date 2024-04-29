@@ -33,7 +33,15 @@ setopt HIST_IGNORE_SPACE     # Ignore commands that start with a space.
 setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 
 # Enable mise to manage various programming runtime versions.
-eval "$(${HOME}/.local/bin/mise activate zsh)"
+SHELL_NAME=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
+
+if type "${HOME}/.local/bin/mise" &> /dev/null; then
+  if [[ -t 0 ]]; then # terminal has stdin i.e. interactive
+    eval "$("${HOME}/.local/bin/mise" activate "$SHELL_NAME")"
+  else
+    eval "$("${HOME}/.local/bin/mise" activate --shims)"
+  fi
+fi
 eval "$(${HOME}/.local/bin/mise hook-env)"
 
 # Use modern completion system. Other than enabling globdots for showing
