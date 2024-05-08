@@ -152,6 +152,12 @@ curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "$
 "${clone_path}/.local/bin/update-zsh-plugins"
 
 ###############################################################################
+# Install mongodb stuffs
+###############################################################################
+
+"${clone_path}/.local/bin/install-mongodb-stuffs"
+
+###############################################################################
 # Install tpm (tmux plugin manager)
 ###############################################################################
 

@@ -1,0 +1,96 @@
+#!/bin/bash
+
+set -e
+
+default_install_path="$HOME/.local/bin"
+install_path="${1:-$default_install_path}"
+
+get_arch() {
+  local mode=$1
+  local arch && arch=$(uname -m)
+  case $arch in
+  x86_64)
+    if [[ $mode == "standard" ]]; then
+      printf "x86_64"
+    else
+      printf "x64"
+    fi
+    ;;
+  arm64)
+    printf "arm64"
+    ;;
+  *)
+    printf "Unsupported architecture: %s\n" "$arch"
+    exit 1
+    ;;
+  esac
+}
+
+create_tmp_dir() {
+  local base_dir="/tmp"
+  local prefix=$1
+  local tmp_dir && tmp_dir=$(mktemp -d -p "$base_dir" "${prefix}.XXXXXXXXXX")
+  printf "%s" "$tmp_dir"
+}
+
+install_or_update_tool() {
+  local tool_name=$1
+  local url=$2
+  local tmp_dir=$3
+  local final_dir=$4
+  local tar_file="${tmp_dir}/${tool_name}.tgz"
+
+  printf "Remove previously installed version if exists from %s\n" "$final_dir"
+  rm -rf "${final_dir:?}"
+
+  printf "Downloading %s from %s to %s\n" "$tool_name" "$url" "$tar_file"
+  curl -L "$url" -o "$tar_file"
+  mkdir -p "$final_dir"
+  tar -xz -f "$tar_file" -C "$final_dir" --strip-components=1
+  printf "%s installed in %s\n\n" "$tool_name" "$final_dir"
+  rm -rf "$tmp_dir"
+}
+
+install_or_update_mongosh() {
+  local final_dir=$1
+  local arch && arch=$(get_arch)
+  local tmp_dir && tmp_dir=$(create_tmp_dir "mongosh")
+  local version_tag && version_tag=$(curl -s https://api.github.com/repos/mongodb-js/mongosh/releases/latest | grep tag_name | cut -d '"' -f 4)
+  local version=${version_tag#v}
+  local url="https://github.com/mongodb-js/mongosh/releases/download/${version_tag}/mongosh-${version}-linux-${arch}.tgz"
+
+  install_or_update_tool "mongosh" "$url" "$tmp_dir" "$final_dir"
+}
+
+install_or_update_mongo_tools() {
+  local final_dir=$1
+  local arch && arch=$(get_arch "standard")
+  local tmp_dir && tmp_dir=$(create_tmp_dir "mongodbtools")
+  local latest_version && latest_version=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+    https://api.github.com/repos/mongodb/mongo-tools/git/refs/tags |
+    sed -nE "s/^.*\"ref\"\: \"refs\/tags\/r?([[:digit:]]{2,3}\.[[:digit:]]+\.[[:digit:]]+)\",$/\1/p" |
+    sort -V | tail -n1)
+  local url="https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-${arch}-${latest_version}.tgz"
+
+  install_or_update_tool "mongodb-tools" "$url" "$tmp_dir" "$final_dir"
+}
+
+install_or_update_atlas_cli() {
+  local final_dir=$1
+  local arch && arch=$(get_arch "standard")
+  local tmp_dir && tmp_dir=$(create_tmp_dir "atlascli")
+  local version_tag && version_tag=$(curl -s https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases/latest | grep tag_name | cut -d '"' -f 4)
+  local version=${version_tag#*/v}
+  local url_encoded_version_tag && url_encoded_version_tag="${version_tag//\//%2F}"
+  local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${url_encoded_version_tag}/mongodb-atlas-cli_${version}_linux_${arch}.tar.gz"
+
+  install_or_update_tool "atlas-cli" "$url" "$tmp_dir" "$final_dir"
+}
+
+if [[ -z $1 ]]; then
+  install_path="$default_install_path"
+fi
+
+install_or_update_mongosh "$install_path/mongosh"
+install_or_update_mongo_tools "$install_path/mongodb-tools"
+install_or_update_atlas_cli "$install_path/atlas-cli"

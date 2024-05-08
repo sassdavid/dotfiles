@@ -136,3 +136,4 @@ complete -C '$(which terragrunt)' terragrunt
 source <(kubectl completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
+source <(atlas completion zsh)
