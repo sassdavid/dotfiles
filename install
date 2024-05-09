@@ -360,10 +360,10 @@ printf "\n\nInstalling kubectl binary...\n"
 
 mise plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
 
-mise install kubectl@1.26
 mise install kubectl@1.29
+mise install kubectl@1.30
 
-mise use -g --pin kubectl@1.29
+mise use -g --pin kubectl@1.30
 
 ###############################################################################
 # Install eksctl binary

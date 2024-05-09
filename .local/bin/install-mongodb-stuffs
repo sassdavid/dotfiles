@@ -62,7 +62,7 @@ install_or_update_mongosh() {
   install_or_update_tool "mongosh" "$url" "$tmp_dir" "$final_dir"
 }
 
-install_or_update_mongo_tools() {
+install_or_update_mongodb_tools() {
   local final_dir=$1
   local arch && arch=$(get_arch "standard")
   local tmp_dir && tmp_dir=$(create_tmp_dir "mongodbtools")
@@ -92,5 +92,5 @@ if [[ -z $1 ]]; then
 fi
 
 install_or_update_mongosh "$install_path/mongosh"
-install_or_update_mongo_tools "$install_path/mongodb-tools"
+install_or_update_mongodb_tools "$install_path/mongodb-tools"
 install_or_update_atlas_cli "$install_path/atlas-cli"
