@@ -48,6 +48,7 @@ eval "$(${HOME}/.local/bin/mise hook-env)"
 # hidden files, these ares values in the default generated zsh config.
 
 fpath+=${RUST_LANG_HOME}/.zfunc
+fpath+=${HOME}/.docker/completions
 
 autoload -Uz compinit && compinit
 _comp_options+=(globdots)

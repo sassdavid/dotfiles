@@ -16,12 +16,14 @@ export PATH="${PATH}:${GOPATH}/bin"
 
 # Set mise environment variables
 export MISE_EXPERIMENTAL="true"
-export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="30s"
+export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="60s"
+export MISE_HTTP_TIMEOUT="60"
 export MISE_GO_SKIP_CHECKSUM="true"
 export MISE_LEGACY_VERSION_FILE="false"
 export MISE_NOT_FOUND_AUTO_INSTALL="false"
 export MISE_PARANOID="false"
 export MISE_DISABLE_DEFAULT_SHORTHANDS="true"
+export MISE_USE_VERSIONS_HOST="false"
 export ASDF_HASHICORP_SKIP_VERIFY="true"
 
 # Set rust-lang environment variables
