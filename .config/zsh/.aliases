@@ -9,17 +9,10 @@ if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
   alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
 fi
 
-if command -v brew > /dev/null 2>&1; then
-  alias ls="ls -G"
-  alias grep="grep -G"
-  alias fgrep="fgrep -G"
-  alias egrep="egrep -G"
-else
-  alias ls="ls --color=auto"
-  alias grep="grep --color=auto"
-  alias fgrep="fgrep --color=auto"
-  alias egrep="egrep --color=auto"
-fi
+alias ls="ls --color=auto"
+alias grep="grep --color=auto"
+alias fgrep="fgrep --color=auto"
+alias egrep="egrep --color=auto"
 
 alias ll="ls -alF"
 alias la="ls -A"

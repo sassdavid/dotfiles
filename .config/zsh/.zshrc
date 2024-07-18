@@ -48,7 +48,7 @@ eval "$(${HOME}/.local/bin/mise hook-env)"
 # hidden files, these ares values in the default generated zsh config.
 
 fpath+=${RUST_LANG_HOME}/.zfunc
-fpath+=${HOME}/.docker/completions
+fpath+=${HOME}/.docker/completion
 
 autoload -Uz compinit && compinit
 _comp_options+=(globdots)
@@ -97,8 +97,6 @@ if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
     # Temporarily disable this because I don't use vcxsrv (or alternative) yet
     # export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
-    unset DISPLAY
-    export WSL2_GUI_APPS_ENABLED="0"
 
     # Configure OpenSSH in order to 1password ssh will be usable
     export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
@@ -135,6 +133,9 @@ complete -C '$(which terraform)' terraform
 complete -C '$(which terragrunt)' terragrunt
 
 source <(kubectl completion zsh)
+source <(k9s completion zsh)
+source <(eksctl completion zsh)
+source <(terraform-docs completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
 source <(atlas completion zsh)
