@@ -82,7 +82,7 @@ install_or_update_atlas_cli() {
   local version_tag && version_tag=$(curl -s https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases/latest | grep tag_name | cut -d '"' -f 4)
   local version=${version_tag#*/v}
   local url_encoded_version_tag && url_encoded_version_tag="${version_tag//\//%2F}"
-  local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${url_encoded_version_tag}/mongodb-atlas-cli_${version}_linux_${arch}.tar.gz"
+  local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${url_encoded_version_tag}/mongocli_${version}_linux_${arch}.tar.gz"
 
   install_or_update_tool "atlas-cli" "$url" "$tmp_dir" "$final_dir"
 }
