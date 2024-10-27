@@ -15,15 +15,6 @@ export GOPATH="${HOME}/go"
 export PATH="${PATH}:${GOPATH}/bin"
 
 # Set mise environment variables
-export MISE_EXPERIMENTAL="true"
-export MISE_FETCH_REMOTE_VERSIONS_TIMEOUT="60s"
-export MISE_HTTP_TIMEOUT="60"
-export MISE_GO_SKIP_CHECKSUM="true"
-export MISE_LEGACY_VERSION_FILE="false"
-export MISE_NOT_FOUND_AUTO_INSTALL="false"
-export MISE_PARANOID="false"
-export MISE_DISABLE_DEFAULT_SHORTHANDS="true"
-export MISE_USE_VERSIONS_HOST="false"
 export ASDF_HASHICORP_SKIP_VERIFY="true"
 
 # Set rust-lang environment variables
@@ -37,8 +28,9 @@ export PATH="${PATH}:${CARGO_HOME}/bin"
 export MONGOSH_HOME="${HOME}/.local/bin/mongosh/bin"
 export MONGODB_TOOLS_HOME="${HOME}/.local/bin/mongodb-tools/bin"
 export ATLAS_CLI_HOME="${HOME}/.local/bin/atlas-cli/bin"
+export MONGO_CLI_HOME="${HOME}/.local/bin/mongo-cli/bin"
 
-export PATH="${PATH}:${MONGOSH_HOME}:${MONGODB_TOOLS_HOME}:${ATLAS_CLI_HOME}"
+export PATH="${PATH}:${MONGOSH_HOME}:${MONGODB_TOOLS_HOME}:${ATLAS_CLI_HOME}:${MONGO_CLI_HOME}"
 
 # Default programs to run.
 export EDITOR="vim"

@@ -70,21 +70,39 @@ install_or_update_mongodb_tools() {
     https://api.github.com/repos/mongodb/mongo-tools/git/refs/tags |
     sed -nE "s/^.*\"ref\"\: \"refs\/tags\/r?([[:digit:]]{2,3}\.[[:digit:]]+\.[[:digit:]]+)\",$/\1/p" |
     sort -V | tail -n1)
-  local url="https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-${arch}-${latest_version}.tgz"
+  local url="https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-${arch}-${latest_version}.tgz"
 
   install_or_update_tool "mongodb-tools" "$url" "$tmp_dir" "$final_dir"
 }
 
-install_or_update_atlas_cli() {
-  local final_dir=$1
+install_or_update_atlas_mongo_cli() {
+  local base_final_dir=$1
   local arch && arch=$(get_arch "standard")
-  local tmp_dir && tmp_dir=$(create_tmp_dir "atlascli")
-  local version_tag && version_tag=$(curl -s https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases/latest | grep tag_name | cut -d '"' -f 4)
-  local version=${version_tag#*/v}
-  local url_encoded_version_tag && url_encoded_version_tag="${version_tag//\//%2F}"
-  local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${url_encoded_version_tag}/mongocli_${version}_linux_${arch}.tar.gz"
 
-  install_or_update_tool "atlas-cli" "$url" "$tmp_dir" "$final_dir"
+  local releases_json && releases_json=$(curl -s https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
+
+  local atlas_release && atlas_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB Atlas CLI")) | .tag_name' | head -n 1)
+  local mongo_release && mongo_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB CLI")) | .tag_name' | head -n 1)
+
+  if [[ -n "$atlas_release" ]]; then
+    local atlas_tmp_dir && atlas_tmp_dir=$(create_tmp_dir "atlascli")
+    local atlas_final_dir="${base_final_dir}/atlas-cli"
+    local atlas_version=${atlas_release#*/v}
+    local atlas_url_encoded_version_tag="${atlas_release//\//%2F}"
+    local atlas_url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${atlas_url_encoded_version_tag}/mongodb-atlas-cli_${atlas_version}_linux_${arch}.tar.gz"
+
+    install_or_update_tool "atlas-cli" "$atlas_url" "$atlas_tmp_dir" "$atlas_final_dir"
+  fi
+
+  if [[ -n "$mongo_release" ]]; then
+    local mongo_tmp_dir && mongo_tmp_dir=$(create_tmp_dir "mongocli")
+    local mongo_final_dir="${base_final_dir}/mongo-cli"
+    local mongo_version=${mongo_release#*/v}
+    local mongo_url_encoded_version_tag="${mongo_release//\//%2F}"
+    local mongo_url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${mongo_url_encoded_version_tag}/mongocli_${mongo_version}_linux_${arch}.tar.gz"
+
+    install_or_update_tool "mongo-cli" "$mongo_url" "$mongo_tmp_dir" "$mongo_final_dir"
+  fi
 }
 
 if [[ -z $1 ]]; then
@@ -93,4 +111,4 @@ fi
 
 install_or_update_mongosh "$install_path/mongosh"
 install_or_update_mongodb_tools "$install_path/mongodb-tools"
-install_or_update_atlas_cli "$install_path/atlas-cli"
+install_or_update_atlas_mongo_cli "$install_path"
