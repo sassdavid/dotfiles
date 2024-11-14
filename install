@@ -309,8 +309,6 @@ mise use -g --pin usage@latest
 
 printf "\n\nInstalling latest jq and yq binaries...\n"
 
-mise plugins install jq https://github.com/mise-plugins/asdf-jq.git
-
 mise install jq@latest
 mise install yq@latest
 
@@ -336,8 +334,6 @@ mise use -g --pin awscli@latest
 printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
 
 mise plugins install terraform https://github.com/asdf-community/asdf-hashicorp.git
-mise plugins install terragrunt https://github.com/ohmer/asdf-terragrunt
-mise plugins install terraform-docs https://github.com/looztra/asdf-terraform-docs
 
 mise install terraform@latest
 mise install terragrunt@latest
@@ -355,20 +351,15 @@ mise use -g --pin tflint@latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-mise plugins install kubectl https://github.com/asdf-community/asdf-kubectl.git
+mise install kubectl@1.31
 
-mise install kubectl@1.29
-mise install kubectl@1.30
-
-mise use -g --pin kubectl@1.30
+mise use -g --pin kubectl@1.31
 
 ###############################################################################
 # Install eksctl binary
 ###############################################################################
 
 printf "\n\nInstalling eksctl binary...\n"
-
-mise plugins install eksctl https://github.com/elementalvoid/asdf-eksctl.git
 
 mise install eksctl@latest
 
@@ -390,8 +381,6 @@ mise use -g --pin k9s@latest
 
 printf "\n\nInstalling helm binary...\n"
 
-mise plugins install helm https://github.com/Antiarchitect/asdf-helm.git
-
 mise install helm@latest
 
 mise use -g --pin helm@latest
@@ -411,8 +400,6 @@ mise use -g --pin argocd@latest
 ###############################################################################
 
 printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
-
-mise plugins install amazon-ecr-credential-helper https://github.com/dex4er/asdf-amazon-ecr-credential-helper.git
 
 mise install amazon-ecr-credential-helper@latest
 
@@ -501,8 +488,6 @@ mise use -g --pin kafka@apache-3.7
 ###############################################################################
 
 printf "\n\nInstalling pre-commit...\n"
-
-mise plugins install pre-commit https://github.com/jonathanmorley/asdf-pre-commit.git
 
 mise install pre-commit@latest
 
