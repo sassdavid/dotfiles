@@ -299,9 +299,7 @@ mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
 
 printf "\n\nInstalling usage binary...\n"
 
-mise install usage@latest
-
-mise use -g --pin usage@latest
+mise use -g usage@latest
 
 ###############################################################################
 # Install latest jq and yq binaries
@@ -309,11 +307,8 @@ mise use -g --pin usage@latest
 
 printf "\n\nInstalling latest jq and yq binaries...\n"
 
-mise install jq@latest
-mise install yq@latest
-
-mise use -g --pin jq@latest
-mise use -g --pin yq@latest
+mise use -g jq@latest
+mise use -g yq@latest
 
 ###############################################################################
 # Install latest aws binary
@@ -323,9 +318,7 @@ printf "\n\nInstalling latest aws binary...\n"
 
 mise plugins install awscli https://github.com/MetricMike/asdf-awscli.git
 
-mise install awscli@latest
-
-mise use -g --pin awscli@latest
+mise use -g awscli@latest
 
 ###############################################################################
 # Install latest terraform binary
@@ -333,17 +326,10 @@ mise use -g --pin awscli@latest
 
 printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
 
-mise plugins install terraform https://github.com/asdf-community/asdf-hashicorp.git
-
-mise install terraform@latest
-mise install terragrunt@latest
-mise install terraform-docs@latest
-mise install tflint@latest
-
-mise use -g --pin terraform@latest
-mise use -g --pin terragrunt@latest
-mise use -g --pin terraform-docs@latest
-mise use -g --pin tflint@latest
+mise use -g aqua:hashicorp/terraform@latest
+mise use -g terragrunt@latest
+mise use -g terraform-docs@latest
+mise use -g tflint@latest
 
 ###############################################################################
 # Install kubectl binary
@@ -351,9 +337,7 @@ mise use -g --pin tflint@latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-mise install kubectl@1.31
-
-mise use -g --pin kubectl@1.31
+mise use -g kubectl@1.31
 
 ###############################################################################
 # Install eksctl binary
@@ -361,9 +345,7 @@ mise use -g --pin kubectl@1.31
 
 printf "\n\nInstalling eksctl binary...\n"
 
-mise install eksctl@latest
-
-mise use -g --pin eksctl@latest
+mise use -g eksctl@latest
 
 ###############################################################################
 # Install k9s binary
@@ -371,9 +353,7 @@ mise use -g --pin eksctl@latest
 
 printf "\n\nInstalling k9s binary...\n"
 
-mise install k9s@latest
-
-mise use -g --pin k9s@latest
+mise use -g k9s@latest
 
 ###############################################################################
 # Install latest helm binary
@@ -381,9 +361,7 @@ mise use -g --pin k9s@latest
 
 printf "\n\nInstalling helm binary...\n"
 
-mise install helm@latest
-
-mise use -g --pin helm@latest
+mise use -g helm@latest
 
 ###############################################################################
 # Install latest argocd binary
@@ -391,9 +369,7 @@ mise use -g --pin helm@latest
 
 printf "\n\nInstalling latest argocd binary...\n"
 
-mise install argocd@latest
-
-mise use -g --pin argocd@latest
+mise use -g argocd@latest
 
 ###############################################################################
 # Install latest docker-credential-ecr-login binary
@@ -401,9 +377,7 @@ mise use -g --pin argocd@latest
 
 printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 
-mise install amazon-ecr-credential-helper@latest
-
-mise use -g --pin amazon-ecr-credential-helper@latest
+mise use -g amazon-ecr-credential-helper@latest
 
 ###############################################################################
 # Generate docker completion if docker command is available
@@ -441,9 +415,7 @@ fi
 
 printf "\n\nInstalling latest go binary...\n"
 
-mise install go@latest
-
-mise use -g --pin go@latest
+mise use -g go@latest
 
 ###############################################################################
 # Install latest java and maven binaries
@@ -453,34 +425,17 @@ printf "\n\nInstalling latest java and maven binaries...\n"
 
 mise plugins install maven https://github.com/mise-plugins/asdf-maven.git
 
-mise install java@corretto-17
-mise install maven@latest
-
-mise use -g --pin java@corretto-17
-mise use -g --pin maven@latest
+mise use -g java@corretto-17
+mise use -g maven@latest
 
 ###############################################################################
-# Install node binaries (14,16,20)
+# Install node binaries (18,20)
 ###############################################################################
 
-printf "\n\nInstalling node 14,16,20 binaries...\n"
+printf "\n\nInstalling node 18,20 binaries...\n"
 
-mise install node@16
-mise install node@20
-
-mise use -g --pin node@20
-
-###############################################################################
-# Install kafka binaries
-###############################################################################
-
-printf "\n\nInstalling kafka...\n"
-
-mise plugins install kafka https://github.com/ueisele/asdf-kafka.git
-
-mise install kafka@apache-3.7
-
-mise use -g --pin kafka@apache-3.7
+mise use -g node@18
+mise use -g node@20
 
 ###############################################################################
 # Install pre-commit
@@ -488,9 +443,7 @@ mise use -g --pin kafka@apache-3.7
 
 printf "\n\nInstalling pre-commit...\n"
 
-mise install pre-commit@latest
-
-mise use -g --pin pre-commit@latest
+mise use -g pre-commit@latest
 
 ###############################################################################
 # Install 1password cli
@@ -500,9 +453,7 @@ printf "\n\nInstalling 1password cli...\n"
 
 mise plugins install 1password-cli https://github.com/NeoHsu/asdf-1password-cli.git
 
-mise install 1password-cli@latest
-
-mise use -g --pin 1password-cli@latest
+mise use -g 1password-cli@latest
 
 ###############################################################################
 # Done!
