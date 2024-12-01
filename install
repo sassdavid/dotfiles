@@ -255,13 +255,15 @@ if type "${HOME}/.local/bin/mise" &> /dev/null; then
   fi
 fi
 
-mise settings set experimental true
-mise settings set fetch_remote_versions_timeout 60s
-mise settings set http_timeout 60s
-mise settings set go_skip_checksum true
-mise settings set legacy_version_file false
-mise settings set not_found_auto_install false
-mise settings set use_versions_host false
+mise settings exec_auto_install=false
+mise settings experimental=true
+mise settings fetch_remote_versions_timeout=60s
+mise settings go_skip_checksum=true
+mise settings http_timeout=60s
+mise settings idiomatic_version_file=false
+mise settings not_found_auto_install=false
+mise settings task_run_auto_install=false
+mise settings use_versions_host=false
 
 export ASDF_HASHICORP_SKIP_VERIFY="true"
 
@@ -302,6 +304,15 @@ printf "\n\nInstalling usage binary...\n"
 mise use -g usage@latest
 
 ###############################################################################
+# Install cosign and slsa-verifier binaries, needed to verify checksum for aqua packages
+###############################################################################
+
+printf "\n\nInstalling cosign and slsa-verifier binaries...\n"
+
+mise use -g cosign@latest
+mise use -g slsa-verifier@latest
+
+###############################################################################
 # Install latest jq and yq binaries
 ###############################################################################
 
@@ -326,7 +337,7 @@ mise use -g awscli@latest
 
 printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
 
-mise use -g aqua:hashicorp/terraform@latest
+mise use -g terraform@latest
 mise use -g terragrunt@latest
 mise use -g terraform-docs@latest
 mise use -g tflint@latest
