@@ -327,8 +327,6 @@ mise use -g yq@latest
 
 printf "\n\nInstalling latest aws binary...\n"
 
-mise plugins install awscli https://github.com/MetricMike/asdf-awscli.git
-
 mise use -g awscli@latest
 
 ###############################################################################
