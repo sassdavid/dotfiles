@@ -130,7 +130,7 @@ eval "$(${HOME}/.local/bin/mise completion zsh)"
 
 complete -C '$(which aws_completer)' aws
 complete -C '$(which terraform)' terraform
-complete -C '$(which terragrunt)' terragrunt
+complete -C '$(which terragrunt)' -C '$(which terraform)' terragrunt
 
 source <(kubectl completion zsh)
 source <(k9s completion zsh)
