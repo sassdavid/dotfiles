@@ -6,7 +6,7 @@ skip_system_packages="${1}"
 
 os_type="$(uname -s)"
 
-apt_packages="curl git tmux ripgrep zsh"
+apt_packages="curl git tmux zsh"
 apt_packages_optional="zip unzip"
 
 ###############################################################################
@@ -165,14 +165,6 @@ rm -rf "${HOME}/.tmux/plugins/tpm"
 git clone --depth 1 https://github.com/tmux-plugins/tpm "${HOME}/.tmux/plugins/tpm"
 
 ###############################################################################
-# Install fzf (fuzzy finder on the terminal and used by a Vim plugin)
-###############################################################################
-
-rm -rf "${HOME}/.local/share/fzf"
-git clone --depth 1 https://github.com/junegunn/fzf.git "${HOME}/.local/share/fzf" &&
-  yes | "${HOME}/.local/share/fzf/install" --bin --no-update-rc
-
-###############################################################################
 # Carefully create symlinks
 ###############################################################################
 
@@ -302,6 +294,22 @@ mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
 printf "\n\nInstalling usage binary...\n"
 
 mise use -g usage@latest
+
+###############################################################################
+# Install ripgrep binary
+###############################################################################
+
+printf "\n\nInstalling ripgrep binary...\n"
+
+mise use -g rg@latest
+
+###############################################################################
+# Install fzf (fuzzy finder on the terminal)
+###############################################################################
+
+printf "\n\nInstalling fzf binary...\n"
+
+mise use -g fzf@latest
 
 ###############################################################################
 # Install cosign and slsa-verifier binaries, needed to verify checksum for aqua packages

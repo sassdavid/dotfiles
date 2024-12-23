@@ -85,13 +85,6 @@ bindkey '\e[F' end-of-line
 bindkey '\e[8~' end-of-line
 bindkey '\e[3~' delete-char
 
-# Enable FZF (this replaces needing ~/.fzf.zsh in your home directory).
-if [[ ! "${PATH}" == *${XDG_DATA_HOME}/fzf/bin* ]]; then
-    export PATH="${PATH:+${PATH}:}${XDG_DATA_HOME}/fzf/bin"
-fi
-[[ $- == *i* ]] && . "${XDG_DATA_HOME}/fzf/shell/completion.zsh" 2> /dev/null
-. "${XDG_DATA_HOME}/fzf/shell/key-bindings.zsh"
-
 # WSL 2 specific settings.
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
@@ -132,6 +125,7 @@ complete -C '$(which aws_completer)' aws
 complete -C '$(which terraform)' terraform
 complete -C '$(which terragrunt)' -C '$(which terraform)' terragrunt
 
+source <(fzf --zsh)
 source <(kubectl completion zsh)
 source <(k9s completion zsh)
 source <(eksctl completion zsh)
