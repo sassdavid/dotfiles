@@ -397,36 +397,6 @@ printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
 mise use -g amazon-ecr-credential-helper@latest
 
 ###############################################################################
-# Generate docker completion if docker command is available
-###############################################################################
-
-docker_cmd=$(command -v docker)
-docker_dir="${HOME}/.docker"
-completion_dir="${docker_dir}/completion"
-completion_file="${completion_dir}/_docker"
-
-if [ -n "$docker_cmd" ]; then
-    printf "Docker command found\n"
-
-    if [ -d "$docker_dir" ]; then
-        printf "%s directory found\n" "$docker_dir"
-
-        if [ ! -d "$completion_dir" ]; then
-            mkdir -p "$completion_dir"
-            printf "Created %s directory\n" "$completion_dir"
-        fi
-
-        docker completion zsh > "$completion_file"
-
-        printf "Docker zsh completion script has been generated at %s\n" "$completion_file"
-    else
-        printf "%s directory not found\n" "$docker_dir"
-    fi
-else
-    printf "Docker command not found\n"
-fi
-
-###############################################################################
 # Install latest go binary
 ###############################################################################
 
@@ -471,6 +441,35 @@ printf "\n\nInstalling 1password cli...\n"
 mise plugins install 1password-cli https://github.com/NeoHsu/asdf-1password-cli.git
 
 mise use -g 1password-cli@latest
+
+###############################################################################
+# Generate docker completion if docker command is available
+###############################################################################
+
+docker_dir="${HOME}/.docker"
+completion_dir="${docker_dir}/completion"
+completion_file="${completion_dir}/_docker"
+
+if command -v docker > /dev/null 2>&1; then
+    printf "Docker command found\n"
+
+    if [ -d "$docker_dir" ]; then
+        printf "%s directory found\n" "$docker_dir"
+
+        if [ ! -d "$completion_dir" ]; then
+            mkdir -p "$completion_dir"
+            printf "Created %s directory\n" "$completion_dir"
+        fi
+
+        docker completion zsh > "$completion_file"
+
+        printf "Docker zsh completion script has been generated at %s\n" "$completion_file"
+    else
+        printf "%s directory not found\n" "$docker_dir"
+    fi
+else
+    printf "Docker command not found\n"
+fi
 
 ###############################################################################
 # Done!
