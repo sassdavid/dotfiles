@@ -134,8 +134,9 @@ fi
 
 mkdir -p "${HOME}/.config/zsh" "${HOME}/.config/gitalias" \
   "${HOME}/.cache/zsh" "${HOME}/.local/bin" \
-  "${HOME}/.local/share" "${HOME}/.local/state" \
-  "${HOME}/.aws" "${HOME}/.kube"
+  "${HOME}/.local/share" "${HOME}/.local/share/zsh/completions" \
+  "${HOME}/.local/state" "${HOME}/.aws" \
+  "${HOME}/.kube"
 
 ###############################################################################
 # Personalize git user and setup gitalias
@@ -278,14 +279,11 @@ export RUST_LANG_HOME="${HOME}/rust-lang"
 export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"
 export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
 export CARGO_BIN_HOME="${CARGO_HOME}/bin"
-export RUST_LANG_COMPLETIONS_HOME="${RUST_LANG_HOME}/.zfunc"
 
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 
-mkdir -p "${RUST_LANG_COMPLETIONS_HOME}"
-
-"${CARGO_BIN_HOME}/rustup" completions zsh >"${RUST_LANG_COMPLETIONS_HOME}/_rustup"
-"${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${RUST_LANG_COMPLETIONS_HOME}/_cargo"
+"${CARGO_BIN_HOME}/rustup" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
+"${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
 
 ###############################################################################
 # Install usage, it is needed to use mise completion
@@ -446,26 +444,17 @@ mise use -g 1password-cli@latest
 # Generate docker completion if docker command is available
 ###############################################################################
 
-docker_dir="${HOME}/.docker"
-completion_dir="${docker_dir}/completion"
-completion_file="${completion_dir}/_docker"
-
 if command -v docker > /dev/null 2>&1; then
     printf "Docker command found\n"
 
-    if [ -d "$docker_dir" ]; then
-        printf "%s directory found\n" "$docker_dir"
+    if [ -d "${HOME}/.local/share/zsh/completions" ]; then
+        printf "%s directory found\n" "${HOME}/.local/share/zsh/completions"
 
-        if [ ! -d "$completion_dir" ]; then
-            mkdir -p "$completion_dir"
-            printf "Created %s directory\n" "$completion_dir"
-        fi
+        docker completion zsh > "${HOME}/.local/share/zsh/completions/_docker"
 
-        docker completion zsh > "$completion_file"
-
-        printf "Docker zsh completion script has been generated at %s\n" "$completion_file"
+        printf "Docker zsh completion script has been generated at %s\n" "${HOME}/.local/share/zsh/completions/_docker"
     else
-        printf "%s directory not found\n" "$docker_dir"
+        printf "%s directory not found\n" "${HOME}/.local/share/zsh/completions"
     fi
 else
     printf "Docker command not found\n"

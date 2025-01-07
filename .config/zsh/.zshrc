@@ -47,8 +47,7 @@ eval "$(${HOME}/.local/bin/mise hook-env)"
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
 
-fpath+=${RUST_LANG_HOME}/.zfunc
-fpath+=${HOME}/.docker/completion
+fpath+=${HOME}/.local/share/zsh/completions
 
 autoload -Uz compinit && compinit
 _comp_options+=(globdots)
