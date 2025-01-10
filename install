@@ -293,8 +293,10 @@ printf "\n\nInstalling usage binary...\n"
 mise use -g usage@latest
 
 ###############################################################################
-# Install various tools for replacement of basic unix commands
+# Install various tools for replacement of basic commands (eza,fd,zoxide,bat,hyperfine)
 ###############################################################################
+
+printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,hyperfine)...\n"
 
 mise plugins install eza https://github.com/mise-plugins/mise-eza.git
 
