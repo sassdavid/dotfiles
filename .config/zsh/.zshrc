@@ -36,7 +36,7 @@ setopt HIST_REDUCE_BLANKS    # Remove unnecessary blank lines.
 SHELL_NAME=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
 
 if type "${HOME}/.local/bin/mise" &> /dev/null; then
-  if [[ -t 0 ]]; then # terminal has stdin i.e. interactive
+  if [[ -t 0 ]]; then
     eval "$("${HOME}/.local/bin/mise" activate "$SHELL_NAME")"
   else
     eval "$("${HOME}/.local/bin/mise" activate --shims)"

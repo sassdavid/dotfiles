@@ -468,12 +468,12 @@ if command -v docker > /dev/null 2>&1; then
 
         docker completion zsh > "${HOME}/.local/share/zsh/completions/_docker"
 
-        printf "Docker zsh completion script has been generated at %s\n" "${HOME}/.local/share/zsh/completions/_docker"
+        printf "Docker zsh completion script has been generated at %s\n\n" "${HOME}/.local/share/zsh/completions/_docker"
     else
-        printf "%s directory not found\n" "${HOME}/.local/share/zsh/completions"
+        printf "%s directory not found\n\n" "${HOME}/.local/share/zsh/completions"
     fi
 else
-    printf "Docker command not found\n"
+    printf "Docker command not found\n\n"
 fi
 
 ###############################################################################
