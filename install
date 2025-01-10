@@ -304,8 +304,8 @@ mise use -g zoxide@latest
 mise use -g bat@latest
 mise use -g hyperfine@latest
 
-fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
-bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
+mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
+mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
 
 ###############################################################################
 # Install ripgrep binary
