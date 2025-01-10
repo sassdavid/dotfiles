@@ -11,3 +11,11 @@
 # although -m "" works if you want an empty message.
 #[tag]
 #  gpgSign = true
+
+# Configuration for GPG signing and format settings
+#[gpg]
+#  format = ssh
+
+# Settings for using SSH keys with GPG
+#[gpg "ssh"]
+#  program = ""
