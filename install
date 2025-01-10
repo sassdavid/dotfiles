@@ -38,7 +38,6 @@ Linux*)
   fi
 
   ;;
-Darwin*) os_type="macOS" ;;
 *)
   os_type="Other"
 
@@ -227,7 +226,7 @@ fi
 # Change default shell to zsh
 ###############################################################################
 
-[ "${os_type}" != "macOS" ] && chsh -s "$(command -v zsh)"
+chsh -s "$(command -v zsh)"
 
 # shellcheck disable=SC1090
 . "${HOME}/.config/zsh/.zprofile"
@@ -243,7 +242,7 @@ curl https://mise.run | sh
 shell_name=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
 
 if type "${HOME}/.local/bin/mise" &> /dev/null; then
-  if [[ -t 0 ]]; then # terminal has stdin i.e. interactive
+  if [[ -t 0 ]]; then
     eval "$("${HOME}/.local/bin/mise" activate "$shell_name")"
   else
     eval "$("${HOME}/.local/bin/mise" activate --shims)"
