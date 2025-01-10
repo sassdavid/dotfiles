@@ -14,9 +14,6 @@ export PATH="${PATH}:${HOME}/.local/bin:${HOME}/.local/bin/private"
 export GOPATH="${HOME}/go"
 export PATH="${PATH}:${GOPATH}/bin"
 
-# Set mise environment variables
-export ASDF_HASHICORP_SKIP_VERIFY="true"
-
 # Set rust-lang environment variables
 export RUST_LANG_HOME="${HOME}/rust-lang"
 export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"

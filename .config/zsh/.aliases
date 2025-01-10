@@ -9,29 +9,32 @@ if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
   alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
 fi
 
-alias ls="ls --color=auto"
 alias grep="grep --color=auto"
 alias fgrep="fgrep --color=auto"
 alias egrep="egrep --color=auto"
 
-alias ll="ls -alF"
-alias la="ls -A"
-alias l="ls -CF"
+alias ls="eza"
+alias ll="ls -laagobF --group-directories-first --show-symlinks --git --color-scale --time-style '+%Y-%m-%d %H:%M:%S'"
+alias ld='ll --only-dirs'
+alias lf='ll --only-files'
 
 alias cfa='${EDITOR} ${ZDOTDIR}/.aliases'
 alias cfp='${EDITOR} ${ZDOTDIR}/.zprofile'
 alias cfr='${EDITOR} ${ZDOTDIR}/.zshrc'
 alias sfr='. ${ZDOTDIR}/.zshrc'
 alias cft='${EDITOR} ${HOME}/.tmux.conf'
-alias cfg='${EDITOR} ${HOME}/.gitconfig.user'
+alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
+alias cfgw='${EDITOR} ${HOME}/.gitconfig.user.work'
+alias cfgb='${EDITOR} ${HOME}/.gitconfig.user.bitbucket'
 alias dt='cd ${HOME}/src/github/dotfiles'
 
 alias drun='docker run --rm -it'
 
 alias vdt="rm /tmp/%*"
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
-alias ctg="find . -type d -path '*/.terragrunt-cache' -prune -exec rm -rf {} \;"
-alias ctf="find . -type d -path '*/.terraform' -prune -exec rm -rf {} \; ; find . -type f -path '*/terraform-aws-loxon-*/.terraform.lock.hcl' -exec rm -f {} +"
+alias ctg="fd --hidden --no-ignore --exclude .git --exclude .idea --max-depth 2 --type dir '\.terragrunt-cache' --exec rm -rf"
+alias ctf="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .terragrunt-cache --max-depth 2 --type dir '\.terraform' --exec rm -rf"
+alias ctfl="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .terragrunt-cache --max-depth 2 --type file --extension hcl --full-path './terraform-aws-loxon.*/\.terraform.lock.hcl' --exec rm -rf"
 alias cnode="find . -type d \( -path '*/node_modules' -or -path '*/dist' \) -prune -exec rm -rf {} \;"
 alias cng="find . -type d -path '*/.angular/cache' -prune -exec rm -rf {} \;"
 

@@ -132,3 +132,6 @@ source <(terraform-docs completion zsh)
 source <(helm completion zsh)
 source <(argocd completion zsh)
 source <(mongocli completion zsh)
+
+# eval additional
+eval "$(zoxide init --cmd cd zsh)"

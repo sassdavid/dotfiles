@@ -8,5 +8,13 @@
 	whitespace = red reverse
 
 [include]
-	path = ~/.gitconfig.user
 	path = ~/.config/gitalias/gitalias.txt
+
+[includeIf "gitdir:~/src/github/"]
+    path = ~/.gitconfig.user.personal
+[includeIf "gitdir:~/src/codecommit/"]
+    path = ~/.gitconfig.user.work
+[includeIf "gitdir:~/src/gerrit/"]
+    path = ~/.gitconfig.user.work
+[includeIf "gitdir:~/src/bitbucket/"]
+    path = ~/.gitconfig.user.bitbucket

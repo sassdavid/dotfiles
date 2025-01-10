@@ -135,7 +135,9 @@ one, then follow the step(s) below:
    that your details are used when you make git commits.
 
    ```sh
-   vim ~/.gitconfig.user
+   vim ~/.gitconfig.user.personal
+   vim ~/.gitconfig.user.work
+   vim ~/.gitconfig.user.bitbucket
    ```
 
 2. **(Optional) confirm that a few things work**

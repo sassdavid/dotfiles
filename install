@@ -142,7 +142,9 @@ mkdir -p "${HOME}/.config/zsh" "${HOME}/.config/gitalias" \
 # Personalize git user and setup gitalias
 ###############################################################################
 
-cp "${clone_path}/.gitconfig.user" "${HOME}/.gitconfig.user"
+cp "${clone_path}/.gitconfig.user.personal" "${HOME}/.gitconfig.user.personal"
+cp "${clone_path}/.gitconfig.user.work" "${HOME}/.gitconfig.user.work"
+cp "${clone_path}/.gitconfig.user.bitbucket" "${HOME}/.gitconfig.user.bitbucket"
 
 curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
 
@@ -258,8 +260,6 @@ mise settings not_found_auto_install=false
 mise settings task_run_auto_install=false
 mise settings use_versions_host=false
 
-export ASDF_HASHICORP_SKIP_VERIFY="true"
-
 ###############################################################################
 # Install tmux plugins
 ###############################################################################
@@ -292,6 +292,21 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-mod
 printf "\n\nInstalling usage binary...\n"
 
 mise use -g usage@latest
+
+###############################################################################
+# Install various tools for replacement of basic unix commands
+###############################################################################
+
+mise plugins install eza https://github.com/mise-plugins/mise-eza.git
+
+mise use -g eza@latest
+mise use -g fd@latest
+mise use -g zoxide@latest
+mise use -g bat@latest
+mise use -g hyperfine@latest
+
+fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
+bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
 
 ###############################################################################
 # Install ripgrep binary
@@ -408,7 +423,7 @@ mise use -g go@latest
 
 printf "\n\nInstalling latest java and maven binaries...\n"
 
-mise plugins install maven https://github.com/mise-plugins/asdf-maven.git
+mise plugins install maven https://github.com/mise-plugins/mise-maven.git
 
 mise use -g java@corretto-17
 mise use -g maven@latest
@@ -436,7 +451,7 @@ mise use -g pre-commit@latest
 
 printf "\n\nInstalling 1password cli...\n"
 
-mise plugins install 1password-cli https://github.com/NeoHsu/asdf-1password-cli.git
+mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
 
 mise use -g 1password-cli@latest
 
