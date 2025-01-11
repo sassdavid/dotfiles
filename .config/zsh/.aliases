@@ -13,6 +13,19 @@ alias grep="grep --color=auto"
 alias fgrep="fgrep --color=auto"
 alias egrep="egrep --color=auto"
 
+alias c='clear'
+alias mkdir='mkdir -p'
+
+alias cat='bat --paging=never'
+
+alias ..='cd ..'
+alias ...='cd ../../'
+alias ....='cd ../../../'
+alias .....='cd ../../../../'
+alias .2='cd ../../'
+alias .3='cd ../../../'
+alias .4='cd ../../../../'
+
 alias ls="eza"
 alias ll="ls -laagobF --group-directories-first --show-symlinks --git --color-scale --time-style '+%Y-%m-%d %H:%M:%S'"
 alias ld='ll --only-dirs'
