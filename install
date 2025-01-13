@@ -293,10 +293,10 @@ printf "\n\nInstalling usage binary...\n"
 mise use -g usage@latest
 
 ###############################################################################
-# Install various tools for replacement of basic commands (eza,fd,zoxide,bat,hyperfine)
+# Install various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,hyperfine)
 ###############################################################################
 
-printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,hyperfine)...\n"
+printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,hyperfine)...\n"
 
 mise plugins install eza https://github.com/mise-plugins/mise-eza.git
 
@@ -304,7 +304,10 @@ mise use -g eza@latest
 mise use -g fd@latest
 mise use -g zoxide@latest
 mise use -g bat@latest
+mise use -g gdu@latest
 mise use -g hyperfine@latest
+
+curl -sS https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
 
 mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
 mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"

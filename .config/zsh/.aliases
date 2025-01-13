@@ -48,7 +48,7 @@ alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/ar
 alias ctg="fd --hidden --no-ignore --exclude .git --exclude .idea --max-depth 2 --type dir '\.terragrunt-cache' --exec rm -rf"
 alias ctf="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .terragrunt-cache --max-depth 2 --type dir '\.terraform' --exec rm -rf"
 alias ctfl="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .terragrunt-cache --max-depth 2 --type file --extension hcl --full-path './terraform-aws-loxon.*/\.terraform.lock.hcl' --exec rm -rf"
-alias cnode="find . -type d \( -path '*/node_modules' -or -path '*/dist' \) -prune -exec rm -rf {} \;"
+alias cnode="fd --no-ignore --type dir 'node_modules|build|dist' --exec rm -rf"
 alias cng="find . -type d -path '*/.angular/cache' -prune -exec rm -rf {} \;"
 
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
