@@ -307,7 +307,7 @@ mise use -g bat@latest
 mise use -g gdu@latest
 mise use -g hyperfine@latest
 
-curl -sS https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
+curl -sSL https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
 
 mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
 mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
