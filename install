@@ -298,8 +298,6 @@ mise use -g usage@latest
 
 printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,dua,hyperfine)...\n"
 
-mise plugins install eza https://github.com/mise-plugins/mise-eza.git
-
 mise use -g eza@latest
 mise use -g fd@latest
 mise use -g zoxide@latest
