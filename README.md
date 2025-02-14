@@ -119,7 +119,7 @@ integration:
 - In my `~/.gitconfig` file, I set `sshCommand`.
 
 The above settings allow me to use the 1Password SSH agent integration with Git in WSL 2, pointing to my Windows OpenSSH
-client (`/mnt/c/Program Files/OpenSSH/ssh.exe` and `/mnt/c/Program Files/OpenSSH/ssh-add.exe`).
+client (`/c/Program Files/OpenSSH/ssh.exe` and `/c/Program Files/OpenSSH/ssh-add.exe`).
 
 ### Did you install everything successfully?
 

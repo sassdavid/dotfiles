@@ -91,8 +91,8 @@ if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
     # export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
 
     # Configure OpenSSH in order to 1password ssh will be usable
-    export GIT_SSH='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
-    export GIT_SSH_COMMAND='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
+    export GIT_SSH='/c/Program\ Files/OpenSSH/ssh.exe'
+    export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
 fi
 
 # Allows your gpg passphrase prompt to spawn (useful for signing commits).

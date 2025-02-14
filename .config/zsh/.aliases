@@ -1,6 +1,6 @@
 if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
-  alias ssh='/mnt/c/Program\ Files/OpenSSH/ssh.exe'
-  alias ssh-add='/mnt/c/Program\ Files/OpenSSH/ssh-add.exe'
+  alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
+  alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
   alias ssh2='/usr/bin/ssh'
 
   # This is specific to WSL 2. If the WSL 2 VM goes rogue and decides not to free

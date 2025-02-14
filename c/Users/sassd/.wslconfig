@@ -1,5 +1,5 @@
 [wsl2]
-memory=12GB
+memory=16GB
 networkingMode=mirrored
 swapFile=C:\\Software\\__wsl\\wsl2-swap.vhdx
 guiApplications=false
