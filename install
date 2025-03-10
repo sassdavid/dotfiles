@@ -252,7 +252,6 @@ fi
 mise settings exec_auto_install=false
 mise settings experimental=true
 mise settings fetch_remote_versions_timeout=60s
-mise settings go_skip_checksum=true
 mise settings http_timeout=60s
 mise settings idiomatic_version_file=false
 mise settings not_found_auto_install=false
@@ -370,7 +369,7 @@ mise use -g tflint@latest
 
 printf "\n\nInstalling kubectl binary...\n"
 
-mise use -g kubectl@1.31
+mise use -g kubectl@1.32
 
 ###############################################################################
 # Install eksctl binary
