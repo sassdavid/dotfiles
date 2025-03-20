@@ -297,13 +297,14 @@ mise use -g usage@latest
 
 printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,dua,hyperfine)...\n"
 
+mise use -g bat@latest
+mise use -g curlie@latest
+mise use -g dua@latest
 mise use -g eza@latest
 mise use -g fd@latest
-mise use -g zoxide@latest
-mise use -g bat@latest
 mise use -g gdu@latest
-mise use -g dua@latest
 mise use -g hyperfine@latest
+mise use -g zoxide@latest
 
 curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
 
@@ -420,6 +421,14 @@ printf "\n\nInstalling latest go binary...\n"
 mise use -g go@latest
 
 ###############################################################################
+# Install latest uv binary
+###############################################################################
+
+printf "\n\nInstalling latest uv binary...\n"
+
+mise use -g uv@latest
+
+###############################################################################
 # Install latest java and maven binaries
 ###############################################################################
 
@@ -434,10 +443,10 @@ mise use -g maven@latest
 # Install node binaries (18,20)
 ###############################################################################
 
-printf "\n\nInstalling node 18,20 binaries...\n"
+printf "\n\nInstalling node 20,22 binaries...\n"
 
-mise use -g node@18
 mise use -g node@20
+mise use -g node@22
 
 ###############################################################################
 # Install pre-commit

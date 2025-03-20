@@ -135,3 +135,4 @@ source <(mongocli completion zsh)
 
 # eval additional
 eval "$(zoxide init --cmd cd zsh)"
+eval "$(uv generate-shell-completion zsh)"
