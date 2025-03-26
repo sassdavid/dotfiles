@@ -5,6 +5,11 @@ set -e
 default_install_path="$HOME/.local/bin"
 install_path="${1:-$default_install_path}"
 
+auth_header=""
+if [[ -n "$GITHUB_TOKEN" ]]; then
+  auth_header="Authorization: Bearer $GITHUB_TOKEN"
+fi
+
 get_arch() {
   local mode=$1
   local arch && arch=$(uname -m)
@@ -55,7 +60,7 @@ install_or_update_mongosh() {
   local final_dir=$1
   local arch && arch=$(get_arch)
   local tmp_dir && tmp_dir=$(create_tmp_dir "mongosh")
-  local version_tag && version_tag=$(curl -s https://api.github.com/repos/mongodb-js/mongosh/releases/latest | grep tag_name | cut -d '"' -f 4)
+  local version_tag && version_tag=$(curl -s -H "$auth_header" https://api.github.com/repos/mongodb-js/mongosh/releases/latest | grep tag_name | cut -d '"' -f 4)
   local version=${version_tag#v}
   local url="https://github.com/mongodb-js/mongosh/releases/download/${version_tag}/mongosh-${version}-linux-${arch}.tgz"
 
@@ -66,7 +71,7 @@ install_or_update_mongodb_tools() {
   local final_dir=$1
   local arch && arch=$(get_arch "standard")
   local tmp_dir && tmp_dir=$(create_tmp_dir "mongodbtools")
-  local latest_version && latest_version=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+  local latest_version && latest_version=$(curl -s -H "$auth_header" -H "Accept: application/vnd.github.v3+json" \
     https://api.github.com/repos/mongodb/mongo-tools/git/refs/tags |
     sed -nE "s/^.*\"ref\"\: \"refs\/tags\/r?([[:digit:]]{2,3}\.[[:digit:]]+\.[[:digit:]]+)\",$/\1/p" |
     sort -V | tail -n1)
@@ -79,7 +84,7 @@ install_or_update_atlas_mongo_cli() {
   local base_final_dir=$1
   local arch && arch=$(get_arch "standard")
 
-  local releases_json && releases_json=$(curl -s https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
+  local releases_json && releases_json=$(curl -s -H "$auth_header" https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
 
   local atlas_release && atlas_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB Atlas CLI")) | .tag_name' | head -n 1)
   local mongo_release && mongo_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB CLI")) | .tag_name' | head -n 1)
