@@ -360,6 +360,7 @@ install_mise() {
 
   mise use -g node@20 node@22
 
+  mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
   mise use -g 1password-cli
 
   mise use -g neovim@0.10.4
