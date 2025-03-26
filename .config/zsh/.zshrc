@@ -99,8 +99,8 @@ fi
 export GPG_TTY="$(tty)"
 
 # Configure FZF.
-export FZF_DEFAULT_COMMAND="rg --files --hidden --follow --glob '!.git'"
-export FZF_DEFAULT_OPTS="--color=dark"
+export FZF_DEFAULT_COMMAND="rg --files --follow --hidden --glob '!.git'"
+export FZF_DEFAULT_OPTS="--highlight-line --info=inline-right --ansi --layout=reverse --border=none"
 export FZF_CTRL_T_OPTS="--preview='less {}' --height=100% --bind shift-up:preview-page-up,shift-down:preview-page-down"
 
 # zsh-autosuggestions settings.
@@ -112,7 +112,10 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 
 # Load aliases if they exist.
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases"
-[ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local"
+
+# Load local settings if they exist.
+[ -f "${XDG_CONFIG_HOME}/zsh/.zshrc.local" ] && . "${XDG_CONFIG_HOME}/zsh/.zshrc.local"
+[ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.local" || true
 
 # Load sources from other repository if they exist.
 [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ] && . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"

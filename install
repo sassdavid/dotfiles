@@ -1,25 +1,47 @@
 #!/usr/bin/env bash
+# bashsupport disable=BP5008
+# Usage:
+#   ./install          # Clone my dotfiles
+#   DEBUG=1 ./install  # Copy the local dotfiles directory instead of cloning
+#
+#   # Customize which dotfiles URL to clone from
+#   DOTFILES_URL="https://github.com/example/dotfiles" ./install
 
-set -e
+set -o errexit
 
-skip_system_packages="${1}"
+SKIP_SYSTEM_PACKAGES="${1:-}"
 
-os_type="$(uname -s)"
+APT_PACKAGES="curl git iproute2 tmux zsh xz-utils"
+APT_PACKAGES_OPTIONAL="gnupg htop zip unzip"
 
-apt_packages="curl git tmux zsh"
-apt_packages_optional="zip unzip"
+OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
 
-###############################################################################
-# Detect OS and distro type
-###############################################################################
+DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
+DOTFILES_PATH="${DOTFILES_PATH:-}"
 
-function no_system_packages() {
+# -----------------------------------------------------------------------------
+# Helper functions
+# -----------------------------------------------------------------------------
+
+_error() {
+  local message="${1:-}"
+
+  printf "\e[31;1mERROR:\e[0m %s\n\n" "${message}" >&2
+  exit 1
+}
+
+_info() {
+  local message="${1:-}"
+  printf "\n\n\e[36;1m%s:\e[0m\n\n" "${message}"
+}
+
+_no_system_packages() {
   cat <<EOF
 System package installation isn't supported with your OS / distro.
 
 Please install any dependent packages on your own. You can view the list at:
 
-    https://github.com/sassdavid/dotfiles/blob/main/install
+    https://github.com/sassdavid/dotfiles/blob/master/install
 
 Then re-run the script and explicitly skip installing system packages:
 
@@ -29,448 +51,344 @@ EOF
   exit 1
 }
 
-case "${os_type}" in
-Linux*)
-  os_type="Linux"
-
-  if [ ! -f "/etc/debian_version" ]; then
-    [ -z "${skip_system_packages}" ] && no_system_packages
-  fi
-
-  ;;
-*)
-  os_type="Other"
-
-  [ -z "${skip_system_packages}" ] && no_system_packages
-
-  ;;
-esac
-
-###############################################################################
-# Install packages using your OS' package manager
-###############################################################################
-
-function apt_install_packages {
+_install_packages_apt() {
   sudo add-apt-repository -y ppa:git-core/ppa
 
   # shellcheck disable=SC2086
-  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${apt_packages} ${apt_packages_optional}
+  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${APT_PACKAGES} ${APT_PACKAGES_OPTIONAL}
 
   sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
 }
 
-function display_packages {
-  if [ "${os_type}" == "Linux" ]; then
-    echo "${apt_packages} ${apt_packages_optional}"
+_display_packages() {
+  if [ "${OS_TYPE}" == "linux" ]; then
+    echo "${APT_PACKAGES} ${APT_PACKAGES_OPTIONAL}"
   fi
 }
 
-if [ -z "${skip_system_packages}" ]; then
+# -----------------------------------------------------------------------------
+# Main functions
+# -----------------------------------------------------------------------------
+
+detect_env() {
+  case "${OS_TYPE}" in
+  linux)
+    if [ ! -f "/etc/debian_version" ]; then
+      [ -z "${SKIP_SYSTEM_PACKAGES}" ] && _no_system_packages
+    fi
+
+    ;;
+  esac
+}
+
+create_initial_dirs() {
+  mkdir -p "${HOME}/.config/tmux/plugins" "${HOME}/.config/zsh" "${HOME}/.cache/zsh" \
+    "${HOME}/.local/bin" "${HOME}/.local/share" "${HOME}/.config/gitalias" \
+    "${HOME}/.local/share/zsh/completions" "${HOME}/.local/state" "${HOME}/.aws" \
+    "${HOME}/.kube"
+}
+
+install_packages() {
+  _info "INSTALL PACKAGES"
+
+  if [ -n "${SKIP_SYSTEM_PACKAGES}" ]; then
+    echo "Skipping, you've chosen not to or your OS is unsupported"
+    return
+  fi
+
   cat <<EOF
+If you choose y, all of the system packages below will be installed:
 
-If you choose yes, all of the system packages below will be installed:
-
-$(display_packages)
+$(_display_packages)
 
 If you choose no, the above packages will not be installed and this script
 will exit. This gives you a chance to edit the list of packages if you don't
 agree with any of the decisions.
 
-The packages listed after zsh are technically optional but are quite useful.
-Keep in mind if you don't install pwgen you won't be able to generate random
-passwords using a custom alias that's included in these dotfiles.
+The packages listed after xz are technically optional but are quite useful.
+Certain aliases depend on these optional packages being installed.
 
 EOF
+
   while true; do
     read -rp "Do you want to install the above packages? (y/n) " yn
     case "${yn}" in
     [Yy]*)
-      if [ "${os_type}" == "Linux" ]; then
-        apt_install_packages
+      if [ "${OS_TYPE}" == "linux" ]; then
+        _install_packages_apt
       fi
 
       break
       ;;
-    [Nn]*) exit 0 ;;
-    *) echo "Please answer y or n" ;;
+    [Nn]*) exit ;;
+    *) printf "Please answer y or n\n\n" ;;
     esac
   done
-else
-  echo "System package installation was skipped!"
-fi
 
-###############################################################################
-# Clone dotfiles
-###############################################################################
+}
 
-read -rep $'\nWhere do you want to clone these dotfiles to [~/dotfiles]? ' clone_path
-clone_path="${clone_path:-"${HOME}/dotfiles"}"
+clone_or_update_dotfiles() {
+  _info "CLONE OR UPDATE DOTFILES"
 
-# Ensure path doesn't exist.
-while [ -e "${clone_path}" ]; do
-  read -rep $'\nPath exists, try again? (y) ' y
-  case "${y}" in
-  [Yy]*)
+  local local_zprofile="${HOME}/.config/zsh/.zprofile.local"
 
-    break
-    ;;
-  *) echo "Please answer y or CTRL+c the script to abort everything" ;;
-  esac
-done
+  if [ -f "${local_zprofile}" ]; then
+    # shellcheck disable=SC1090
+    . "${local_zprofile}"
+  fi
 
-echo
+  local default_dotfiles_path="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
 
-# This is used to locally develop the install script.
-if [ "${DEBUG}" == "1" ]; then
-  cp -R "${PWD}/." "${clone_path}"
-else
-  git clone https://github.com/sassdavid/dotfiles.git "${clone_path}"
-fi
+  local dotfiles_path
+  read -rep "Where do you want to clone these dotfiles to [${default_dotfiles_path}]? " dotfiles_path
+  echo
 
-###############################################################################
-# Create initial directories
-###############################################################################
+  [[ -z "${dotfiles_path}" ]] && dotfiles_path="${default_dotfiles_path}"
 
-mkdir -p "${HOME}/.config/zsh" "${HOME}/.config/gitalias" \
-  "${HOME}/.cache/zsh" "${HOME}/.local/bin" \
-  "${HOME}/.local/share" "${HOME}/.local/share/zsh/completions" \
-  "${HOME}/.local/state" "${HOME}/.aws" \
-  "${HOME}/.kube"
+  # bashsupport disable=BP5006
+  DOTFILES_PATH="${dotfiles_path//\~/"${HOME}"}"
 
-###############################################################################
-# Personalize git user and setup gitalias
-###############################################################################
+  # This is used to locally develop the install script.
+  if [ "${DEBUG}" == "1" ]; then
+    if [ "${PWD}" != "${DOTFILES_PATH}" ]; then
+      cp -R "${PWD}/." "${DOTFILES_PATH}"
+    fi
 
-cp "${clone_path}/.gitconfig.user.personal" "${HOME}/.gitconfig.user.personal"
-cp "${clone_path}/.gitconfig.user.work" "${HOME}/.gitconfig.user.work"
-cp "${clone_path}/.gitconfig.user.bitbucket" "${HOME}/.gitconfig.user.bitbucket"
+    printf "They've been copied to '%s'\n" "${DOTFILES_PATH}"
+    return
+  fi
 
-curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
+  if [ -e "${DOTFILES_PATH}" ]; then
+    # Let's get the latest updates.
+    git -C "${DOTFILES_PATH}" pull
+  else
+    mkdir -p "$(dirname "${DOTFILES_PATH}")"
+    git clone "${DOTFILES_URL}" "${DOTFILES_PATH}"
+  fi
+}
 
-###############################################################################
-# Install zsh plugins
-###############################################################################
+install_zsh_plugins() {
+  _info "INSTALL ZSH PLUGINS"
 
-"${clone_path}/.local/bin/update-zsh-plugins"
+  "${DOTFILES_PATH}/.local/bin/update-zsh-plugins"
+}
 
-###############################################################################
-# Install mongodb stuffs
-###############################################################################
+install_mongodb_stuffs() {
+  _info "INSTALL MONGODB STUFFS"
 
-"${clone_path}/.local/bin/install-mongodb-stuffs"
+  "${DOTFILES_PATH}/.local/bin/install-mongodb-stuffs"
+}
 
-###############################################################################
-# Install tpm (tmux plugin manager)
-###############################################################################
+create_symlinks() {
+  _info "CREATE SYMLINKS"
 
-rm -rf "${HOME}/.tmux/plugins/tpm"
-git clone --depth 1 https://github.com/tmux-plugins/tpm "${HOME}/.tmux/plugins/tpm"
-
-###############################################################################
-# Carefully create symlinks
-###############################################################################
-
-cat <<EOF
-
+  cat <<EOF
 -------------------------------------------------------------------------------
 
-ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv"
-ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc"
-ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile"
-ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
-ln -fs "${clone_path}/.gitconfig" "${HOME}/.gitconfig"
-ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf"
-ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
+ln -fs "${DOTFILES_PATH}/.zshenv" "${HOME}/.zshenv"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc.local" "${HOME}/.config/zsh/.zshrc.local"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile.local" "${HOME}/.config/zsh/.zprofile.local"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
+ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local"
+ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf"
+ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes"
+ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
+ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig"
+ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
 
 # And if you happen to be using WSL:
-sudo ln -fs "${clone_path}/etc/wsl.conf" /etc/wsl.conf
+sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
 
 -------------------------------------------------------------------------------
 
-A potentially dangerous action is about to happen. The above files are going to
-get forcefully symlinked.
+A potentially dangerous action is about to happen. The above directories and
+files are going to get forcefully symlinked if you type y in the prompt below.
 
 What does that mean?
 
 Any config files you have on the right hand side of the paths are going to get
-overwritten with the files that come with my dotfiles (left side).
+overwritten with the files that come with these dotfiles (left side).
 
-If you care about your original config files now would be the time to back
-them up. They will ALL be overwritten if you say yes to the prompt below.
+Without these symlinks, these dotfiles will not work. If you plan to type y
+and have existing files now would be a good time to back them up.
+
 EOF
 
-while true; do
-  read -rep $'\nReady to continue and apply the symlinks? (y) ' y
-  case "${y}" in
-  [Yy]*)
+  while true; do
+    read -rep "Ready to continue? Enter y to apply them all or n to skip (y/n) " yn
+    case "${yn}" in
+    [Yy]*)
+      # We're being extra careful here to only delete symlinks if they exist.
+      # Technically rm -f would work but that could delete real files potentially.
+      [ -L "${HOME}/.config/tmux/themes" ] && rm "${HOME}/.config/tmux/themes"
+      [ -L "${HOME}/.config/nvim" ] && rm "${HOME}/.config/nvim"
 
-    break
-    ;;
-  *) echo "Please answer y or CTRL+c the script to abort everything" ;;
-  esac
-done
+      ln -fs "${DOTFILES_PATH}/.zshenv" "${HOME}/.zshenv" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc.local" "${HOME}/.config/zsh/.zshrc.local" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile.local" "${HOME}/.config/zsh/.zprofile.local" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local" &&
+        ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf" &&
+        ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes" &&
+        ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
+        ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig" &&
+        ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
 
-ln -fs "${clone_path}/.zshenv" "${HOME}/.zshenv" &&
-  ln -fs "${clone_path}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
-  ln -fs "${clone_path}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
-  ln -fs "${clone_path}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
-  ln -fs "${clone_path}/.gitconfig" "${HOME}/.gitconfig" &&
-  ln -fs "${clone_path}/.tmux.conf" "${HOME}/.tmux.conf" &&
-  ln -fs "${clone_path}/.local/bin/"* "${HOME}/.local/bin/"
+      if grep -qE "(Microsoft|microsoft|WSL)" /proc/version &>/dev/null; then
+        sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
+      fi
 
-if grep -qE "(Microsoft|microsoft|WSL)" /proc/version &>/dev/null; then
-  sudo ln -fs "${clone_path}/etc/wsl.conf" /etc/wsl.conf
-fi
+      break
+      ;;
+    [Nn]*)
 
-###############################################################################
-# Change default shell to zsh
-###############################################################################
+      break
+      ;;
+    *) echo "Please answer y or n" ;;
+    esac
+  done
+}
 
-chsh -s "$(command -v zsh)"
+configure_shell() {
+  _info "CONFIGURE SHELL"
 
-# shellcheck disable=SC1090
-. "${HOME}/.config/zsh/.zprofile"
+  local local_files=(".zshrc.local" ".zprofile.local" ".aliases.local")
 
-###############################################################################
-# Install mise
-###############################################################################
+  local file
+  for file in "${local_files[@]}"; do
+    local file_path="${HOME}/.config/zsh/${file}"
 
-printf "\n\nInstalling latest mise...\n"
+    if [ ! -f "${file_path}" ]; then
+      echo "# Any settings defined here are gitignored" >"${file_path}"
+    fi
+  done
 
-curl https://mise.run | sh
-
-shell_name=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
-
-if type "${HOME}/.local/bin/mise" &> /dev/null; then
-  if [[ -t 0 ]]; then
-    eval "$("${HOME}/.local/bin/mise" activate "$shell_name")"
-  else
-    eval "$("${HOME}/.local/bin/mise" activate --shims)"
+  local zprofile_path="${HOME}/.config/zsh/.zprofile.local"
+  if ! grep -q "^export DOTFILES_PATH=.*$" "${zprofile_path}" 2>/dev/null; then
+    printf '\nexport DOTFILES_PATH="%s"\n' "${DOTFILES_PATH}" >>"${zprofile_path}"
   fi
-fi
 
-mise settings exec_auto_install=false
-mise settings experimental=true
-mise settings fetch_remote_versions_timeout=60s
-mise settings http_timeout=60s
-mise settings idiomatic_version_file=false
-mise settings not_found_auto_install=false
-mise settings task_run_auto_install=false
-mise settings use_versions_host=false
+  [ "${SHELL}" != "$(command -v zsh)" ] && chsh -s "$(command -v zsh)"
 
-###############################################################################
-# Install tmux plugins
-###############################################################################
+  # shellcheck disable=SC1091
+  . "${HOME}/.config/zsh/.zprofile"
 
-printf "\n\nInstalling tmux plugins...\n"
+  echo "It has been configured in '${HOME}/.config.zsh/'"
+}
 
-export TMUX_PLUGIN_MANAGER_PATH="${HOME}/.tmux/plugins"
-"${HOME}/.tmux/plugins/tpm/bin/install_plugins"
+configure_git() {
+  _info "CONFIGURE GIT"
 
-###############################################################################
-# Install rust-lang
-###############################################################################
+  local git_personal_path="${HOME}/.gitconfig.user.personal"
+  local git_work_path="${HOME}/.gitconfig.user.work"
+  local git_bitbucket_path="${HOME}/.gitconfig.user.bitbucket"
 
-printf "\n\nInstalling rust-lang...\n"
+  cp -n "${DOTFILES_PATH}/.gitconfig.user.personal" "${git_personal_path}" 2>/dev/null || true
+  cp -n "${DOTFILES_PATH}/.gitconfig.user.work" "${git_work_path}" 2>/dev/null || true
+  cp -n "${DOTFILES_PATH}/.gitconfig.user.bitbucket" "${git_bitbucket_path}" 2>/dev/null || true
 
-export RUST_LANG_HOME="${HOME}/rust-lang"
-export RUSTUP_HOME="${RUST_LANG_HOME}/.rustup"
-export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
-export CARGO_BIN_HOME="${CARGO_HOME}/bin"
+  curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+  echo "It has been configured in '${git_personal_path}'"
+  echo "It has been configured in '${git_work_path}'"
+  echo "It has been configured in '${git_bitbucket_path}'"
+}
 
-"${CARGO_BIN_HOME}/rustup" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
-"${CARGO_BIN_HOME}/rustup" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
+install_rust() {
+  _info "INSTALL RUST"
 
-###############################################################################
-# Install usage, it is needed to use mise completion
-###############################################################################
+  local rust_lang_home="${HOME}/rust-lang"
+  local cargo_home="${rust_lang_home}/.cargo"
+  local cargo_bin_home="${cargo_home}/bin"
 
-printf "\n\nInstalling usage binary...\n"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
 
-mise use -g usage@latest
+  "${cargo_bin_home}/rustup" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
+  "${cargo_bin_home}/rustup" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
+}
 
-###############################################################################
-# Install various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,dua,hyperfine)
-###############################################################################
+install_mise() {
+  _info "INSTALL MISE"
 
-printf "\n\nInstall various tools for replacement of basic commands (eza,fd,zoxide,bat,gdu,dua,hyperfine)...\n"
+  curl https://mise.run | sh
 
-mise use -g bat@latest
-mise use -g curlie@latest
-mise use -g dua@latest
-mise use -g eza@latest
-mise use -g fd@latest
-mise use -g gdu@latest
-mise use -g hyperfine@latest
-mise use -g zoxide@latest
+  local shell_name=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
 
-curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
+  if type "${HOME}/.local/bin/mise" &> /dev/null; then
+    if [[ -t 0 ]]; then
+      eval "$("${HOME}/.local/bin/mise" activate "$shell_name")"
+    else
+      eval "$("${HOME}/.local/bin/mise" activate --shims)"
+    fi
+  fi
 
-mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
-mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
+  mise settings exec_auto_install=false
+  mise settings experimental=true
+  mise settings fetch_remote_versions_timeout=60s
+  mise settings http_timeout=60s
+  mise settings idiomatic_version_file=false
+  mise settings not_found_auto_install=false
+  mise settings task_run_auto_install=false
+  mise settings use_versions_host=false
 
-###############################################################################
-# Install ripgrep binary
-###############################################################################
+  mise use -g usage
 
-printf "\n\nInstalling ripgrep binary...\n"
+  mise use -g bat curlie dua eza fd gdu hyperfine zoxide rg fzf
+  curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
+  mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
+  mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
 
-mise use -g rg@latest
+  mise use -g cosign slsa-verifier
 
-###############################################################################
-# Install fzf (fuzzy finder on the terminal)
-###############################################################################
+  mise use -g jq yq
 
-printf "\n\nInstalling fzf binary...\n"
+  mise use -g awscli amazon-ecr-credential-helper
 
-mise use -g fzf@latest
+  mise use -g terraform terragrunt tflint terraform-docs
 
-###############################################################################
-# Install cosign and slsa-verifier binaries, needed to verify checksum for aqua packages
-###############################################################################
+  mise use -g kubectl eksctl k9s helm argocd
 
-printf "\n\nInstalling cosign and slsa-verifier binaries...\n"
+  mise use -g go
 
-mise use -g cosign@latest
-mise use -g slsa-verifier@latest
+  mise use -g uv pre-commit
 
-###############################################################################
-# Install latest jq and yq binaries
-###############################################################################
+  mise use -g java@corretto-17 maven
 
-printf "\n\nInstalling latest jq and yq binaries...\n"
+  mise use -g node@20 node@22
 
-mise use -g jq@latest
-mise use -g yq@latest
+  mise use -g 1password-cli
 
-###############################################################################
-# Install latest aws binary
-###############################################################################
+  mise use -g neovim@0.10.4
+}
 
-printf "\n\nInstalling latest aws binary...\n"
+install_tmux_plugins() {
+  _info "INSTALL TMUX PLUGINS"
 
-mise use -g awscli@latest
+  local plugin_path="${HOME}/.config/tmux/plugins"
+  local tpm_path="${plugin_path}/tpm"
 
-###############################################################################
-# Install latest terraform binary
-###############################################################################
+  rm -rf "${tpm_path}"
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "${tpm_path}"
 
-printf "\n\nInstalling latest terraform, terragrunt, tflint and terraform-docs binaries...\n"
+  "${tpm_path}/bin/install_plugins"
+}
 
-mise use -g terraform@latest
-mise use -g terragrunt@latest
-mise use -g terraform-docs@latest
-mise use -g tflint@latest
+install_nvim_plugins() {
+  _info "INSTALL NEOVIM PLUGINS"
 
-###############################################################################
-# Install kubectl binary
-###############################################################################
+  nvim +q
 
-printf "\n\nInstalling kubectl binary...\n"
+  echo "They've been installed"
+}
 
-mise use -g kubectl@1.32
+configure_docker_completion() {
+  _info "CONFIGURE DOCKER COMPLETION"
 
-###############################################################################
-# Install eksctl binary
-###############################################################################
-
-printf "\n\nInstalling eksctl binary...\n"
-
-mise use -g eksctl@latest
-
-###############################################################################
-# Install k9s binary
-###############################################################################
-
-printf "\n\nInstalling k9s binary...\n"
-
-mise use -g k9s@latest
-
-###############################################################################
-# Install latest helm binary
-###############################################################################
-
-printf "\n\nInstalling helm binary...\n"
-
-mise use -g helm@latest
-
-###############################################################################
-# Install latest argocd binary
-###############################################################################
-
-printf "\n\nInstalling latest argocd binary...\n"
-
-mise use -g argocd@latest
-
-###############################################################################
-# Install latest docker-credential-ecr-login binary
-###############################################################################
-
-printf "\n\nInstalling latest docker-credential-ecr-login binary...\n"
-
-mise use -g amazon-ecr-credential-helper@latest
-
-###############################################################################
-# Install latest go binary
-###############################################################################
-
-printf "\n\nInstalling latest go binary...\n"
-
-mise use -g go@latest
-
-###############################################################################
-# Install latest uv binary
-###############################################################################
-
-printf "\n\nInstalling latest uv binary...\n"
-
-mise use -g uv@latest
-
-###############################################################################
-# Install latest java and maven binaries
-###############################################################################
-
-printf "\n\nInstalling latest java and maven binaries...\n"
-
-mise plugins install maven https://github.com/mise-plugins/mise-maven.git
-
-mise use -g java@corretto-17
-mise use -g maven@latest
-
-###############################################################################
-# Install node binaries (18,20)
-###############################################################################
-
-printf "\n\nInstalling node 20,22 binaries...\n"
-
-mise use -g node@20
-mise use -g node@22
-
-###############################################################################
-# Install pre-commit
-###############################################################################
-
-printf "\n\nInstalling pre-commit...\n"
-
-mise use -g pre-commit@latest
-
-###############################################################################
-# Install 1password cli
-###############################################################################
-
-printf "\n\nInstalling 1password cli...\n"
-
-mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
-
-mise use -g 1password-cli@latest
-
-###############################################################################
-# Generate docker completion if docker command is available
-###############################################################################
-
-if command -v docker > /dev/null 2>&1; then
+  if command -v docker > /dev/null 2>&1; then
     printf "Docker command found\n"
 
     if [ -d "${HOME}/.local/share/zsh/completions" ]; then
@@ -482,20 +400,37 @@ if command -v docker > /dev/null 2>&1; then
     else
         printf "%s directory not found\n\n" "${HOME}/.local/share/zsh/completions"
     fi
-else
-    printf "Docker command not found\n\n"
-fi
+  else
+      printf "Docker command not found\n\n"
+  fi
+}
 
-###############################################################################
-# Done!
-###############################################################################
+completed_message() {
+  _info "EVERYTHING WORKED"
 
-cat <<EOF
-Everything was installed successfully!
+  cat <<EOF
+Check out the README file on GitHub to do 1 quick thing manually:
+
+https://github.com/sassdavid/dotfiles#did-you-install-everything-successfully
 
 You can safely close this terminal.
 
-The next time you open your terminal zsh will be ready to go!
+The next time you open your terminal everything will be ready to go!
 EOF
+}
 
-exit 0
+detect_env
+create_initial_dirs
+install_packages
+clone_or_update_dotfiles
+install_zsh_plugins
+create_symlinks
+configure_shell
+configure_git
+install_rust
+install_mise
+install_mongodb_stuffs
+install_tmux_plugins
+install_nvim_plugins
+configure_docker_completion
+completed_message

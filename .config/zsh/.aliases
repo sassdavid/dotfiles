@@ -1,4 +1,4 @@
-if grep -q "microsoft" /proc/version > /dev/null 2>&1; then
+if grep -q "microsoft" /proc/version >/dev/null 2>&1; then
   alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
   alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
   alias ssh2='/usr/bin/ssh'
@@ -34,16 +34,16 @@ alias lf='ll --only-files'
 alias cfa='${EDITOR} ${ZDOTDIR}/.aliases'
 alias cfp='${EDITOR} ${ZDOTDIR}/.zprofile'
 alias cfr='${EDITOR} ${ZDOTDIR}/.zshrc'
-alias sfr='. ${ZDOTDIR}/.zshrc'
-alias cft='${EDITOR} ${HOME}/.tmux.conf'
+alias sz='. ${ZDOTDIR}/.zprofile && . ${ZDOTDIR}/.zshrc'
+alias cft='${EDITOR} ${HOME}/.config/tmux/tmux.conf'
 alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
 alias cfgw='${EDITOR} ${HOME}/.gitconfig.user.work'
 alias cfgb='${EDITOR} ${HOME}/.gitconfig.user.bitbucket'
 alias dt='cd ${HOME}/src/github/dotfiles'
 
-alias drun='docker run --rm -it'
+alias drun='docker container run --rm -it'
 
-alias vdt="rm /tmp/%*"
+alias vdt='rm ${HOME}/.local/state/nvim/swap/%*'
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
 alias ctg="fd --hidden --no-ignore --exclude .git --exclude .idea --max-depth 2 --type dir '\.terragrunt-cache' --exec rm -rf"
 alias ctf="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .terragrunt-cache --max-depth 2 --type dir '\.terraform' --exec rm -rf"
@@ -51,6 +51,7 @@ alias ctfl="fd --hidden --no-ignore --exclude .git --exclude .idea --exclude .te
 alias cnode="fd --no-ignore --type dir 'node_modules|build|dist' --exec rm -rf"
 alias cng="find . -type d -path '*/.angular/cache' -prune -exec rm -rf {} \;"
 
+# shellcheck disable=SC2139
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 alias assol="aws sso login --no-browser --profile"
 

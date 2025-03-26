@@ -1,5 +1,5 @@
 [core]
-	editor = vim
+	editor = nvim
  	sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
  	longpaths = true
  	autocrlf = input
