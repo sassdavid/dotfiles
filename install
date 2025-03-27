@@ -358,12 +358,12 @@ install_mise() {
 
   mise use -g java@corretto-17 maven
 
-  mise use -g node@20 node@22
+  mise use -g node@20 node@22 yarn
 
   mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
   mise use -g 1password-cli
 
-  mise use -g neovim@0.10.4
+  mise use -g neovim@0.10.4 gitui
 }
 
 install_tmux_plugins() {

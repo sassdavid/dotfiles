@@ -32,6 +32,9 @@ vim.opt.whichwrap = "b,s,<,>"
 -- Wrap lines so it's easier to see anything that's cut off.
 vim.opt.wrap = true
 
+-- It's needed to be able to use clipboard
+vim.opt.clipboard = "unnamedplus"
+
 -- Set .aliases or any variant as "bash".
 vim.filetype.add({ pattern = { ["%.*aliases.*"] = "bash" } })
 
