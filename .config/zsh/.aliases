@@ -31,17 +31,16 @@ alias ll="ls -laagobF --group-directories-first --show-symlinks --git --color-sc
 alias ld='ll --only-dirs'
 alias lf='ll --only-files'
 
-alias cfa='${EDITOR} ${ZDOTDIR}/.aliases'
-alias cfp='${EDITOR} ${ZDOTDIR}/.zprofile'
-alias cfr='${EDITOR} ${ZDOTDIR}/.zshrc'
 alias sz='. ${ZDOTDIR}/.zprofile && . ${ZDOTDIR}/.zshrc'
-alias cft='${EDITOR} ${HOME}/.config/tmux/tmux.conf'
+alias dt='cd ${DOTFILES_PATH} && nvim .'
+
 alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
 alias cfgw='${EDITOR} ${HOME}/.gitconfig.user.work'
 alias cfgb='${EDITOR} ${HOME}/.gitconfig.user.bitbucket'
-alias dt='cd ${HOME}/src/github/dotfiles'
 
 alias drun='docker container run --rm -it'
+
+alias vss='sort -u ${HOME}/.config/nvim/spell/en.utf-8.add -o ${HOME}/.config/nvim/spell/en.utf-8.add'
 
 alias vdt='rm ${HOME}/.local/state/nvim/swap/%*'
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
