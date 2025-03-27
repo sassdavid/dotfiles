@@ -32,7 +32,8 @@ alias ld='ll --only-dirs'
 alias lf='ll --only-files'
 
 alias sz='. ${ZDOTDIR}/.zprofile && . ${ZDOTDIR}/.zshrc'
-alias dt='cd ${DOTFILES_PATH} && nvim .'
+alias dt='cd ${DOTFILES_PATH}'
+alias dtnvim='cd ${DOTFILES_PATH} && nvim .'
 
 alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
 alias cfgw='${EDITOR} ${HOME}/.gitconfig.user.work'
