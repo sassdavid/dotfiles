@@ -86,8 +86,8 @@ install_or_update_atlas_mongo_cli() {
 
   local releases_json && releases_json=$(curl -s -H "$auth_header" https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
 
-  local atlas_release && atlas_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB Atlas CLI")) | .tag_name' | head -n 1)
-  local mongo_release && mongo_release=$(printf "%s" "$releases_json" | jq -r '.[] | select(.name | test("MongoDB CLI")) | .tag_name' | head -n 1)
+  local atlas_release && atlas_release=$(printf "%s" "$releases_json" | mise x jq -- jq -r '.[] | select(.name | test("MongoDB Atlas CLI")) | .tag_name' | head -n 1)
+  local mongo_release && mongo_release=$(printf "%s" "$releases_json" | mise x jq -- jq -r '.[] | select(.name | test("MongoDB CLI")) | .tag_name' | head -n 1)
 
   if [[ -n "$atlas_release" ]]; then
     local atlas_tmp_dir && atlas_tmp_dir=$(create_tmp_dir "atlascli")

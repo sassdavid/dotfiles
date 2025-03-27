@@ -381,7 +381,7 @@ install_tmux_plugins() {
 install_nvim_plugins() {
   _info "INSTALL NEOVIM PLUGINS"
 
-  nvim +q
+  mise x neovim -- nvim +q
 
   echo "They've been installed"
 }
