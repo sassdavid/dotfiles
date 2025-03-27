@@ -193,7 +193,9 @@ ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile.local" "${HOME}/.config/zsh/.zpro
 ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
 ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local"
 ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf"
+ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes"
 ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes"
+ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui"
 ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
 ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig"
 ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
@@ -222,7 +224,9 @@ EOF
     [Yy]*)
       # We're being extra careful here to only delete symlinks if they exist.
       # Technically rm -f would work but that could delete real files potentially.
+      [ -L "${HOME}/.config/zsh/themes" ] && rm "${HOME}/.config/zsh/themes"
       [ -L "${HOME}/.config/tmux/themes" ] && rm "${HOME}/.config/tmux/themes"
+      [ -L "${HOME}/.config/gitui" ] && rm "${HOME}/.config/gitui"
       [ -L "${HOME}/.config/nvim" ] && rm "${HOME}/.config/nvim"
 
       ln -fs "${DOTFILES_PATH}/.zshenv" "${HOME}/.zshenv" &&
@@ -233,7 +237,9 @@ EOF
         ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
         ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local" &&
         ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf" &&
+        ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes" &&
         ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes" &&
+        ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui" &&
         ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
         ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig" &&
         ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
@@ -358,7 +364,7 @@ install_mise() {
 
   mise use -g java@corretto-17 maven
 
-  mise use -g node@20 node@22 yarn
+  mise use -g node@20 node@22
 
   mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
   mise use -g 1password-cli
