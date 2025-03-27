@@ -364,7 +364,7 @@ install_mise() {
 
   mise use -g java@corretto-17 maven
 
-  mise use -g node@20 node@22
+  mise install node@20 && mise use -g node@22
 
   mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
   mise use -g 1password-cli
