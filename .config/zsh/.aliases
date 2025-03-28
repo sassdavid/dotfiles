@@ -1,3 +1,5 @@
+# shellcheck shell=bash
+
 if grep -q "microsoft" /proc/version >/dev/null 2>&1; then
   alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
   alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'

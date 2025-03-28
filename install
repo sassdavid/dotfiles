@@ -269,7 +269,7 @@ configure_shell() {
     local file_path="${HOME}/.config/zsh/${file}"
 
     if [ ! -f "${file_path}" ]; then
-      echo "# Any settings defined here are gitignored" >"${file_path}"
+      printf "# shellcheck shell=bash\n\n# Any settings defined here are gitignored\n" >"${file_path}"
     fi
   done
 
@@ -324,7 +324,7 @@ install_mise() {
 
   local shell_name=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
 
-  if type "${HOME}/.local/bin/mise" &> /dev/null; then
+  if type "${HOME}/.local/bin/mise" &>/dev/null; then
     if [[ -t 0 ]]; then
       eval "$("${HOME}/.local/bin/mise" activate "$shell_name")"
     else
@@ -345,8 +345,8 @@ install_mise() {
 
   mise use -g bat curlie dua eza fd gdu hyperfine zoxide rg fzf
   curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
-  mise x fd -- fd --gen-completions=zsh > "${HOME}/.local/share/zsh/completions/_fd"
-  mise x bat -- bat --completion zsh > "${HOME}/.local/share/zsh/completions/_bat"
+  mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
+  mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
 
   mise use -g cosign slsa-verifier
 
@@ -369,7 +369,7 @@ install_mise() {
   mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
   mise use -g 1password-cli
 
-  mise use -g neovim@0.10.4 gitui
+  mise use -g neovim gitui
 }
 
 install_tmux_plugins() {
@@ -395,20 +395,20 @@ install_nvim_plugins() {
 configure_docker_completion() {
   _info "CONFIGURE DOCKER COMPLETION"
 
-  if command -v docker > /dev/null 2>&1; then
+  if command -v docker >/dev/null 2>&1; then
     printf "Docker command found\n"
 
     if [ -d "${HOME}/.local/share/zsh/completions" ]; then
-        printf "%s directory found\n" "${HOME}/.local/share/zsh/completions"
+      printf "%s directory found\n" "${HOME}/.local/share/zsh/completions"
 
-        docker completion zsh > "${HOME}/.local/share/zsh/completions/_docker"
+      docker completion zsh >"${HOME}/.local/share/zsh/completions/_docker"
 
-        printf "Docker zsh completion script has been generated at %s\n\n" "${HOME}/.local/share/zsh/completions/_docker"
+      printf "Docker zsh completion script has been generated at %s\n\n" "${HOME}/.local/share/zsh/completions/_docker"
     else
-        printf "%s directory not found\n\n" "${HOME}/.local/share/zsh/completions"
+      printf "%s directory not found\n\n" "${HOME}/.local/share/zsh/completions"
     fi
   else
-      printf "Docker command not found\n\n"
+    printf "Docker command not found\n\n"
   fi
 }
 

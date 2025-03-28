@@ -1,3 +1,6 @@
+# shellcheck shell=bash
+# bashsupport disable=BP5006
+
 # This file runs once at login.
 
 # Set up a few standard directories based on:
@@ -34,14 +37,16 @@ export EDITOR="nvim"
 
 # Add colors to the less and man commands.
 export LESS=-R
-export LESS_TERMCAP_ue="$(printf '%b' '[0m')"
-export LESS_TERMCAP_mb=$'\e[1;31mm'    # begin blinking
-export LESS_TERMCAP_md=$'\e[1;36m'     # begin bold
-export LESS_TERMCAP_us=$'\e[1;332m'    # begin underline
-export LESS_TERMCAP_so=$'\e[1;44;33m'  # begin standout-mode - info box
-export LESS_TERMCAP_me=$'\e[0m'        # end mode
-export LESS_TERMCAP_ue=$'\e[0m'        # end underline
-export LESS_TERMCAP_se=$'\e[0m'        # end standout-mode
+LESS_TERMCAP_ue="$(printf '%b' '[0m')"
+export LESS_TERMCAP_ue
+export LESS_TERMCAP_mb=$'\e[1;31mm'   # begin blinking
+export LESS_TERMCAP_md=$'\e[1;36m'    # begin bold
+export LESS_TERMCAP_us=$'\e[1;332m'   # begin underline
+export LESS_TERMCAP_so=$'\e[1;44;33m' # begin standout-mode - info box
+export LESS_TERMCAP_me=$'\e[0m'       # end mode
+export LESS_TERMCAP_ue=$'\e[0m'       # end underline
+export LESS_TERMCAP_se=$'\e[0m'       # end standout-mode
 
 # Load local settings if they exist.
-[ -f "${XDG_CONFIG_HOME}/zsh/.zprofile.local" ] && . "${XDG_CONFIG_HOME}/zsh/.zprofile.local" || true
+# shellcheck disable=SC1091
+if [ -f "${XDG_CONFIG_HOME}/zsh/.zprofile.local" ]; then . "${XDG_CONFIG_HOME}/zsh/.zprofile.local"; fi
