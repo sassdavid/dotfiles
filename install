@@ -347,6 +347,7 @@ install_mise() {
   curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
   mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
   mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
+  mise x rg -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
 
   mise use -g cosign slsa-verifier
 
