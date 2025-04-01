@@ -35,6 +35,8 @@ alias lf='ll --only-files'
 
 alias sz='. ${ZDOTDIR}/.zprofile && . ${ZDOTDIR}/.zshrc'
 alias dt='cd ${DOTFILES_PATH}'
+alias lz='cd ${HOME}/.local/share/nvim/lazy/LazyVim && nvim .'
+alias lp='cd ${HOME}/.local/share/nvim/lazy && nvim .'
 alias dtnvim='cd ${DOTFILES_PATH} && nvim .'
 
 alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
