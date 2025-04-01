@@ -199,6 +199,7 @@ ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui"
 ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
 ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig"
 ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
+ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
 
 # And if you happen to be using WSL:
 sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
@@ -242,7 +243,8 @@ EOF
         ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui" &&
         ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
         ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig" &&
-        ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
+        ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/" &&
+        ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
 
       if grep -qE "(Microsoft|microsoft|WSL)" /proc/version &>/dev/null; then
         sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
