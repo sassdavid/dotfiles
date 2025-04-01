@@ -1,7 +1,20 @@
 local data_path = vim.fn.stdpath("config") .. "/lua/plugins/data"
 local markdownlint_cli2_path = data_path .. "/.markdownlint-cli2.yaml"
+local markdown_preview_css_path = data_path .. "/github-markdown.css"
 
 return {
+  {
+    "iamcco/markdown-preview.nvim",
+    init = function()
+      vim.g.mkdp_auto_close = false
+      vim.g.mkdp_markdown_css = markdown_preview_css_path
+    end,
+    cmd = { "MarkdownPreviewToggle", "MarkdownPreview", "MarkdownPreviewStop" },
+    build = function()
+      require("lazy").load({ plugins = { "markdown-preview.nvim" } })
+      vim.fn["mkdp#util#install"]()
+    end,
+  },
   {
     "stevearc/conform.nvim",
     opts = {
