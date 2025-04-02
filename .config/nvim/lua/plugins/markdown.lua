@@ -44,7 +44,7 @@ return {
       },
       heading = {
         width = "block",
-        min_width = vim.o.colorcolumn,
+        min_width = tonumber(vim.o.colorcolumn),
       },
     },
   },
