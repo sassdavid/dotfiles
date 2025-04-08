@@ -116,7 +116,7 @@ integration:
 
 - In my `.aliases` file, I have aliases for `ssh` and `ssh-add`.
 - In my `.zshrc` file, I set `GIT_SSH_COMMAND` and `GIT_SSH` environment variables.
-- In my `~/.gitconfig` file, I set `sshCommand`.
+- In my `~/.config/git/config` file, I set `sshCommand`.
 
 The above settings allow me to use the 1Password SSH agent integration with Git in WSL 2, pointing to my Windows OpenSSH
 client (`/c/Program Files/OpenSSH/ssh.exe` and `/c/Program Files/OpenSSH/ssh-add.exe`).
@@ -135,9 +135,9 @@ one, then follow the step(s) below:
    that your details are used when you make git commits.
 
    ```sh
-   nvim ~/.gitconfig.user.personal
-   nvim ~/.gitconfig.user.work
-   nvim ~/.gitconfig.user.bitbucket
+   nvim ~/.config/git/config.user.personal
+   nvim ~/.config/git/config.user.work
+   nvim ~/.config/git/config.user.bitbucket
    ```
 
 2. **(Optional) confirm that a few things work**

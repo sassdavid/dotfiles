@@ -23,11 +23,13 @@ return {
             auto_insert = false,
           },
         },
+        ghost_text = { enabled = false },
       },
       signature = { enabled = true },
       cmdline = {
         enabled = true,
         completion = {
+          list = { selection = { preselect = false } },
           menu = {
             auto_show = function(_)
               -- Only trigger the menu for :, this avoids triggering it when
@@ -37,7 +39,7 @@ return {
           },
         },
         keymap = {
-          ["<CR>"] = { "accept", "fallback" },
+          ["<CR>"] = { "accept_and_enter", "fallback" },
         },
 
         -- This is only needed until LazyVim ships its next version since it
@@ -59,11 +61,11 @@ return {
         providers = {
           cmdline = {
             min_keyword_length = function(ctx)
-              -- Only show after inputting 3+ characters.
+              -- Only show after inputting 4+ characters.
               if
                 ctx.mode == "cmdline" and string.find(ctx.line, " ") == nil
               then
-                return 3
+                return 4
               end
 
               return 0

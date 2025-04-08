@@ -39,9 +39,9 @@ alias lz='cd ${HOME}/.local/share/nvim/lazy/LazyVim && nvim .'
 alias lp='cd ${HOME}/.local/share/nvim/lazy && nvim .'
 alias dtnvim='cd ${DOTFILES_PATH} && nvim .'
 
-alias cfgp='${EDITOR} ${HOME}/.gitconfig.user.personal'
-alias cfgw='${EDITOR} ${HOME}/.gitconfig.user.work'
-alias cfgb='${EDITOR} ${HOME}/.gitconfig.user.bitbucket'
+alias cfgp='${EDITOR} ${HOME}/.config/git/config.user.personal'
+alias cfgw='${EDITOR} ${HOME}/.config/git/config.user.work'
+alias cfgb='${EDITOR} ${HOME}/.config/git/config.user.bitbucket'
 
 alias drun='docker container run --rm -it'
 

@@ -1,0 +1,36 @@
+[core]
+  editor = nvim
+  sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
+  longpaths = true
+  autocrlf = input
+
+[color "diff"]
+  whitespace = red reverse
+
+[diff]
+  tool = nvimdiff
+
+[difftool "nvimdiff"]
+  cmd = "nvim -d \"$LOCAL\" \"$REMOTE\""
+
+[merge]
+  tool = nvimdiff
+
+[mergetool]
+  keepBackup = false
+  prompt = false
+
+[mergetool "nvimdiff"]
+  cmd = "nvim -d \"$MERGED\" \"$LOCAL\" \"$BASE\" \"$REMOTE\" -c 'wincmd J | wincmd ='"
+
+[include]
+  path = ~/.config/gitalias/gitalias.txt
+
+[includeIf "gitdir:~/src/github/"]
+  path = ~/.config/git/config.user.personal
+[includeIf "gitdir:~/src/codecommit/"]
+  path = ~/.config/git/config.user.work
+[includeIf "gitdir:~/src/gerrit/"]
+  path = ~/.config/git/config.user.work
+[includeIf "gitdir:~/src/bitbucket/"]
+  path = ~/.config/git/config.user.bitbucket

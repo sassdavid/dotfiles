@@ -17,7 +17,7 @@ APT_PACKAGES_OPTIONAL="gnupg htop zip unzip"
 OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
 
 DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_PATH="${DOTFILES_PATH:-}"
+DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
 
 # -----------------------------------------------------------------------------
 # Helper functions
@@ -82,7 +82,7 @@ detect_env() {
 }
 
 create_initial_dirs() {
-  mkdir -p "${HOME}/.config/tmux/plugins" "${HOME}/.config/zsh" "${HOME}/.cache/zsh" \
+  mkdir -p "${HOME}/.config/tmux/plugins" "${HOME}/.config/git" "${HOME}/.config/zsh" "${HOME}/.cache/zsh" \
     "${HOME}/.local/bin" "${HOME}/.local/share" "${HOME}/.config/gitalias" \
     "${HOME}/.local/share/zsh/completions" "${HOME}/.local/state" "${HOME}/.aws" \
     "${HOME}/.kube"
@@ -137,13 +137,11 @@ clone_or_update_dotfiles() {
     . "${local_zprofile}"
   fi
 
-  local default_dotfiles_path="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
-
   local dotfiles_path
-  read -rep "Where do you want to clone these dotfiles to [${default_dotfiles_path}]? " dotfiles_path
+  read -rep "Where do you want to clone these dotfiles to [${DOTFILES_PATH}]? " dotfiles_path
   echo
 
-  [[ -z "${dotfiles_path}" ]] && dotfiles_path="${default_dotfiles_path}"
+  [[ -z "${dotfiles_path}" ]] && dotfiles_path="${DOTFILES_PATH}"
 
   # bashsupport disable=BP5006
   DOTFILES_PATH="${dotfiles_path//\~/"${HOME}"}"
@@ -195,9 +193,9 @@ ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.alias
 ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf"
 ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes"
 ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes"
+ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config"
 ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui"
 ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
-ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig"
 ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
 ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
 
@@ -240,9 +238,9 @@ EOF
         ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf" &&
         ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes" &&
         ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes" &&
+        ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config" &&
         ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui" &&
         ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
-        ln -fs "${DOTFILES_PATH}/.gitconfig" "${HOME}/.gitconfig" &&
         ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/" &&
         ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
 
@@ -265,6 +263,7 @@ configure_shell() {
   _info "CONFIGURE SHELL"
 
   local local_files=(".zshrc.local" ".zprofile.local" ".aliases.local")
+  local original_dotfiles_path="${DOTFILES_PATH}"
 
   local file
   for file in "${local_files[@]}"; do
@@ -275,7 +274,7 @@ configure_shell() {
     fi
   done
 
-  local zprofile_path="${HOME}/.config/zsh/.zprofile.local"
+  local zprofile_path="${DOTFILES_PATH}/.config/zsh/.zprofile.local"
   if ! grep -q "^export DOTFILES_PATH=.*$" "${zprofile_path}" 2>/dev/null; then
     printf '\nexport DOTFILES_PATH="%s"\n' "${DOTFILES_PATH}" >>"${zprofile_path}"
   fi
@@ -285,19 +284,27 @@ configure_shell() {
   # shellcheck disable=SC1091
   . "${HOME}/.config/zsh/.zprofile"
 
+  # Given the above line sets this env var if it's defined, this ensures we
+  # always use the value that was set when running this script. This is mainly
+  # to make testing this script easier in Docker since the .local files are
+  # volume mounted and this value will be different in Docker.
+  # bashsupport disable=BP5006
+  DOTFILES_PATH="${original_dotfiles_path}"
+
   echo "It has been configured in '${HOME}/.config.zsh/'"
 }
 
 configure_git() {
   _info "CONFIGURE GIT"
 
-  local git_personal_path="${HOME}/.gitconfig.user.personal"
-  local git_work_path="${HOME}/.gitconfig.user.work"
-  local git_bitbucket_path="${HOME}/.gitconfig.user.bitbucket"
+  local git_config_path="${HOME}/.config/git"
+  local git_personal_path="${git_config_path}/config.user.personal"
+  local git_work_path="${git_config_path}/config.user.work"
+  local git_bitbucket_path="${git_config_path}/config.user.bitbucket"
 
-  cp -n "${DOTFILES_PATH}/.gitconfig.user.personal" "${git_personal_path}" 2>/dev/null || true
-  cp -n "${DOTFILES_PATH}/.gitconfig.user.work" "${git_work_path}" 2>/dev/null || true
-  cp -n "${DOTFILES_PATH}/.gitconfig.user.bitbucket" "${git_bitbucket_path}" 2>/dev/null || true
+  cp -n "${DOTFILES_PATH}/.config/git/config.user.personal" "${git_personal_path}" 2>/dev/null || true
+  cp -n "${DOTFILES_PATH}/.config/git/config.user.work" "${git_work_path}" 2>/dev/null || true
+  cp -n "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${git_bitbucket_path}" 2>/dev/null || true
 
   curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
 
