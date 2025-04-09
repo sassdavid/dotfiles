@@ -341,8 +341,8 @@ EOF
 
   declare -A configs=(
     ["config.user.personal"]="template1"
-    ["config.user.bitbucket"]="template2"
-    ["config.user.work"]="template1"
+    ["config.user.bitbucket"]="template1"
+    ["config.user.work"]="template2"
   )
 
   local filename
@@ -401,6 +401,8 @@ install_mise() {
   mise settings task_run_auto_install=false
   mise settings use_versions_host=false
 
+  mise use -g cosign slsa-verifier
+
   mise use -g usage
 
   mise use -g bat curlie dua eza fd gdu hyperfine zoxide rg fzf
@@ -408,8 +410,6 @@ install_mise() {
   mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
   mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
   mise x rg -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
-
-  mise use -g cosign slsa-verifier
 
   mise use -g jq yq
 
