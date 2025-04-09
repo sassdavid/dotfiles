@@ -306,7 +306,8 @@ configure_git() {
   local config_dir="${DOTFILES_PATH}/.config/git"
 
   local template1 template2
-  read -r -d '' template1 <<'EOF'
+
+  template1=$(cat <<'EOF'
 [user]
   name = Cody McCodePants
   email = cody.mccodepants@example.com
@@ -329,14 +330,15 @@ configure_git() {
 #[gpg "ssh"]
 #  program = ""
 EOF
+)
 
-  read -r -d '' template2 <<'EOF'
+  template2=$(cat <<'EOF'
 [user]
   name = Cody McCodePants
   email = cody.mccodepants@example.com
 EOF
+)
 
-  # Mapping of config names to template versions
   declare -A configs=(
     ["config.user.personal"]="template1"
     ["config.user.bitbucket"]="template2"
@@ -355,11 +357,11 @@ EOF
     fi
   done
 
-  printf "Git user configs created in '%s'\n" "${config_dir}"
+  printf "\nGit user configs created in '%s'\n\n" "${config_dir}"
 
   curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
 
-  printf "gitalias configured\n"
+  printf "\ngitalias configured\n"
 }
 
 install_rust() {
