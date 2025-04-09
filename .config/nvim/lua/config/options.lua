@@ -1,17 +1,25 @@
 -- Options are automatically loaded before lazy.nvim startup.
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 
+-- The ~/.local/state/nvim/lsp.log can get pretty noisy. Mine was ~28MB after 2
+-- weeks with the default setting. My thought process here is it can remain OFF
+-- by default but if you're looking to troubleshoot something you can
+-- temporarily set this to WARN or ERROR.
+vim.lsp.set_log_level("OFF")
+
+local opt = vim.opt
+
 -- I prefer seeing all characters by default.
-vim.opt.conceallevel = 0
+opt.conceallevel = 0
 
 -- Show a vertical line at this character.
-vim.opt.colorcolumn = "80"
+opt.colorcolumn = "80"
 
 -- Each buffer gets its own status line instead of sharing one.
-vim.opt.laststatus = 2
+opt.laststatus = 2
 
 -- These are all invisible by default but we can toggle them with a keymap.
-vim.opt.listchars = {
+opt.listchars = {
   eol = "$",
   tab = ">-",
   trail = "-",
@@ -21,16 +29,16 @@ vim.opt.listchars = {
   conceal = "+",
   nbsp = "&",
 }
-vim.opt.list = false
+opt.list = false
 
 -- Don't auto-scroll N number of lines from the top of the buffer.
-vim.opt.scrolloff = 0
+opt.scrolloff = 0
 
 -- Allow left and right arrow keys to move to the previous and next line.
-vim.opt.whichwrap = "b,s,<,>"
+opt.whichwrap = "b,s,<,>"
 
 -- Wrap lines so it's easier to see anything that's cut off.
-vim.opt.wrap = true
+opt.wrap = true
 
 -- It's needed to be able to use clipboard
-vim.opt.clipboard = "unnamedplus"
+opt.clipboard = "unnamedplus"

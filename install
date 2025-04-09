@@ -194,6 +194,9 @@ ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf
 ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes"
 ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes"
 ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config"
+ln -fs "${DOTFILES_PATH}/.config/git/config.user.personal" "${HOME}/.config/git/config.user.personal"
+ln -fs "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${HOME}/.config/git/config.user.bitbucket"
+ln -fs "${DOTFILES_PATH}/.config/git/config.user.work" "${HOME}/.config/git/config.user.work"
 ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui"
 ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
 ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
@@ -239,6 +242,9 @@ EOF
         ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes" &&
         ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes" &&
         ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config" &&
+        ln -fs "${DOTFILES_PATH}/.config/git/config.user.personal" "${HOME}/.config/git/config.user.personal" &&
+        ln -fs "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${HOME}/.config/git/config.user.bitbucket" &&
+        ln -fs "${DOTFILES_PATH}/.config/git/config.user.work" "${HOME}/.config/git/config.user.work" &&
         ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui" &&
         ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
         ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/" &&
@@ -297,20 +303,63 @@ configure_shell() {
 configure_git() {
   _info "CONFIGURE GIT"
 
-  local git_config_path="${HOME}/.config/git"
-  local git_personal_path="${git_config_path}/config.user.personal"
-  local git_work_path="${git_config_path}/config.user.work"
-  local git_bitbucket_path="${git_config_path}/config.user.bitbucket"
+  local config_dir="${DOTFILES_PATH}/.config/git"
 
-  cp -n "${DOTFILES_PATH}/.config/git/config.user.personal" "${git_personal_path}" 2>/dev/null || true
-  cp -n "${DOTFILES_PATH}/.config/git/config.user.work" "${git_work_path}" 2>/dev/null || true
-  cp -n "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${git_bitbucket_path}" 2>/dev/null || true
+  local template1 template2
+  read -r -d '' template1 <<'EOF'
+[user]
+  name = Cody McCodePants
+  email = cody.mccodepants@example.com
+  # Uncomment the options below to auto-sign your git commits / tags using GPG.
+  #signingkey = cody.mccodepants@example.com
+
+#[commit]
+#  gpgsign = true
+
+# This option requires git 2.23+ to work and you must annotate your tags,
+# although -m "" works if you want an empty message.
+#[tag]
+#  gpgSign = true
+
+# Configuration for GPG signing and format settings
+#[gpg]
+#  format = ssh
+
+# Settings for using SSH keys with GPG
+#[gpg "ssh"]
+#  program = ""
+EOF
+
+  read -r -d '' template2 <<'EOF'
+[user]
+  name = Cody McCodePants
+  email = cody.mccodepants@example.com
+EOF
+
+  # Mapping of config names to template versions
+  declare -A configs=(
+    ["config.user.personal"]="template1"
+    ["config.user.bitbucket"]="template2"
+    ["config.user.work"]="template1"
+  )
+
+  local filename
+  for filename in "${!configs[@]}"; do
+    local path="${config_dir}/${filename}"
+    if [ ! -f "${path}" ]; then
+      local template_var="${configs[$filename]}"
+      echo "${!template_var}" > "${path}"
+      printf "Created %s\n" "${filename}"
+    else
+      printf "Skipped %s (already exists)\n" "${filename}"
+    fi
+  done
+
+  printf "Git user configs created in '%s'\n" "${config_dir}"
 
   curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
 
-  echo "It has been configured in '${git_personal_path}'"
-  echo "It has been configured in '${git_work_path}'"
-  echo "It has been configured in '${git_bitbucket_path}'"
+  printf "gitalias configured\n"
 }
 
 install_rust() {

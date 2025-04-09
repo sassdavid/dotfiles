@@ -21,6 +21,9 @@ tags
 .aliases.local
 .zshrc.local
 .zprofile.local
+.config/git/config.user.personal
+.config/git/config.user.bitbucket
+.config/git/config.user.work
 .local/bin/local/
 *.spl
 .idea
