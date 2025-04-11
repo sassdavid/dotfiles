@@ -11,10 +11,23 @@ set -o errexit
 
 SKIP_SYSTEM_PACKAGES="${1:-}"
 
-APT_PACKAGES="curl git iproute2 tmux zsh xz-utils build-essential python3-venv"
-APT_PACKAGES_OPTIONAL="gnupg htop zip unzip"
+APT_PACKAGES="
+  curl
+  git
+  iproute2
+  tmux
+  unzip
+  xz-utils
+  zsh
+  gnupg
+  htop
+  zip
+  build-essential
+  python3-venv
+"
 
 OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
+OS_DISTRO=
 
 DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
 DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
@@ -37,13 +50,13 @@ _info() {
 
 _no_system_packages() {
   cat <<EOF
-System package installation isn't supported with your OS / distro.
+System package installation isn't supported with your distro (${OS_DISTRO})
 
-Please install any dependent packages on your own. You can view the list at:
+Please install any comparable packages on your own, you can view the list at:
 
     https://github.com/sassdavid/dotfiles/blob/master/install
 
-Then re-run the script and explicitly skip installing system packages:
+Then re-run this script and explicitly skip installing system packages:
 
     bash <(curl -sS https://raw.githubusercontent.com/sassdavid/dotfiles/main/install) --skip-system-packages
 EOF
@@ -55,14 +68,16 @@ _install_packages_apt() {
   sudo add-apt-repository -y ppa:git-core/ppa
 
   # shellcheck disable=SC2086
-  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${APT_PACKAGES} ${APT_PACKAGES_OPTIONAL}
+  sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${APT_PACKAGES}
 
   sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
 }
 
 _display_packages() {
   if [ "${OS_TYPE}" == "linux" ]; then
-    echo "${APT_PACKAGES} ${APT_PACKAGES_OPTIONAL}"
+    if [ "${OS_DISTRO}" == "debian" ]; then
+      echo "${APT_PACKAGES}"
+    fi
   fi
 }
 
@@ -73,9 +88,25 @@ _display_packages() {
 detect_env() {
   case "${OS_TYPE}" in
   linux)
-    if [ ! -f "/etc/debian_version" ]; then
+    # bashsupport disable=BP5006
+    if [ -r /etc/os-release ]; then
+      # shellcheck disable=SC1091
+      OS_DISTRO="$(. /etc/os-release && echo "${ID_LIKE:-${ID}}")"
+
+      # Technically ID_LIKE can have a space separated list of distros but
+      # we really only care that we have a Debian based system where apt is
+      # available to use.
+      [[ "${OS_DISTRO}" =~ (ubuntu|debian) ]] && OS_DISTRO="debian"
+    fi
+
+    # Only fully support these Linux distros.
+    if [[ -z "${OS_DISTRO}" || ! "ubuntu debian raspbian" =~ ${OS_DISTRO} ]]; then
       [ -z "${SKIP_SYSTEM_PACKAGES}" ] && _no_system_packages
     fi
+
+    ;;
+  *)
+    _error "'${OS_TYPE}' is not supported"
 
     ;;
   esac
@@ -92,7 +123,7 @@ install_packages() {
   _info "INSTALL PACKAGES"
 
   if [ -n "${SKIP_SYSTEM_PACKAGES}" ]; then
-    echo "Skipping, you've chosen not to or your OS is unsupported"
+    echo "Skipping, you've chosen not to or your distro isn't fully supported"
     return
   fi
 
@@ -101,12 +132,10 @@ If you choose y, all of the system packages below will be installed:
 
 $(_display_packages)
 
+
 If you choose no, the above packages will not be installed and this script
 will exit. This gives you a chance to edit the list of packages if you don't
 agree with any of the decisions.
-
-The packages listed after xz are technically optional but are quite useful.
-Certain aliases depend on these optional packages being installed.
 
 EOF
 
@@ -115,7 +144,9 @@ EOF
     case "${yn}" in
     [Yy]*)
       if [ "${OS_TYPE}" == "linux" ]; then
-        _install_packages_apt
+        if [ "${OS_DISTRO}" == "debian" ]; then
+          _install_packages_apt
+        fi
       fi
 
       break
@@ -289,10 +320,10 @@ configure_shell() {
 
   # Are we in WSL 2?
   if grep -q "\-WSL2" /proc/version; then
-      if ! grep -q "^DISPLAY=.*route | awk.*$" "${zprofile_path}" 2>/dev/null; then
-        local display
-        display=$(
-          cat <<'EOF'
+    if ! grep -q "^DISPLAY=.*route | awk.*$" "${zprofile_path}" 2>/dev/null; then
+      local display
+      display=$(
+        cat <<'EOF'
 # Temporarily disable this because I don't use vcxsrv (or alternative) yet
 # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
 # DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
@@ -302,14 +333,14 @@ configure_shell() {
 export GIT_SSH='/c/Program\ Files/OpenSSH/ssh.exe'
 export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
 EOF
-        )
+      )
 
-        printf "\n\n%s" "${display}" >>"${zprofile_path}"
-      fi
+      printf "\n\n%s" "${display}" >>"${zprofile_path}"
+    fi
 
-      local custom_aliases
-      custom_aliases=$(
-        cat <<'EOF'
+    local custom_aliases
+    custom_aliases=$(
+      cat <<'EOF'
 alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
 alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
 alias ssh2='/usr/bin/ssh'
@@ -319,10 +350,10 @@ alias ssh2='/usr/bin/ssh'
 #   Details: https://github.com/microsoft/WSL/issues/4166#issuecomment-628493643
 alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
 EOF
-      )
+    )
 
-      printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
-    fi
+    printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
+  fi
 
   [ "${SHELL}" != "$(command -v zsh)" ] && chsh -s "$(command -v zsh)"
 
@@ -346,7 +377,9 @@ configure_git() {
 
   local template1 template2
 
-  template1=$(cat <<'EOF'
+  # shellcheck disable=SC2034
+  template1=$(
+    cat <<'EOF'
 [user]
   name = Cody McCodePants
   email = cody.mccodepants@example.com
@@ -369,14 +402,16 @@ configure_git() {
 #[gpg "ssh"]
 #  program = ""
 EOF
-)
+  )
 
-  template2=$(cat <<'EOF'
+  # shellcheck disable=SC2034
+  template2=$(
+    cat <<'EOF'
 [user]
   name = Cody McCodePants
   email = cody.mccodepants@example.com
 EOF
-)
+  )
 
   declare -A configs=(
     ["config.user.personal"]="template1"
@@ -389,7 +424,7 @@ EOF
     local path="${config_dir}/${filename}"
     if [ ! -f "${path}" ]; then
       local template_var="${configs[$filename]}"
-      echo "${!template_var}" > "${path}"
+      echo "${!template_var}" >"${path}"
       printf "Created %s\n" "${filename}"
     else
       printf "Skipped %s (already exists)\n" "${filename}"

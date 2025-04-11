@@ -39,6 +39,7 @@ return {
   {
     "MeanderingProgrammer/render-markdown.nvim",
     opts = {
+      enabled = false,
       win_options = {
         colorcolumn = { default = vim.o.colorcolumn, rendered = "" },
       },

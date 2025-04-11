@@ -95,7 +95,11 @@ bindkey "\e[3~" delete-char
 GPG_TTY="$(tty)"
 export GPG_TTY
 
-# Configure FZF.
+# Set up fzf keymaps and shell integration.
+# shellcheck disable=SC1090
+. <(fzf --zsh)
+
+# Configure fzf.
 export FZF_DEFAULT_COMMAND="rg --files --follow --hidden --glob '!.git'"
 export FZF_DEFAULT_OPTS="--highlight-line --info=inline-right --ansi --layout=reverse --border=none"
 export FZF_CTRL_T_OPTS="--preview='less {}' --height=100% --bind shift-up:preview-page-up,shift-down:preview-page-down"
@@ -132,14 +136,20 @@ complete -C "$(which aws_completer)" aws
 complete -C "$(which terraform)" terraform
 complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 
-source <(fzf --zsh)
-source <(kubectl completion zsh)
-source <(k9s completion zsh)
-source <(eksctl completion zsh)
-source <(terraform-docs completion zsh)
-source <(helm completion zsh)
-source <(argocd completion zsh)
-source <(mongocli completion zsh)
+# shellcheck disable=SC1090
+. <(kubectl completion zsh)
+# shellcheck disable=SC1090
+. <(k9s completion zsh)
+# shellcheck disable=SC1090
+. <(eksctl completion zsh)
+# shellcheck disable=SC1090
+. <(terraform-docs completion zsh)
+# shellcheck disable=SC1090
+. <(helm completion zsh)
+# shellcheck disable=SC1090
+. <(argocd completion zsh)
+# shellcheck disable=SC1090
+. <(mongocli completion zsh)
 
 # eval additional
 eval "$(zoxide init --cmd cd zsh)"
