@@ -1,16 +1,5 @@
 # shellcheck shell=bash
 
-if grep -q "microsoft" /proc/version >/dev/null 2>&1; then
-  alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
-  alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
-  alias ssh2='/usr/bin/ssh'
-
-  # This is specific to WSL 2. If the WSL 2 VM goes rogue and decides not to free
-  # up memory, this command will free your memory after about 20-30 seconds.
-  #   Details: https://github.com/microsoft/WSL/issues/4166#issuecomment-628493643
-  alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
-fi
-
 alias grep="grep --color=auto"
 alias fgrep="fgrep --color=auto"
 alias egrep="egrep --color=auto"

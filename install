@@ -281,9 +281,48 @@ configure_shell() {
   done
 
   local zprofile_path="${DOTFILES_PATH}/.config/zsh/.zprofile.local"
+  local aliases_path="${DOTFILES_PATH}/.config/zsh/.aliases.local"
+
   if ! grep -q "^export DOTFILES_PATH=.*$" "${zprofile_path}" 2>/dev/null; then
     printf '\nexport DOTFILES_PATH="%s"\n' "${DOTFILES_PATH}" >>"${zprofile_path}"
   fi
+
+  # Are we in WSL 2?
+  if grep -q "\-WSL2" /proc/version; then
+      if ! grep -q "^DISPLAY=.*route | awk.*$" "${zprofile_path}" 2>/dev/null; then
+        local display
+        display=$(
+          cat <<'EOF'
+# Temporarily disable this because I don't use vcxsrv (or alternative) yet
+# Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
+# DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
+# export DISPLAY
+
+# Configure OpenSSH in order to 1password ssh will be usable
+export GIT_SSH='/c/Program\ Files/OpenSSH/ssh.exe'
+export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
+EOF
+        )
+
+        printf "\n\n%s" "${display}" >>"${zprofile_path}"
+      fi
+
+      local custom_aliases
+      custom_aliases=$(
+        cat <<'EOF'
+alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
+alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
+alias ssh2='/usr/bin/ssh'
+
+# This is specific to WSL 2. If the WSL 2 VM goes rogue and decides not to free
+# up memory, this command will free your memory after about 20-30 seconds.
+#   Details: https://github.com/microsoft/WSL/issues/4166#issuecomment-628493643
+alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
+EOF
+      )
+
+      printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
+    fi
 
   [ "${SHELL}" != "$(command -v zsh)" ] && chsh -s "$(command -v zsh)"
 

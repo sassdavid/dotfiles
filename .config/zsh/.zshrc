@@ -91,17 +91,6 @@ bindkey "\e[F" end-of-line
 bindkey "\e[8~" end-of-line
 bindkey "\e[3~" delete-char
 
-# WSL 2 specific settings.
-if grep -q "microsoft" /proc/version >/dev/null 2>&1; then
-  # Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
-  # Temporarily disable this because I don't use vcxsrv (or alternative) yet
-  # export DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
-
-  # Configure OpenSSH in order to 1password ssh will be usable
-  export GIT_SSH='/c/Program\ Files/OpenSSH/ssh.exe'
-  export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
-fi
-
 # Allows your gpg passphrase prompt to spawn (useful for signing commits).
 GPG_TTY="$(tty)"
 export GPG_TTY
