@@ -335,7 +335,7 @@ export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
 EOF
       )
 
-      printf "\n\n%s" "${display}" >>"${zprofile_path}"
+      printf "\n%s" "${display}" >>"${zprofile_path}"
     fi
 
     local custom_aliases
@@ -352,7 +352,7 @@ alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a 
 EOF
     )
 
-    printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
+    printf "\n%s" "${custom_aliases}" >>"${aliases_path}"
   fi
 
   [ "${SHELL}" != "$(command -v zsh)" ] && chsh -s "$(command -v zsh)"
