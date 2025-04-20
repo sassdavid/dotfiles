@@ -737,7 +737,7 @@ $(tmux -V)
 
 :: Neovim:
 
-$(nvim --version)
+$(mise x neovim -- nvim --version)
 
 :: Programming languages:
 
