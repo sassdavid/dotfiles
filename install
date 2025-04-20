@@ -686,8 +686,8 @@ $(nvim --version)
 
 :: Programming languages:
 
-Node $(node --version)
-$(python --version)
+Node $(mise x node -- node --version)
+$(python3 --version)
 
 :: Fastfetch:
 
@@ -720,7 +720,7 @@ install_and_configure_mise() {
   mise settings task_run_auto_install=false
   mise settings use_versions_host=false
 
-  mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
+  mise plugins install --force 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
 }
 
 install_mongodb_tools() {
@@ -767,7 +767,7 @@ install_and_configure_tools (){
   curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
   mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
   mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
-  mise x rg -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
+  mise x ripgrep -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
 
   configure_docker_completion
 }
