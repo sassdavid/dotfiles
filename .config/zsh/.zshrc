@@ -79,7 +79,7 @@ zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p
 zstyle ":completion:*" use-compctl false
 zstyle ":completion:*" verbose true
 
-# Use emacs keybindings.
+# Use Vim key binds.
 bindkey -v
 bindkey "^p" history-search-backward
 bindkey "^n" history-search-forward

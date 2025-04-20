@@ -23,6 +23,8 @@ ARCH_PACKAGES="
   htop
   inotify-tools
   less
+  man-db
+  man-pages
   openbsd-netcat
   pwgen
   rsync
@@ -208,6 +210,59 @@ detect_env() {
   esac
 }
 
+warn_root() {
+  # Root will have an effective uid of 0, but it's ok if we're in a container.
+  [[ "${EUID}" != 0 || -n "${IN_CONTAINER}" ]] && return 0
+
+  cat <<EOF
+Here are details about this user:
+
+$(id)
+
+EOF
+
+  local msg="as root"
+  [[ -n "${SUDO_USER}" ]] && msg="with sudo as ${SUDO_USER}"
+
+  while true; do
+    read -rp "This script is meant to run as a non-root user, are you sure you want to run this ${msg}? (y/n) " yn
+    case "${yn}" in
+    [Yy]*) break ;;
+    [Nn]*) exit ;;
+    *) printf "Please answer y or n\n\n" ;;
+    esac
+  done
+}
+
+check_prereqs() {
+  _info "CHECKING SYSTEM COMPATABILITY"
+
+  local missing_packages=()
+
+  if ! command -v "sudo" 1>/dev/null; then missing_packages+=("sudo"); fi
+
+  if [[ -z "${missing_packages[*]}" ]]; then
+    echo "Everything is good to go"
+    return 0
+  fi
+
+  cat <<EOF
+This script is going to switch to the root user to install sudo then the rest
+of the script will run as your user and use sudo as needed.
+
+EOF
+
+  case "${OS_DISTRO}" in
+  arch)
+    su -c "pacman -Syu --noconfirm ${missing_packages[*]}"
+    ;;
+  debian)
+    su -c "apt-get update && apt-get install -y ${missing_packages[*]}"
+    ;;
+  *) ;;
+  esac
+}
+
 create_initial_dirs() {
   mkdir -p "${HOME}/.config/tmux/plugins" "${HOME}/.config/git" "${HOME}/.config/zsh" "${HOME}/.cache/zsh" \
     "${HOME}/.local/bin" "${HOME}/.local/share" "${HOME}/.config/gitalias" \
@@ -313,34 +368,49 @@ install_zsh_plugins() {
 create_symlinks() {
   _info "CREATE SYMLINKS"
 
+  local symlinks=(
+    "ln -fs \"${DOTFILES_PATH}/.zshenv\" \"${HOME}/.zshenv\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zshrc\" \"${HOME}/.config/zsh/.zshrc\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zshrc.local\" \"${HOME}/.config/zsh/.zshrc.local\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zprofile\" \"${HOME}/.config/zsh/.zprofile\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zprofile.local\" \"${HOME}/.config/zsh/.zprofile.local\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.aliases\" \"${HOME}/.config/zsh/.aliases\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.aliases.local\" \"${HOME}/.config/zsh/.aliases.local\""
+    "ln -fs \"${DOTFILES_PATH}/.config/tmux/tmux.conf\" \"${HOME}/.config/tmux/tmux.conf\""
+    "ln -fs \"${DOTFILES_PATH}/.config/zsh/themes\" \"${HOME}/.config/zsh/themes\""
+    "ln -fs \"${DOTFILES_PATH}/.config/tmux/themes\" \"${HOME}/.config/tmux/themes\""
+    "ln -fs \"${DOTFILES_PATH}/.config/git/config\" \"${HOME}/.config/git/config\""
+    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.personal\" \"${HOME}/.config/git/config.user.personal\""
+    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.bitbucket\" \"${HOME}/.config/git/config.user.bitbucket\""
+    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.work\" \"${HOME}/.config/git/config.user.work\""
+    "ln -fs \"${DOTFILES_PATH}/.config/gitui\" \"${HOME}/.config/gitui\""
+    "ln -fs \"${DOTFILES_PATH}/.config/nvim\" \"${HOME}/.config/nvim\""
+    "ln -fs \"${DOTFILES_PATH}/.local/bin/\"* \"${HOME}/.local/bin/\""
+    "ln -fs \"/c/Windows/System32/cmd.exe\" \"${HOME}/.local/bin/cmd.exe\""
+  )
+
+  local symlinks_system=()
+
+  if [ -n "${OS_IN_WSL}" ]; then
+    symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\"")
+  fi
+
+  printf -- "-------------------------------------------------------------------------------\n\n"
+
+  local link
+  for link in "${symlinks[@]}"; do
+    echo "${link}"
+  done
+
+  for link in "${symlinks_system[@]}"; do
+    echo "${link}"
+  done
+
   cat <<EOF
--------------------------------------------------------------------------------
-
-ln -fs "${DOTFILES_PATH}/.zshenv" "${HOME}/.zshenv"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc.local" "${HOME}/.config/zsh/.zshrc.local"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile.local" "${HOME}/.config/zsh/.zprofile.local"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases"
-ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local"
-ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf"
-ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes"
-ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes"
-ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config"
-ln -fs "${DOTFILES_PATH}/.config/git/config.user.personal" "${HOME}/.config/git/config.user.personal"
-ln -fs "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${HOME}/.config/git/config.user.bitbucket"
-ln -fs "${DOTFILES_PATH}/.config/git/config.user.work" "${HOME}/.config/git/config.user.work"
-ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui"
-ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim"
-ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/"
-ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
-
-# And if you happen to be using WSL:
-sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
 
 -------------------------------------------------------------------------------
 
-A potentially dangerous action is about to happen. The above directories and
+A potentially destructive action is about to happen. The above directories and
 files are going to get forcefully symlinked if you type y in the prompt below.
 
 What does that mean?
@@ -364,28 +434,13 @@ EOF
       [ -L "${HOME}/.config/gitui" ] && rm "${HOME}/.config/gitui"
       [ -L "${HOME}/.config/nvim" ] && rm "${HOME}/.config/nvim"
 
-      ln -fs "${DOTFILES_PATH}/.zshenv" "${HOME}/.zshenv" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc" "${HOME}/.config/zsh/.zshrc" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.zshrc.local" "${HOME}/.config/zsh/.zshrc.local" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile" "${HOME}/.config/zsh/.zprofile" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.zprofile.local" "${HOME}/.config/zsh/.zprofile.local" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases" "${HOME}/.config/zsh/.aliases" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/.aliases.local" "${HOME}/.config/zsh/.aliases.local" &&
-        ln -fs "${DOTFILES_PATH}/.config/tmux/tmux.conf" "${HOME}/.config/tmux/tmux.conf" &&
-        ln -fs "${DOTFILES_PATH}/.config/zsh/themes" "${HOME}/.config/zsh/themes" &&
-        ln -fs "${DOTFILES_PATH}/.config/tmux/themes" "${HOME}/.config/tmux/themes" &&
-        ln -fs "${DOTFILES_PATH}/.config/git/config" "${HOME}/.config/git/config" &&
-        ln -fs "${DOTFILES_PATH}/.config/git/config.user.personal" "${HOME}/.config/git/config.user.personal" &&
-        ln -fs "${DOTFILES_PATH}/.config/git/config.user.bitbucket" "${HOME}/.config/git/config.user.bitbucket" &&
-        ln -fs "${DOTFILES_PATH}/.config/git/config.user.work" "${HOME}/.config/git/config.user.work" &&
-        ln -fs "${DOTFILES_PATH}/.config/gitui" "${HOME}/.config/gitui" &&
-        ln -fs "${DOTFILES_PATH}/.config/nvim" "${HOME}/.config/nvim" &&
-        ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/" &&
-        ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
+      for link in "${symlinks[@]}"; do
+        eval "${link}"
+      done
 
-      if [ -n "${OS_IN_WSL}" ]; then
-        sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
-      fi
+      for link in "${symlinks_system[@]}"; do
+        eval "${link}"
+      done
 
       break
       ;;
@@ -754,8 +809,7 @@ configure_docker_completion() {
   fi
 }
 
-
-  # shellcheck disable=SC2086
+# shellcheck disable=SC2086
 install_and_configure_tools (){
   _info "INSTALL TOOLS"
 
@@ -773,12 +827,12 @@ install_and_configure_tools (){
 }
 
 completed_message() {
-  _info "EVERYTHING WORKED"
+  _info "NEXT STEPS (MAKE IT YOUR OWN)"
 
   cat <<EOF
 Check out the README file on GitHub for any next steps:
 
-https://github.com/sassdavid/dotfiles#did-you-install-everything-successfully
+https://github.com/sassdavid/dotfiles#-make-it-your-own
 
 You can safely close this terminal.
 
@@ -787,6 +841,8 @@ EOF
 }
 
 detect_env
+warn_root
+check_prereqs
 create_initial_dirs
 install_packages
 clone_or_update_dotfiles
