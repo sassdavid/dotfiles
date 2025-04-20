@@ -29,7 +29,7 @@ PROMPT='%B%{$fg[green]%}%n@%{$fg[green]%}%M %{$fg[blue]%}%~%{$fg[yellow]%}$(git_
 export PROMPT
 
 # History settings.
-export HISTFILE="${XDG_CACHE_HOME}/zsh/.history"
+export HISTFILE="${DOTFILES_PATH}/.config/zsh/.zsh_history"
 export HISTTIMEFORMAT="%Y/%m/%d %H:%M:%S:   "
 export HISTSIZE=50000       # History lines stored in mememory.
 export SAVEHIST=50000       # History lines stored on disk.
@@ -79,10 +79,14 @@ zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p
 zstyle ":completion:*" use-compctl false
 zstyle ":completion:*" verbose true
 
-# Use emacs keybindings even if your $EDITOR is set to Vim.
-bindkey -e
+# Use emacs keybindings.
+bindkey -v
 bindkey "^p" history-search-backward
 bindkey "^n" history-search-forward
+bindkey "^[OA" history-search-backward
+bindkey "^[OB" history-search-forward
+bindkey "^[[A" history-search-backward
+bindkey "^[[B" history-search-forward
 
 # Ensure home / end keys continue to work.
 bindkey "\e[1~" beginning-of-line
@@ -97,7 +101,19 @@ bindkey "\e[3~" delete-char
 GPG_TTY="$(tty)"
 export GPG_TTY
 
-# Set up fzf keymaps and shell integration.
+# zsh-vi-mode-plugin sets a few key binds such as CTRL+r/p/n which may conflict
+# with other binds. This ensures fzf and our binds always win. If you choose
+# to remove this zsh plugin then each array item can exist normally in zshrc.
+#zvm_after_init_commands+=(
+#  ". <(fzf --zsh)"
+#  "bindkey '^p' history-search-backward"
+#  "bindkey '^n' history-search-forward"
+#  "bindkey '^[OA' history-search-backward"
+#  "bindkey '^[OB' history-search-forward"
+#  "bindkey '^[[A' history-search-backward"
+#  "bindkey '^[[B' history-search-forward"
+#)
+# Set up fzf.
 # shellcheck disable=SC1090
 . <(fzf --zsh)
 
@@ -116,6 +132,16 @@ export ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 . "${XDG_DATA_HOME}/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh"
 # shellcheck disable=SC1091
 . "${XDG_DATA_HOME}/zsh-autosuggestions/zsh-autosuggestions.zsh"
+# shellcheck disable=SC1091
+#. "${XDG_DATA_HOME}/zsh-vi-mode/zsh-vi-mode.plugin.zsh"
+# shellcheck disable=SC1091
+. "${XDG_DATA_HOME}/fzf-tab/fzf-tab.plugin.zsh"
+
+# Ensure colors match by using FZF_DEFAULT_OPTS.
+zstyle ":fzf-tab:*" use-fzf-default-opts yes
+
+# Preview file contents when tab completing directories.
+zstyle ":fzf-tab:complete:cd:*" fzf-preview "ls --color=always \${realpath}"
 
 # Load aliases if they exist.
 # shellcheck disable=SC1091

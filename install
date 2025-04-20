@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bashsupport disable=BP5008
+# bashsupport disable=BP5008,BP5006,BP5001,BP5007
 # Usage:
 #   ./install          # Clone my dotfiles
 #   DEBUG=1 ./install  # Copy the local dotfiles directory instead of cloning
@@ -11,23 +11,96 @@ set -o errexit
 
 SKIP_SYSTEM_PACKAGES="${1:-}"
 
-APT_PACKAGES="
+ARCH_PACKAGES="
+  aspell
+  base
+  base-devel
+  bc
   curl
+  fastfetch
   git
-  iproute2
-  tmux
-  unzip
-  xz-utils
-  zsh
   gnupg
   htop
+  inotify-tools
+  less
+  openbsd-netcat
+  pwgen
+  rsync
+  tmux
+  unzip
+  wget
+  whois
   zip
-  build-essential
-  python3-venv
+  zsh
 "
+
+APT_PACKAGES="
+  aspell
+  bc
+  build-essential
+  curl
+  git
+  gnupg
+  htop
+  inotify-tools
+  iproute2
+  netcat-openbsd
+  pwgen
+  python3-venv
+  rsync
+  tmux
+  unzip
+  wget
+  whois
+  xz-utils
+  zip
+  zsh
+"
+
+MISE_BASE_PACKAGES="
+  cosign
+  slsa-verifier
+  usage
+"
+
+MISE_PACKAGES="
+  1password-cli
+  amazon-ecr-credential-helper
+  argocd
+  awscli
+  bat
+  curlie
+  dua
+  eksctl
+  eza
+  fd
+  fzf
+  gdu
+  gitui
+  helm
+  hyperfine
+  jq
+  k9s
+  kubectl
+  maven
+  neovim
+  pre-commit
+  ripgrep
+  terraform
+  terraform-docs
+  terragrunt
+  tflint
+  uv
+  yq
+  zoxide
+"
+
+NAME=
+EMAIL=
 
 OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
 OS_DISTRO=
+OS_IN_WSL=
 
 DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
 DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
@@ -64,6 +137,11 @@ EOF
   exit 1
 }
 
+_install_packages_arch() {
+  # shellcheck disable=SC2086
+  sudo pacman -Syu --noconfirm ${ARCH_PACKAGES}
+}
+
 _install_packages_apt() {
   sudo add-apt-repository -y ppa:git-core/ppa
 
@@ -71,12 +149,26 @@ _install_packages_apt() {
   sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get install -y ${APT_PACKAGES}
 
   sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives
+
+  # Install packages manually since they don't exist elsewhere.
+
+  # fastfetch, Debian 13 / Ubuntu 26.04 LTS will have it in apt by default.
+  echo
+  curl -fsSL https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb -o /tmp/fastfetch.deb
+  sudo dpkg -i "${_}"
+  rm "${_}"
 }
 
 _display_packages() {
   if [ "${OS_TYPE}" == "linux" ]; then
-    if [ "${OS_DISTRO}" == "debian" ]; then
+    if [ "${OS_DISTRO}" == "arch" ]; then
+      echo "${ARCH_PACKAGES}"
+      echo "${MISE_BASE_PACKAGES}"
+      echo "${MISE_PACKAGES}"
+    elif [ "${OS_DISTRO}" == "debian" ]; then
       echo "${APT_PACKAGES}"
+      echo "${MISE_BASE_PACKAGES}"
+      echo "${MISE_PACKAGES}"
     fi
   fi
 }
@@ -100,10 +192,14 @@ detect_env() {
     fi
 
     # Only fully support these Linux distros.
-    if [[ -z "${OS_DISTRO}" || ! "ubuntu debian raspbian" =~ ${OS_DISTRO} ]]; then
+    if [[ -z "${OS_DISTRO}" || ! "arch ubuntu debian raspbian" =~ ${OS_DISTRO} ]]; then
       [ -z "${SKIP_SYSTEM_PACKAGES}" ] && _no_system_packages
     fi
 
+    # Are we in WSL?
+    if grep -q "\-WSL2" /proc/version; then
+      OS_IN_WSL=1
+    fi
     ;;
   *)
     _error "'${OS_TYPE}' is not supported"
@@ -134,8 +230,8 @@ $(_display_packages)
 
 
 If you choose no, the above packages will not be installed and this script
-will exit. This gives you a chance to edit the list of packages if you don't
-agree with any of the decisions.
+will exit. This gives you a chance to edit the list of packages if you want
+to adjust them.
 
 EOF
 
@@ -144,7 +240,9 @@ EOF
     case "${yn}" in
     [Yy]*)
       if [ "${OS_TYPE}" == "linux" ]; then
-        if [ "${OS_DISTRO}" == "debian" ]; then
+        if [ "${OS_DISTRO}" == "arch" ]; then
+          _install_packages_arch
+        elif [ "${OS_DISTRO}" == "debian" ]; then
           _install_packages_apt
         fi
       fi
@@ -181,6 +279,16 @@ clone_or_update_dotfiles() {
   if [ "${DEBUG}" == "1" ]; then
     if [ "${PWD}" != "${DOTFILES_PATH}" ]; then
       cp -R "${PWD}/." "${DOTFILES_PATH}"
+
+      # Ensure the containerized environment starts fresh.
+      if [[ -n "${IN_CONTAINER}" ]]; then
+        rm \
+          "${DOTFILES_PATH}/.config/zsh/.zsh_history" \
+          "${DOTFILES_PATH}/.config/zsh/.aliases.local" \
+          "${DOTFILES_PATH}/.config/zsh/.zprofile.local" \
+          "${DOTFILES_PATH}/.config/zsh/.zshrc.local" \
+          "${DOTFILES_PATH}/.config/git/config.local"
+      fi
     fi
 
     printf "They've been copied to '%s'\n" "${DOTFILES_PATH}"
@@ -200,12 +308,6 @@ install_zsh_plugins() {
   _info "INSTALL ZSH PLUGINS"
 
   "${DOTFILES_PATH}/.local/bin/update-zsh-plugins"
-}
-
-install_mongodb_stuffs() {
-  _info "INSTALL MONGODB STUFFS"
-
-  "${DOTFILES_PATH}/.local/bin/install-mongodb-stuffs"
 }
 
 create_symlinks() {
@@ -281,7 +383,7 @@ EOF
         ln -fs "${DOTFILES_PATH}/.local/bin/"* "${HOME}/.local/bin/" &&
         ln -fs "/c/Windows/System32/cmd.exe" "${HOME}/.local/bin/cmd.exe"
 
-      if grep -qE "(Microsoft|microsoft|WSL)" /proc/version &>/dev/null; then
+      if [ -n "${OS_IN_WSL}" ]; then
         sudo ln -fs "${DOTFILES_PATH}/etc/wsl.conf" /etc/wsl.conf
       fi
 
@@ -297,7 +399,7 @@ EOF
 }
 
 configure_shell() {
-  _info "CONFIGURE SHELL"
+  _info "CONFIGURE SHELL (ZSH)"
 
   local local_files=(".zshrc.local" ".zprofile.local" ".aliases.local")
   local original_dotfiles_path="${DOTFILES_PATH}"
@@ -319,7 +421,7 @@ configure_shell() {
   fi
 
   # Are we in WSL 2?
-  if grep -q "\-WSL2" /proc/version; then
+  if [ -n "${OS_IN_WSL}" ]; then
     if ! grep -q "^DISPLAY=.*route | awk.*$" "${zprofile_path}" 2>/dev/null; then
       local display
       display=$(
@@ -355,7 +457,7 @@ EOF
     printf "\n%s" "${custom_aliases}" >>"${aliases_path}"
   fi
 
-  [ "${SHELL}" != "$(command -v zsh)" ] && chsh -s "$(command -v zsh)"
+  [ "${SHELL: -3}" != "zsh" ] && chsh -s "/usr/bin/zsh"
 
   # shellcheck disable=SC1091
   . "${HOME}/.config/zsh/.zprofile"
@@ -367,7 +469,61 @@ EOF
   # bashsupport disable=BP5006
   DOTFILES_PATH="${original_dotfiles_path}"
 
-  echo "It has been configured in '${HOME}/.config.zsh/'"
+  echo "It has been configured in '${HOME}/.config/zsh/'"
+}
+
+ask_for_name() {
+  _info "ASKING FOR YOUR NAME TO CONFIGURE GIT"
+
+  local name=
+
+  set +o errexit
+  name="$(git config user.name)"
+  set -o errexit
+
+  if [[ -n "${name}" ]]; then
+    echo "Skipping, since '${name}' was retrieved from your git config"
+  else
+    while true; do
+      printf "What is your full name (ie. Dade Murphy)? "
+      read -r name
+
+      if [[ ${name} =~ [^[:space:]]+ ]]; then
+        break
+      else
+        printf "Please enter at least your first name\n\n"
+      fi
+    done
+  fi
+
+  NAME="${name}"
+}
+
+ask_for_email() {
+  _info "ASKING FOR YOUR EMAIL TO CONFIGURE GIT"
+
+  local email=
+
+  set +o errexit
+  email="$(git config user.email)"
+  set -o errexit
+
+  if [[ -n "${email}" ]]; then
+    echo "Skipping, since '${email}' was retrieved from your git config"
+  else
+    while true; do
+      printf "What is your email address (ie. zerocool@example.com)? "
+      read -r email
+
+      if [[ ${email} =~ .+@.+ ]]; then
+        break
+      else
+        printf "Please enter a valid email address\n\n"
+      fi
+    done
+  fi
+
+  EMAIL="${email}"
 }
 
 configure_git() {
@@ -379,12 +535,12 @@ configure_git() {
 
   # shellcheck disable=SC2034
   template1=$(
-    cat <<'EOF'
+    cat <<EOF
 [user]
-  name = Cody McCodePants
-  email = cody.mccodepants@example.com
+  name = ${NAME}
+  email = ${EMAIL}
   # Uncomment the options below to auto-sign your git commits / tags using GPG.
-  #signingkey = cody.mccodepants@example.com
+  #signingkey = ${EMAIL}
 
 #[commit]
 #  gpgsign = true
@@ -406,10 +562,10 @@ EOF
 
   # shellcheck disable=SC2034
   template2=$(
-    cat <<'EOF'
+    cat <<EOF
 [user]
-  name = Cody McCodePants
-  email = cody.mccodepants@example.com
+  name = ${NAME}
+  email = ${EMAIL}
 EOF
   )
 
@@ -439,19 +595,108 @@ EOF
 }
 
 install_rust() {
-  _info "INSTALL RUST"
+  _info "INSTALL OR UPDATE RUST"
 
   local rust_lang_home="${HOME}/rust-lang"
   local cargo_home="${rust_lang_home}/.cargo"
   local cargo_bin_home="${cargo_home}/bin"
+  local rustup="${cargo_bin_home}/rustup"
 
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+  # Install rustup if not already installed
+  if [ ! -x "${rustup}" ]; then
+    printf "Rust not found, installing...\n"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+  else
+    printf "Rust already installed, updating...\n"
+    "${rustup}" self update
+    "${rustup}" update
+  fi
 
-  "${cargo_bin_home}/rustup" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
-  "${cargo_bin_home}/rustup" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
+  "${rustup}" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
+  "${rustup}" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
 }
 
-install_mise() {
+install_programming_languages() {
+  _info "INSTALL PROGRAMMING LANGUAGES"
+
+  printf "Installing Node...\n\n"
+  if command -v "${HOME}/.local/share/mise/shims/node" 1>/dev/null; then
+    echo "Skipping Node, it's already installed, run 'mise upgrade node --bump' to upgrade"
+  else
+    mise install node@20
+    mise use --global node@22
+  fi
+
+  printf "\nInstalling Go...\n\n"
+  if command -v "${HOME}/.local/share/mise/shims/go" 1>/dev/null; then
+    echo "Skipping Go, it's already installed, run 'mise upgrade go --bump' to upgrade"
+  else
+    mise use --global go
+  fi
+
+  printf "\nInstalling Java...\n\n"
+  if command -v "${HOME}/.local/share/mise/shims/java" 1>/dev/null; then
+    echo "Skipping Java, it's already installed, run 'mise upgrade java --bump' to upgrade"
+  else
+    mise use --global java@corretto-17
+  fi
+
+  install_rust
+}
+
+install_tmux_plugins() {
+  _info "INSTALL TMUX PLUGINS"
+
+  local plugin_path="${HOME}/.config/tmux/plugins"
+  local tpm_path="${plugin_path}/tpm"
+
+  rm -rf "${tpm_path}"
+  git clone --depth 1 https://github.com/tmux-plugins/tpm "${tpm_path}"
+
+  "${tpm_path}/bin/install_plugins"
+}
+
+install_nvim_plugins() {
+  _info "INSTALL NEOVIM PLUGINS"
+
+  mise x neovim -- nvim +q
+
+  echo "They've been installed"
+}
+
+healthcheck() {
+  _info "CHECK INFORMATION AND TOOL VERSIONS"
+
+  cat <<EOF
+:: Dotfiles path:
+
+${DOTFILES_PATH}
+
+:: Git user:
+
+$(git config --get-regex "user.(name|email)")
+
+:: tmux:
+
+$(tmux -V)
+
+:: Neovim:
+
+$(nvim --version)
+
+:: Programming languages:
+
+Node $(node --version)
+$(python --version)
+
+:: Fastfetch:
+
+EOF
+
+  fastfetch
+}
+
+install_and_configure_mise() {
   _info "INSTALL MISE"
 
   curl https://mise.run | sh
@@ -475,56 +720,13 @@ install_mise() {
   mise settings task_run_auto_install=false
   mise settings use_versions_host=false
 
-  mise use -g cosign slsa-verifier
-
-  mise use -g usage
-
-  mise use -g bat curlie dua eza fd gdu hyperfine zoxide rg fzf
-  curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
-  mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
-  mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
-  mise x rg -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
-
-  mise use -g jq yq
-
-  mise use -g awscli amazon-ecr-credential-helper
-
-  mise use -g terraform terragrunt tflint terraform-docs
-
-  mise use -g kubectl eksctl k9s helm argocd
-
-  mise use -g go
-
-  mise use -g uv pre-commit
-
-  mise use -g java@corretto-17 maven
-
-  mise install node@20 && mise use -g node@22
-
   mise plugins install 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
-  mise use -g 1password-cli
-
-  mise use -g neovim gitui
 }
 
-install_tmux_plugins() {
-  _info "INSTALL TMUX PLUGINS"
+install_mongodb_tools() {
+  _info "INSTALL OR UPDATE MONGODB TOOLS"
 
-  local plugin_path="${HOME}/.config/tmux/plugins"
-  local tpm_path="${plugin_path}/tpm"
-
-  rm -rf "${tpm_path}"
-  git clone --depth 1 https://github.com/tmux-plugins/tpm "${tpm_path}"
-
-  "${tpm_path}/bin/install_plugins"
-}
-
-install_nvim_plugins() {
-  _info "INSTALL NEOVIM PLUGINS"
-
-  mise x neovim -- nvim +q
-
-  echo "They've been installed"
+  "${DOTFILES_PATH}/.local/bin/install_mongodb_tools"
 }
 
 configure_docker_completion() {
@@ -547,11 +749,28 @@ configure_docker_completion() {
   fi
 }
 
+  # shellcheck disable=SC2086
+install_and_configure_tools (){
+  _info "INSTALL TOOLS"
+
+  mise use --global ${MISE_BASE_PACKAGES}
+  mise use --global ${MISE_PACKAGES}
+
+  install_mongodb_tools
+
+  curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
+  mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
+  mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
+  mise x rg -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
+
+  configure_docker_completion
+}
+
 completed_message() {
   _info "EVERYTHING WORKED"
 
   cat <<EOF
-Check out the README file on GitHub to do 1 quick thing manually:
+Check out the README file on GitHub for any next steps:
 
 https://github.com/sassdavid/dotfiles#did-you-install-everything-successfully
 
@@ -568,11 +787,13 @@ clone_or_update_dotfiles
 install_zsh_plugins
 create_symlinks
 configure_shell
+ask_for_name
+ask_for_email
 configure_git
-install_rust
-install_mise
-install_mongodb_stuffs
+install_and_configure_mise
+install_and_configure_tools
+install_programming_languages
 install_tmux_plugins
 install_nvim_plugins
-configure_docker_completion
+healthcheck
 completed_message

@@ -21,6 +21,7 @@ tags
 .aliases.local
 .zshrc.local
 .zprofile.local
+.zsh_history*
 .config/git/config.user.personal
 .config/git/config.user.bitbucket
 .config/git/config.user.work
