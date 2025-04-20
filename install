@@ -735,19 +735,25 @@ configure_docker_completion() {
   if command -v docker >/dev/null 2>&1; then
     printf "Docker command found\n"
 
-    if [ -d "${HOME}/.local/share/zsh/completions" ]; then
-      printf "%s directory found\n" "${HOME}/.local/share/zsh/completions"
+    local completion_dir="${HOME}/.local/share/zsh/completions"
+    local completion_file="${completion_dir}/_docker"
 
-      docker completion zsh >"${HOME}/.local/share/zsh/completions/_docker"
+    if [ -d "${completion_dir}" ]; then
+      printf "%s directory found\n" "${completion_dir}"
 
-      printf "Docker zsh completion script has been generated at %s\n\n" "${HOME}/.local/share/zsh/completions/_docker"
+      if docker completion zsh >"${completion_file}" 2>/dev/null; then
+        printf "Docker zsh completion script has been generated at %s\n\n" "${completion_file}"
+      else
+        printf "Failed to generate Docker completion script — 'docker completion zsh' command failed\n\n"
+      fi
     else
-      printf "%s directory not found\n\n" "${HOME}/.local/share/zsh/completions"
+      printf "%s directory not found\n\n" "${completion_dir}"
     fi
   else
     printf "Docker command not found\n\n"
   fi
 }
+
 
   # shellcheck disable=SC2086
 install_and_configure_tools (){
