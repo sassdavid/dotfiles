@@ -558,53 +558,24 @@ ask_for_identity() {
   local identity="$1"
   _info "ASKING FOR NAME AND EMAIL FOR '${identity^^}'"
 
-  local existing_name existing_email var_name var_email
+  local name email
 
-  # Try to read from existing global git config if available
-  set +o errexit
-  existing_name="$(git config user.name)"
-  existing_email="$(git config user.email)"
-  set -o errexit
-
-  # Ask for name
   while true; do
-    if [[ -n "${existing_name}" ]]; then
-      printf "Git user.name found: %s\n" "${existing_name}"
-      break
-    fi
-
-    printf "What is your full name for '%s' (ie. Dade Murphy)? " "$identity"
-    read -r var_name
-
-    if [[ ${var_name} =~ [^[:space:]]+ ]]; then
-      existing_name="${var_name}"
-      break
-    else
-      printf "Please enter at least your first name\n\n"
-    fi
+    printf "Full name for '%s' (e.g., Dade Murphy): " "$identity"
+    read -r name
+    [[ $name =~ [^[:space:]]+ ]] && break
+    printf "Please enter a valid name\n\n"
   done
 
-  # Ask for email
   while true; do
-    if [[ -n "${existing_email}" ]]; then
-      printf "Git user.email found: %s\n" "${existing_email}"
-      break
-    fi
-
-    printf "What is your email address for '%s' (ie. zerocool@example.com)? " "$identity"
-    read -r var_email
-
-    if [[ ${var_email} =~ .+@.+ ]]; then
-      existing_email="${var_email}"
-      break
-    else
-      printf "Please enter a valid email address\n\n"
-    fi
+    printf "Email for '%s' (e.g., zerocool@example.com): " "$identity"
+    read -r email
+    [[ $email =~ .+@.+ ]] && break
+    printf "Please enter a valid email\n\n"
   done
 
-  # Export variables with dynamic names
-  eval "NAME_${identity}=\"${existing_name}\""
-  eval "EMAIL_${identity}=\"${existing_email}\""
+  NAME="$name"
+  EMAIL="$email"
 }
 
 configure_git() {
@@ -612,15 +583,27 @@ configure_git() {
 
   local config_dir="${DOTFILES_PATH}/.config/git"
 
-  declare -A configs=(
-    ["personal"]="template1"
-    ["bitbucket"]="template1"
-    ["work"]="template2"
+  declare -A templates=(
+    ["personal"]="full"
+    ["bitbucket"]="full"
+    ["work"]="minimal"
   )
 
-  local identity template1 template2
+  local identity
+  for identity in "${!templates[@]}"; do
+    local path="${config_dir}/config.user.${identity}"
 
-  template1="[user]
+    if [ -f "$path" ]; then
+      printf "Skipped %s (already exists)\n" "$path"
+      continue
+    fi
+
+    ask_for_identity "$identity"
+
+    case "${templates[$identity]}" in
+      full)
+        cat > "$path" <<EOF
+[user]
   name = ${NAME}
   email = ${EMAIL}
   # Uncomment the options below to auto-sign your git commits / tags using SSH.
@@ -635,40 +618,21 @@ configure_git() {
 #[gpg]
 #  format = ssh
 
-#[gpg \"ssh\"]
-#  program = \"\""
-
-
-  template2="[user]
+#[gpg "ssh"]
+#  program = ""
+EOF
+        ;;
+      minimal)
+        cat > "$path" <<EOF
+[user]
   name = ${NAME}
-  email = ${EMAIL}"
+  email = ${EMAIL}
+EOF
+        ;;
+    esac
 
-  for identity in "${!configs[@]}"; do
-    ask_for_identity "$identity"
-
-    # Fetch identity-specific name/email
-    eval "NAME=\"\${NAME_${identity}}\""
-    eval "EMAIL=\"\${EMAIL_${identity}}\""
-
-    export NAME EMAIL  # Required for envsubst to work
-
-    local template_key="${configs[$identity]}"
-    local template="${!template_key}"
-
-    # Replace variables in template safely
-    local expanded
-    expanded=$(envsubst <<< "${template}")
-
-    local path="${config_dir}/config.user.${identity}"
-    if [ ! -f "${path}" ]; then
-      echo "${expanded}" > "${path}"
-      printf "Created %s\n" "${path}"
-    else
-      printf "Skipped %s (already exists)\n" "${path}"
-    fi
+    printf "Created %s\n" "$path"
   done
-
-  printf "\nGit user configs created in '%s'\n\n" "${config_dir}"
 
   curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
   printf "\ngitalias configured\n"
