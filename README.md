@@ -231,25 +231,34 @@ You may have noticed I don't enable systemd within WSL 2. That is on purpose.
 I've found it delays opening WSL 2 by ~10-15 seconds and also any systemd
 services were delayed from starting by ~2 minutes.
 
-#### Extra 1Password configurations
+#### 1Password SSH Agent Integration
 
-If you want to use the 1Password SSH agent integration with WSL 2, you'll need to set up a few things.
+To use the 1Password SSH agent with WSL 2, you need to configure your shell to use the Windows OpenSSH client. This setup allows Git and SSH commands
+in WSL to work with 1Password.
 
-First, you need to set up the 1Password SSH integration. You can find some details
-at [1Password SSH agent integration](https://developer.1password.com/docs/ssh/get-started).
+1. Follow the official setup guides:
+    - [Get started with 1Password SSH agent](https://developer.1password.com/docs/ssh/get-started/)
+    - [WSL 2 integration details](https://developer.1password.com/docs/ssh/integrations/wsl/)
+2. Shell Configuration:
+    - In your `~/.config/zsh/.zprofile.local`:
+      ```sh
+      export GIT_SSH="/c/Program\ Files/OpenSSH/ssh.exe"
+      export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
+      ```
+    - In your `~/.config/zsh/.aliases.local`:
+      ```sh
+      alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
+      alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
+      alias ssh2="/usr/bin/ssh"  # fallback to WSL SSH if needed
+      ```
+3. Git Configuration (optional): You can also set this in your Git config:
+   ```
+   [core]
+   sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
+   ```
 
-For more details especially for WSL 2,see
-the [1Password SSH agent WSL 2 integration](https://developer.1password.com/docs/ssh/integrations/wsl) documentation.
-
-I have configured a few aliases in my `.aliases` and `.zshrc` files to make it easier to use the 1Password SSH agent
-integration:
-
-- In my `.aliases` file, I have aliases for `ssh` and `ssh-add`.
-- In my `.zshrc` file, I set `GIT_SSH_COMMAND` and `GIT_SSH` environment variables.
-- In my `~/.config/git/config` file, I set `sshCommand`.
-
-The above settings allow me to use the 1Password SSH agent integration with Git in WSL 2, pointing to my Windows OpenSSH
-client (`/c/Program Files/OpenSSH/ssh.exe` and `/c/Program Files/OpenSSH/ssh-add.exe`).
+**These settings ensure that SSH and Git commands inside WSL 2 use the Windows-side OpenSSH client, which is required for 1Password's SSH agent to
+function correctly.**
 
 ## 🔍 FAQ
 
