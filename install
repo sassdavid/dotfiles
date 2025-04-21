@@ -520,7 +520,7 @@ EOF
       printf "\n%s" "${display}" >>"${zprofile_path}"
     fi
 
-    if ! grep -q "^alias ssh=.*$" "${zprofile_path}" 2>/dev/null; then
+    if ! grep -q "^alias ssh=.*$" "${aliases_path}" 2>/dev/null; then
       local custom_aliases
       custom_aliases=$(
         cat <<'EOF'
