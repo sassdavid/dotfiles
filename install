@@ -650,12 +650,14 @@ configure_git() {
     eval "NAME=\"\${NAME_${identity}}\""
     eval "EMAIL=\"\${EMAIL_${identity}}\""
 
+    export NAME EMAIL  # Required for envsubst to work
+
     local template_key="${configs[$identity]}"
     local template="${!template_key}"
 
-    # Replace variables in template
+    # Replace variables in template safely
     local expanded
-    expanded=$(eval "echo \"${template}\"")
+    expanded=$(envsubst <<< "${template}")
 
     local path="${config_dir}/config.user.${identity}"
     if [ ! -f "${path}" ]; then
