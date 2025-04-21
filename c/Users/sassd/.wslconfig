@@ -1,8 +1,7 @@
 [wsl2]
-memory=16GB
+memory=16GB                                  # Make sure you have this amount available to use!
+swapFile=C:\\Software\\__wsl\\wsl2-swap.vhdx # I put mine off my SSD, but this is optional.
 networkingMode=mirrored
-swapFile=C:\\Software\\__wsl\\wsl2-swap.vhdx
-#guiApplications=false
 
 # Another option is to disable swap but if the VM goes out of memory, the
 # OOM killer might start killing important processes or the VM may crash.

@@ -46,6 +46,3 @@ opt.whichwrap = "b,s,<,>"
 
 -- Wrap lines so it's easier to see anything that's cut off.
 opt.wrap = true
-
--- It's needed to be able to use clipboard
-opt.clipboard = "unnamedplus"
