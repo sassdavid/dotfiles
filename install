@@ -81,6 +81,7 @@ MISE_PACKAGES="
   fzf
   gdu
   gitui
+  golangci-lint
   helm
   hyperfine
   jq
