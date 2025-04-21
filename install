@@ -601,8 +601,8 @@ configure_git() {
     ask_for_identity "$identity"
 
     case "${templates[$identity]}" in
-      full)
-        cat > "$path" <<EOF
+    full)
+      cat >"$path" <<EOF
 [user]
   name = ${NAME}
   email = ${EMAIL}
@@ -621,14 +621,14 @@ configure_git() {
 #[gpg "ssh"]
 #  program = ""
 EOF
-        ;;
-      minimal)
-        cat > "$path" <<EOF
+      ;;
+    minimal)
+      cat >"$path" <<EOF
 [user]
   name = ${NAME}
   email = ${EMAIL}
 EOF
-        ;;
+      ;;
     esac
 
     printf "Created %s\n" "$path"
@@ -814,7 +814,7 @@ configure_docker_completion() {
 }
 
 # shellcheck disable=SC2086
-install_and_configure_tools (){
+install_and_configure_tools() {
   _info "INSTALL TOOLS"
 
   mise use --global ${MISE_BASE_PACKAGES}
