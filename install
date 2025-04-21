@@ -723,9 +723,17 @@ healthcheck() {
 
 ${DOTFILES_PATH}
 
-:: Git user:
+:: Git user (personal):
 
-$(git config --get-regex "user.(name|email)")
+$(git config --file "${DOTFILES_PATH}/.config/git/config.user.personal" --get-regex "user.(name|email)")
+
+:: Git user (bitbucket):
+
+$(git config --file "${DOTFILES_PATH}/.config/git/config.user.bitbucket" --get-regex "user.(name|email)")
+
+:: Git user (work):
+
+$(git config --file "${DOTFILES_PATH}/.config/git/config.user.work" --get-regex "user.(name|email)")
 
 :: tmux:
 

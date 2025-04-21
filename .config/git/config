@@ -25,7 +25,6 @@
 
 [include]
   path = ~/.config/gitalias/gitalias.txt
-  path = ~/.config/git/config.user.personal
 
 [includeIf "gitdir:~/src/github/"]
   path = ~/.config/git/config.user.personal
