@@ -19,7 +19,6 @@ There's too many things to list here but here's the highlights:
     - Tweak out your shell (zsh)
     - Set up tmux
     - Fully configure Neovim
-    - Create SSH / GPG keys if they don't already exist
     - Install modern CLI tools
     - Install programming languages
 
