@@ -337,7 +337,7 @@ optimize, and maintain robust infrastructure solutions that drive impactful outc
 site at
 [https://davidsass.eu](https://davidsass.eu/).
 
-## Acknowledgements
+## 🤝 Acknowledgements
 
 This project has been developed based on the foundational work provided by
 the [dotfiles repository](https://github.com/nickjj/dotfiles), originally created
