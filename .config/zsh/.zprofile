@@ -34,6 +34,7 @@ export PATH="${PATH}:${MONGOSH_HOME}:${MONGODB_TOOLS_HOME}:${ATLAS_CLI_HOME}:${M
 
 # Default programs to run.
 export EDITOR="nvim"
+export DIFFPROG="nvim -d"
 
 # Add colors to the less and man commands.
 export LESS=-R

@@ -2,7 +2,7 @@
 memory=16GB
 networkingMode=mirrored
 swapFile=C:\\Software\\__wsl\\wsl2-swap.vhdx
-guiApplications=false
+#guiApplications=false
 
 # Another option is to disable swap but if the VM goes out of memory, the
 # OOM killer might start killing important processes or the VM may crash.

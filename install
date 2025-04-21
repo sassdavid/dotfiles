@@ -26,6 +26,7 @@ ARCH_PACKAGES="
   man-db
   man-pages
   openbsd-netcat
+  pacman-contrib
   pwgen
   rsync
   tmux
@@ -165,13 +166,11 @@ _display_packages() {
   if [ "${OS_TYPE}" == "linux" ]; then
     if [ "${OS_DISTRO}" == "arch" ]; then
       echo "${ARCH_PACKAGES}"
-      echo "${MISE_BASE_PACKAGES}"
-      echo "${MISE_PACKAGES}"
     elif [ "${OS_DISTRO}" == "debian" ]; then
       echo "${APT_PACKAGES}"
-      echo "${MISE_BASE_PACKAGES}"
-      echo "${MISE_PACKAGES}"
     fi
+    echo "${MISE_BASE_PACKAGES}"
+    echo "${MISE_PACKAGES}"
   fi
 }
 
@@ -202,6 +201,13 @@ detect_env() {
     if grep -q "\-WSL2" /proc/version; then
       OS_IN_WSL=1
     fi
+
+    # Adjust packages depending on which display server is in use.
+    if [[ -z "${WAYLAND_DISPLAY}" ]]; then
+      APT_PACKAGES="${APT_PACKAGES//wl-clipboard/xclip}"
+      ARCH_PACKAGES="${ARCH_PACKAGES//wl-clipboard/xclip}"
+    fi
+
     ;;
   *)
     _error "'${OS_TYPE}' is not supported"
@@ -395,6 +401,16 @@ create_symlinks() {
     symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\"")
   fi
 
+  if [ "${OS_DISTRO}" = "arch" ]; then
+    symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/01-options.conf\" \"/etc/pacman.d/01-options.conf\"")
+
+    if [ -f "etc/pacman.d/02-ignore.conf" ]; then
+      symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/02-ignore.conf\" \"/etc/pacman.d/02-ignore.conf\"")
+    else
+      sudo rm -f "/etc/pacman.d/02-ignore.conf"
+    fi
+  fi
+
   printf -- "-------------------------------------------------------------------------------\n\n"
 
   local link
@@ -453,6 +469,19 @@ EOF
   done
 }
 
+configure_system_configs() {
+  _info "CONFIGURE SYSTEM CONFIGS"
+
+  if [ "${OS_DISTRO}" = "arch" ]; then
+    local etc_pacman_conf_path="/etc/pacman.conf"
+    if ! grep -q "Include = /etc/pacman\.d/\*\.conf" "${etc_pacman_conf_path}" 2>/dev/null; then
+      printf "\nInclude = /etc/pacman.d/*.conf\n" | sudo tee --append "${etc_pacman_conf_path}" 1>/dev/null
+    fi
+  fi
+
+  echo "Everything that required updating was updated"
+}
+
 configure_shell() {
   _info "CONFIGURE SHELL (ZSH)"
 
@@ -477,39 +506,36 @@ configure_shell() {
 
   # Are we in WSL 2?
   if [ -n "${OS_IN_WSL}" ]; then
-    if ! grep -q "^DISPLAY=.*route | awk.*$" "${zprofile_path}" 2>/dev/null; then
+    if ! grep -q "^export GIT_SSH=.*$" "${zprofile_path}" 2>/dev/null; then
       local display
       display=$(
         cat <<'EOF'
-# Temporarily disable this because I don't use vcxsrv (or alternative) yet
-# Requires: https://sourceforge.net/projects/vcxsrv/ (or alternative)
-# DISPLAY="$(/sbin/ip route | awk '/default/ { print $3 }'):0"
-# export DISPLAY
-
 # Configure OpenSSH in order to 1password ssh will be usable
-export GIT_SSH='/c/Program\ Files/OpenSSH/ssh.exe'
-export GIT_SSH_COMMAND='/c/Program\ Files/OpenSSH/ssh.exe'
+export GIT_SSH="/c/Program\ Files/OpenSSH/ssh.exe"
+export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
 EOF
       )
 
       printf "\n%s" "${display}" >>"${zprofile_path}"
     fi
 
-    local custom_aliases
-    custom_aliases=$(
-      cat <<'EOF'
-alias ssh='/c/Program\ Files/OpenSSH/ssh.exe'
-alias ssh-add='/c/Program\ Files/OpenSSH/ssh-add.exe'
-alias ssh2='/usr/bin/ssh'
+    if ! grep -q "^alias ssh=.*$" "${zprofile_path}" 2>/dev/null; then
+      local custom_aliases
+      custom_aliases=$(
+        cat <<'EOF'
+alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
+alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
+alias ssh2="/usr/bin/ssh"
 
 # This is specific to WSL 2. If the WSL 2 VM goes rogue and decides not to free
 # up memory, this command will free your memory after about 20-30 seconds.
 #   Details: https://github.com/microsoft/WSL/issues/4166#issuecomment-628493643
 alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a && swapon -a && printf '\n%s\n' 'Ram-cache and Swap Cleared'\""
 EOF
-    )
+      )
 
-    printf "\n%s" "${custom_aliases}" >>"${aliases_path}"
+      printf "\n%s" "${custom_aliases}" >>"${aliases_path}"
+    fi
   fi
 
   [ "${SHELL: -3}" != "zsh" ] && chsh -s "/usr/bin/zsh"
@@ -527,58 +553,57 @@ EOF
   echo "It has been configured in '${HOME}/.config/zsh/'"
 }
 
-ask_for_name() {
-  _info "ASKING FOR YOUR NAME TO CONFIGURE GIT"
+ask_for_identity() {
+  local identity="$1"
+  _info "ASKING FOR NAME AND EMAIL FOR '${identity^^}'"
 
-  local name=
+  local existing_name existing_email var_name var_email
 
+  # Try to read from existing global git config if available
   set +o errexit
-  name="$(git config user.name)"
+  existing_name="$(git config user.name)"
+  existing_email="$(git config user.email)"
   set -o errexit
 
-  if [[ -n "${name}" ]]; then
-    echo "Skipping, since '${name}' was retrieved from your git config"
-  else
-    while true; do
-      printf "What is your full name (ie. Dade Murphy)? "
-      read -r name
+  # Ask for name
+  while true; do
+    if [[ -n "${existing_name}" ]]; then
+      printf "Git user.name found: %s\n" "${existing_name}"
+      break
+    fi
 
-      if [[ ${name} =~ [^[:space:]]+ ]]; then
-        break
-      else
-        printf "Please enter at least your first name\n\n"
-      fi
-    done
-  fi
+    printf "What is your full name for '%s' (ie. Dade Murphy)? " "$identity"
+    read -r var_name
 
-  NAME="${name}"
-}
+    if [[ ${var_name} =~ [^[:space:]]+ ]]; then
+      existing_name="${var_name}"
+      break
+    else
+      printf "Please enter at least your first name\n\n"
+    fi
+  done
 
-ask_for_email() {
-  _info "ASKING FOR YOUR EMAIL TO CONFIGURE GIT"
+  # Ask for email
+  while true; do
+    if [[ -n "${existing_email}" ]]; then
+      printf "Git user.email found: %s\n" "${existing_email}"
+      break
+    fi
 
-  local email=
+    printf "What is your email address for '%s' (ie. zerocool@example.com)? " "$identity"
+    read -r var_email
 
-  set +o errexit
-  email="$(git config user.email)"
-  set -o errexit
+    if [[ ${var_email} =~ .+@.+ ]]; then
+      existing_email="${var_email}"
+      break
+    else
+      printf "Please enter a valid email address\n\n"
+    fi
+  done
 
-  if [[ -n "${email}" ]]; then
-    echo "Skipping, since '${email}' was retrieved from your git config"
-  else
-    while true; do
-      printf "What is your email address (ie. zerocool@example.com)? "
-      read -r email
-
-      if [[ ${email} =~ .+@.+ ]]; then
-        break
-      else
-        printf "Please enter a valid email address\n\n"
-      fi
-    done
-  fi
-
-  EMAIL="${email}"
+  # Export variables with dynamic names
+  eval "NAME_${identity}=\"${existing_name}\""
+  eval "EMAIL_${identity}=\"${existing_email}\""
 }
 
 configure_git() {
@@ -586,66 +611,63 @@ configure_git() {
 
   local config_dir="${DOTFILES_PATH}/.config/git"
 
-  local template1 template2
+  declare -A configs=(
+    ["personal"]="template1"
+    ["bitbucket"]="template1"
+    ["work"]="template2"
+  )
 
-  # shellcheck disable=SC2034
-  template1=$(
-    cat <<EOF
-[user]
+  local identity template1 template2
+
+  template1="[user]
   name = ${NAME}
   email = ${EMAIL}
-  # Uncomment the options below to auto-sign your git commits / tags using GPG.
+  # Uncomment the options below to auto-sign your git commits / tags using SSH.
   #signingkey = ${EMAIL}
 
 #[commit]
 #  gpgsign = true
 
-# This option requires git 2.23+ to work and you must annotate your tags,
-# although -m "" works if you want an empty message.
 #[tag]
 #  gpgSign = true
 
-# Configuration for GPG signing and format settings
 #[gpg]
 #  format = ssh
 
-# Settings for using SSH keys with GPG
-#[gpg "ssh"]
-#  program = ""
-EOF
-  )
+#[gpg \"ssh\"]
+#  program = \"\""
 
-  # shellcheck disable=SC2034
-  template2=$(
-    cat <<EOF
-[user]
+
+  template2="[user]
   name = ${NAME}
-  email = ${EMAIL}
-EOF
-  )
+  email = ${EMAIL}"
 
-  declare -A configs=(
-    ["config.user.personal"]="template1"
-    ["config.user.bitbucket"]="template1"
-    ["config.user.work"]="template2"
-  )
+  for identity in "${!configs[@]}"; do
+    ask_for_identity "$identity"
 
-  local filename
-  for filename in "${!configs[@]}"; do
-    local path="${config_dir}/${filename}"
+    # Fetch identity-specific name/email
+    eval "NAME=\"\${NAME_${identity}}\""
+    eval "EMAIL=\"\${EMAIL_${identity}}\""
+
+    local template_key="${configs[$identity]}"
+    local template="${!template_key}"
+
+    # Replace variables in template
+    local expanded
+    expanded=$(eval "echo \"${template}\"")
+
+    local path="${config_dir}/config.user.${identity}"
     if [ ! -f "${path}" ]; then
-      local template_var="${configs[$filename]}"
-      echo "${!template_var}" >"${path}"
-      printf "Created %s\n" "${filename}"
+      echo "${expanded}" > "${path}"
+      printf "Created %s\n" "${path}"
     else
-      printf "Skipped %s (already exists)\n" "${filename}"
+      printf "Skipped %s (already exists)\n" "${path}"
     fi
   done
 
   printf "\nGit user configs created in '%s'\n\n" "${config_dir}"
 
-  curl https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
-
+  curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
   printf "\ngitalias configured\n"
 }
 
@@ -680,6 +702,13 @@ install_programming_languages() {
   else
     mise install node@20
     mise use --global node@22
+  fi
+
+  printf "\nInstalling Python...\n\n"
+  if command -v "${HOME}/.local/share/mise/shims/python3" 1>/dev/null; then
+    echo "Skipping Python, it's already installed, run 'mise upgrade python --bump' to upgrade"
+  else
+    mise use --global python@3.13
   fi
 
   printf "\nInstalling Go...\n\n"
@@ -742,7 +771,7 @@ $(mise x neovim -- nvim --version)
 :: Programming languages:
 
 Node $(mise x node -- node --version)
-$(python3 --version)
+$(mise x python -- python --version)
 
 :: Fastfetch:
 
@@ -848,9 +877,8 @@ install_packages
 clone_or_update_dotfiles
 install_zsh_plugins
 create_symlinks
+configure_system_configs
 configure_shell
-ask_for_name
-ask_for_email
 configure_git
 install_and_configure_mise
 install_and_configure_tools
