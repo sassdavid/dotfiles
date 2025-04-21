@@ -45,6 +45,8 @@ alias ctfl="fd -HIptf -E .git -E .idea -E .terragrunt-cache -e hcl './terraform-
 alias cnode="fd -Iptd '.*/node_modules$|.*/build$|.*/dist$' -x rm -rf"
 alias cng="fd -HIptd '.*/.angular/cache$' -x rm -rf"
 
+alias gr="fd -Htd --glob '**/.git' ~/src/ | sort -u"
+
 # shellcheck disable=SC2139
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 alias assol="aws sso login --no-browser --profile"
