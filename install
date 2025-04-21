@@ -33,6 +33,7 @@ ARCH_PACKAGES="
   unzip
   wget
   whois
+  wl-clipboard
   zip
   zsh
 "
@@ -49,12 +50,12 @@ APT_PACKAGES="
   iproute2
   netcat-openbsd
   pwgen
-  python3-venv
   rsync
   tmux
   unzip
   wget
   whois
+  wl-clipboard
   xz-utils
   zip
   zsh
