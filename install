@@ -50,7 +50,6 @@ APT_PACKAGES="
   inotify-tools
   iproute2
   netcat-openbsd
-  openssh-server
   pwgen
   rsync
   tmux
