@@ -26,6 +26,7 @@ ARCH_PACKAGES="
   man-db
   man-pages
   openbsd-netcat
+  openssh
   pacman-contrib
   pwgen
   rsync
@@ -49,6 +50,7 @@ APT_PACKAGES="
   inotify-tools
   iproute2
   netcat-openbsd
+  openssh-server
   pwgen
   rsync
   tmux
@@ -102,6 +104,9 @@ MISE_PACKAGES="
 
 NAME=
 EMAIL=
+
+INSTALL_NODE_VERSION="22"
+INSTALL_PYTHON_VERSION="3.13"
 
 OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
 OS_DISTRO=
@@ -664,19 +669,19 @@ install_rust() {
 install_programming_languages() {
   _info "INSTALL PROGRAMMING LANGUAGES"
 
-  printf "Installing Node...\n\n"
+  printf "Installing Node %s...\n\n" "${INSTALL_NODE_VERSION}"
   if command -v "${HOME}/.local/share/mise/shims/node" 1>/dev/null; then
     echo "Skipping Node, it's already installed, run 'mise upgrade node --bump' to upgrade"
   else
     mise install node@20
-    mise use --global node@22
+    mise use --global "node@${INSTALL_NODE_VERSION}"
   fi
 
-  printf "\nInstalling Python...\n\n"
+  printf "\nInstalling Python %s...\n\n" "${INSTALL_PYTHON_VERSION}"
   if command -v "${HOME}/.local/share/mise/shims/python3" 1>/dev/null; then
     echo "Skipping Python, it's already installed, run 'mise upgrade python --bump' to upgrade"
   else
-    mise use --global python@3.13
+    mise use --global "python@${INSTALL_PYTHON_VERSION}"
   fi
 
   printf "\nInstalling Go...\n\n"
@@ -823,7 +828,7 @@ install_and_configure_tools() {
 
   install_mongodb_tools
 
-  curl -LSfs https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
+  curl -fsSL https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${HOME}/.local/share/zsh/completions/_eza"
   mise x fd -- fd --gen-completions=zsh >"${HOME}/.local/share/zsh/completions/_fd"
   mise x bat -- bat --completion zsh >"${HOME}/.local/share/zsh/completions/_bat"
   mise x ripgrep -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
