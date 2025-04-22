@@ -48,84 +48,18 @@ export BREW_PACKAGES_EXTRAS=
 # However, maybe on Arch if you want a specific version of a tool, you can
 # use Mise to install it instead of ignoring it with Pacman to avoid a partial
 # update of your system.
-export MISE_PACKAGES_ARCH="
-  fd
-  fzf
-  jq
-  neovim
-  ripgrep
-"
-export MISE_PACKAGES_ARCH_EXTRAS="
-  1password-cli
-  amazon-ecr-credential-helper
-  argocd
-  awscli
-  bat
-  cosign
-  curlie
-  dua
-  eksctl
-  eza
-  gdu
-  gitui
-  golangci-lint
-  helm
-  hyperfine
-  k9s
-  kubectl
-  maven
-  pre-commit
-  slsa-verifier
-  terraform
-  terraform-docs
-  terragrunt
-  tflint
-  usage
-  uv
-  yq
-  zoxide
-"
+export MISE_PACKAGES_ARCH=
+export MISE_PACKAGES_ARCH_EXTRAS=
 
 export MISE_PACKAGES_DEBIAN=
-export MISE_PACKAGES_DEBIAN_EXTRAS="
-  1password-cli
-  amazon-ecr-credential-helper
-  argocd
-  awscli
-  bat
-  cosign
-  curlie
-  dua
-  eksctl
-  eza
-  gdu
-  gitui
-  golangci-lint
-  helm
-  hyperfine
-  k9s
-  kubectl
-  maven
-  pre-commit
-  slsa-verifier
-  terraform
-  terraform-docs
-  terragrunt
-  tflint
-  usage
-  uv
-  yq
-  zoxide
-"
+export MISE_PACKAGES_DEBIAN_EXTRAS=
 
 export MISE_PACKAGES_MACOS=
 export MISE_PACKAGES_MACOS_EXTRAS=
 
 # Install programming languages.
 declare -A MISE_LANGUAGES=
-declare -A MISE_LANGUAGES_EXTRAS
-MISE_LANGUAGES_EXTRAS["go"]="go@latest"
-MISE_LANGUAGES_EXTRAS["java"]="java@corretto-17"
+declare -A MISE_LANGUAGES_EXTRAS=
 
 # Here's an example to demonstrate the syntax. The key is the binary name and
 # the value is what you would pass into Mise to install it.

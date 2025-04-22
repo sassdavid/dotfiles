@@ -11,9 +11,6 @@ set -o errexit
 
 SKIP_SYSTEM_PACKAGES="${1:-}"
 
-DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/src/github/dotfiles"}"
-
 # Use personalized configuration.
 FIRST_RUN=1
 if [ -f "${DOTFILES_PATH}/install-config" ]; then
@@ -22,6 +19,8 @@ if [ -f "${DOTFILES_PATH}/install-config" ]; then
   FIRST_RUN=
 fi
 
+DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
+DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/src/github/dotfiles"}"
 
 YOUR_NAME="${YOUR_NAME:-}"
 YOUR_EMAIL="${YOUR_EMAIL:-}"
@@ -81,15 +80,78 @@ APT_PACKAGES="${APT_PACKAGES:-
 "
 APT_PACKAGES_EXTRAS="${APT_PACKAGES_EXTRAS:-}"
 
-MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-}"
+MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
+  1password-cli
+  amazon-ecr-credential-helper
+  argocd
+  awscli
+  bat
+  cosign
+  curlie
+  dua
+  eksctl
+  eza
+  fd
+  fzf
+  gdu
+  gitui
+  golangci-lint
+  helm
+  hyperfine
+  jq
+  k9s
+  kubectl
+  maven
+  neovim
+  pre-commit
+  ripgrep
+  slsa-verifier
+  terraform
+  terraform-docs
+  terragrunt
+  tflint
+  usage
+  uv
+  yq
+  zoxide
+}
+"
 MISE_PACKAGES_ARCH_EXTRAS="${MISE_PACKAGES_ARCH_EXTRAS:-}"
 
 MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
+  1password-cli
+  amazon-ecr-credential-helper
+  argocd
+  awscli
+  bat
+  cosign
+  curlie
+  dua
+  eksctl
+  eza
   fd
   fzf
+  gdu
+  gitui
+  golangci-lint
+  helm
+  hyperfine
   jq
+  k9s
+  kubectl
+  maven
   neovim
+  pre-commit
   ripgrep
+  slsa-verifier
+  terraform
+  terraform-docs
+  terragrunt
+  tflint
+  usage
+  uv
+  yq
+  zoxide
 }
 "
 MISE_PACKAGES_DEBIAN_EXTRAS="${MISE_PACKAGES_DEBIAN_EXTRAS:-}"
@@ -97,6 +159,8 @@ MISE_PACKAGES_DEBIAN_EXTRAS="${MISE_PACKAGES_DEBIAN_EXTRAS:-}"
 declare -A MISE_LANGUAGES
 MISE_LANGUAGES["node"]="node@22"
 MISE_LANGUAGES["python"]="python@3.13"
+MISE_LANGUAGES["go"]="go@latest"
+MISE_LANGUAGES["java"]="java@corretto-17"
 
 declare -A MISE_LANGUAGES_EXTRAS
 
@@ -843,8 +907,6 @@ install_mongodb_tools() {
 }
 
 configure_docker_completion() {
-  _info "CONFIGURE DOCKER COMPLETION"
-
   if command -v docker >/dev/null 2>&1; then
     printf "Docker command found\n"
 
@@ -877,6 +939,8 @@ configure_tools() {
   mise x ripgrep -- rg --generate complete-zsh >"${HOME}/.local/share/zsh/completions/_rg"
 
   configure_docker_completion
+
+  echo "Completion has been configured for tools"
 }
 
 completed_message() {
