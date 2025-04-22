@@ -11,6 +11,9 @@ set -o errexit
 
 SKIP_SYSTEM_PACKAGES="${1:-}"
 
+DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
+DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/src/github/dotfiles"}"
+
 # Use personalized configuration.
 FIRST_RUN=1
 if [ -f "${DOTFILES_PATH}/install-config" ]; then
@@ -19,8 +22,6 @@ if [ -f "${DOTFILES_PATH}/install-config" ]; then
   FIRST_RUN=
 fi
 
-DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/src/github/dotfiles"}"
 
 YOUR_NAME="${YOUR_NAME:-}"
 YOUR_EMAIL="${YOUR_EMAIL:-}"
