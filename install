@@ -899,8 +899,8 @@ check_prereqs
 create_initial_dirs
 install_mise
 install_packages
-install_mongodb_tools
 clone_or_update_dotfiles
+install_mongodb_tools
 install_zsh_plugins
 create_symlinks
 configure_system_configs
