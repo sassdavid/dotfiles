@@ -184,7 +184,7 @@ _display_packages_output() {
 
   if [ -n "${packages}" ]; then
     echo ":: Packages (default)"
-    echo "${packages}"
+    echo -n "${packages}"
   fi
 
   if [ -n "${packages_extras}" ]; then
@@ -194,7 +194,7 @@ _display_packages_output() {
 
   if [ -n "${mise}" ]; then
     echo ":: Mise (default)"
-    echo "${mise}"
+    echo -n "${mise}"
   fi
 
   if [ -n "${mise_extras}" ]; then
