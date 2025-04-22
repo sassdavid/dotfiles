@@ -96,7 +96,7 @@ def change_terminal_theme(theme):
 
 Please check the docs for this at:
 
-https://github.com/nickjj/dotfiles#how-to-get-theme-support-in-your-terminal"""
+https://github.com/sassdavid/dotfiles#how-to-get-theme-support-in-your-terminal"""
 
     if not os.path.exists(terminal["path"]):
         print(unknown)

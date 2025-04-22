@@ -22,10 +22,11 @@ tags
 .zshrc.local
 .zprofile.local
 .zsh_history*
-.config/git/config.user.personal
-.config/git/config.user.bitbucket
-.config/git/config.user.work
 .local/bin/local/
 *.spl
 etc/pacman.d/02-ignore.conf.example
+install-config
+.config/git/config.user.personal
+.config/git/config.user.bitbucket
+.config/git/config.user.work
 .idea
