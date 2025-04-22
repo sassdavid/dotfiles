@@ -20,7 +20,7 @@ if [ -f "${DOTFILES_PATH}/install-config" ]; then
 fi
 
 DOTFILES_URL="${DOTFILES_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/dotfiles"}"
+DOTFILES_PATH="${DOTFILES_PATH:-"${HOME}/src/github/dotfiles"}"
 
 YOUR_NAME="${YOUR_NAME:-}"
 YOUR_EMAIL="${YOUR_EMAIL:-}"
