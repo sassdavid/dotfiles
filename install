@@ -797,6 +797,8 @@ EOF
 }
 
 install_rust() {
+    _info "INSTALL OR UPDATE RUST"
+
   local rust_lang_home="${HOME}/rust-lang"
   local cargo_home="${rust_lang_home}/.cargo"
   local cargo_bin_home="${cargo_home}/bin"
