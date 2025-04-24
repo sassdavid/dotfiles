@@ -804,10 +804,10 @@ install_rust() {
 
   # Install rustup if not already installed
   if [ ! -x "${rustup}" ]; then
-    printf "Rust not found, installing...\n"
+    printf "\n\nRust not found, installing...\n"
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
   else
-    printf "Rust already installed, updating...\n"
+    printf "\n\nRust already installed, updating...\n"
     "${rustup}" self update
     "${rustup}" update
   fi
