@@ -103,6 +103,7 @@ MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
   neovim
   pre-commit
   ripgrep
+  ruff
   shellcheck
   shfmt
   slsa-verifier
@@ -144,6 +145,7 @@ MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
   neovim
   pre-commit
   ripgrep
+  ruff
   shellcheck
   shfmt
   slsa-verifier

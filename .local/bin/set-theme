@@ -13,7 +13,11 @@ from subprocess import PIPE, run
 def get_windows_user():
     try:
         result = run(
-            ["/c/Program Files/PowerShell/7/pwsh.exe", "-Command", "$env:UserName"],
+            [
+                "/c/Program Files/PowerShell/7/pwsh.exe",
+                "-Command",
+                "$env:UserName",
+            ],
             stdout=PIPE,
             universal_newlines=True,
         )
