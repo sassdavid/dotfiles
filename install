@@ -500,7 +500,7 @@ update_dotfiles() {
     exec "${0}" "${@}"
   fi
 
-  cp -n "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
+  cp --update=none "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
 clone_dotfiles() {
@@ -525,7 +525,7 @@ clone_dotfiles() {
 
   git clone "${DOTFILES_URL}" "${DOTFILES_PATH}"
 
-  cp -n "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
+  cp --update=none "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
 install_zsh_plugins() {
