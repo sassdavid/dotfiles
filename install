@@ -404,9 +404,9 @@ EOF
 
 create_initial_dirs() {
   mkdir -p "${HOME}/.config/tmux/plugins" "${HOME}/.config/git" "${HOME}/.config/zsh" "${HOME}/.cache/zsh" \
-    "${HOME}/.local/bin" "${HOME}/.local/share" "${HOME}/.config/gitalias" \
-    "${HOME}/.local/share/zsh/completions" "${HOME}/.local/state" "${HOME}/.aws" \
-    "${HOME}/.kube"
+    "${HOME}/.local/bin" "${HOME}/.local/share"
+
+  mkdir -p "${HOME}/.local/share/zsh/completions" "${HOME}/.aws"
 }
 
 install_packages() {
@@ -792,7 +792,7 @@ EOF
     printf "Created %s\n" "$path"
   done
 
-  curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt -o "${HOME}/.config/gitalias/gitalias.txt"
+  curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt --create-dirs -o "${HOME}/.config/gitalias/gitalias.txt"
   printf "\ngitalias configured\n"
 }
 
