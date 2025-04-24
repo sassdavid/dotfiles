@@ -176,14 +176,19 @@ your local terminal's config will not get automatically updated.*
 **🚀 Keeping things up to date and tinkering**
 
 If you've run the install script at least once you can `cd "${DOTFILES_PATH}"`
-and run `./install`. That will pull in the latest changes from this repo and
-re-run things. I suggest glancing through [new
-commits](https://github.com/sassdavid/dotfiles/commits/main/) before running
-that.
+and run `./install`. That will pull in the latest remote changes and re-run
+things. I suggest first running `./install --diff` or `./install --changelog`
+to compare what you have locally to what's [available
+remotely](https://github.com/sassdavid/dotfiles/commits/main/). Neither command
+modifies your git tree.
+
+There's also `./install --update` which will only pull in the latest remote
+changes but exit out early before any other actions occur. This could be handy
+to pull in and review any changes before they run against your system.
 
 You can also run `LOCAL=1 ./install` to re-run the install script without
 pulling updates from this repo. That can be handy for testing your changes
-locally or to prevent a new version from being pulled.
+locally or to prevent new updates from being pulled.
 
 ### 🛠 Make it your own
 
