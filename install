@@ -732,28 +732,66 @@ EOF
   echo "It has been configured in '${HOME}/.config/zsh/'"
 }
 
-ask_for_identity() {
-  local identity="$1"
-  _info "ASKING FOR NAME AND EMAIL FOR '${identity^^}'"
+ask_for_name() {
+  _info "ASKING FOR YOUR NAME TO CONFIGURE GIT"
 
-  local name email
+  local name=
 
-  while true; do
-    printf "Full name for '%s' (e.g., Dade Murphy): " "$identity"
-    read -r name
-    [[ $name =~ [^[:space:]]+ ]] && break
-    printf "Please enter a valid name\n\n"
-  done
+  set +o errexit
+  name="$(git config user.name)"
+  set -o errexit
 
-  while true; do
-    printf "Email for '%s' (e.g., zerocool@example.com): " "$identity"
-    read -r email
-    [[ $email =~ .+@.+ ]] && break
-    printf "Please enter a valid email\n\n"
-  done
+  if [[ -n "${name}" ]]; then
+    echo "Skipping, since '${name}' was retrieved from your git config"
+  else
+    [ -n "${YOUR_NAME}" ] &&
+      echo "Skipping, since '${YOUR_NAME}' was retrieved from your install config" &&
+      return 0
 
-  YOUR_NAME="$name"
-  YOUR_EMAIL="$email"
+    while true; do
+      printf "What is your full name (ie. Dade Murphy)? "
+      read -r name
+
+      if [[ ${name} =~ [^[:space:]]+ ]]; then
+        break
+      else
+        printf "Please enter at least your first name\n\n"
+      fi
+    done
+  fi
+
+  YOUR_NAME="${name}"
+}
+
+ask_for_email() {
+  _info "ASKING FOR YOUR EMAIL TO CONFIGURE GIT"
+
+  local email=
+
+  set +o errexit
+  email="$(git config user.email)"
+  set -o errexit
+
+  if [[ -n "${email}" ]]; then
+    echo "Skipping, since '${email}' was retrieved from your git config"
+  else
+    [ -n "${YOUR_EMAIL}" ] &&
+      echo "Skipping, since '${YOUR_EMAIL}' was retrieved from your install config" &&
+      return 0
+
+    while true; do
+      printf "What is your email address (ie. zerocool@example.com)? "
+      read -r email
+
+      if [[ ${email} =~ .+@.+ ]]; then
+        break
+      else
+        printf "Please enter a valid email address\n\n"
+      fi
+    done
+  fi
+
+  YOUR_EMAIL="${email}"
 }
 
 configure_git() {
@@ -767,20 +805,21 @@ configure_git() {
     ["work"]="minimal"
   )
 
-  local identity
+  local identity path
   for identity in "${!templates[@]}"; do
-    local path="${config_dir}/config.user.${identity}"
+    path="${config_dir}/config.user.${identity}"
 
     if [ -f "$path" ]; then
       printf "Skipped %s (already exists)\n" "$path"
       continue
     fi
 
-    ask_for_identity "$identity"
+    ask_for_name
+    ask_for_email
 
     case "${templates[$identity]}" in
-    full)
-      cat >"$path" <<EOF
+      full)
+        cat >"$path" <<EOF
 [user]
   name = ${YOUR_NAME}
   email = ${YOUR_EMAIL}
@@ -805,9 +844,10 @@ configure_git() {
   # If you prefer side by side diffs, uncomment this.
   #side-by-side = true
 EOF
-      ;;
-    minimal)
-      cat >"$path" <<EOF
+        ;;
+
+      minimal)
+        cat >"$path" <<EOF
 [user]
   name = ${YOUR_NAME}
   email = ${YOUR_EMAIL}
@@ -816,13 +856,16 @@ EOF
   # If you prefer side by side diffs, uncomment this.
   #side-by-side = true
 EOF
-      ;;
+        ;;
     esac
 
     printf "Created %s\n" "$path"
   done
 
-  curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt --create-dirs -o "${HOME}/.config/gitalias/gitalias.txt"
+  # Configure gitalias
+  curl -fsSL https://raw.githubusercontent.com/GitAlias/gitalias/main/gitalias.txt \
+    --create-dirs -o "${HOME}/.config/gitalias/gitalias.txt"
+
   printf "\ngitalias configured\n"
 }
 
