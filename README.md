@@ -304,9 +304,12 @@ merge updates. It's really up to you.
 ### How to get theme support in your terminal?
 
 The `set-theme` script tries to be pretty flexible but it's not super tuned to
-support every terminal in every operating system. If it can't find a valid
-terminal config it will skip trying to set the theme and try to provide a
-helpful message.
+support every terminal in every operating system. It will attempt to configure
+a number of terminals based on looking for specific config paths.
+
+#### Ghostty
+
+Everything should work out of the box. I suggest using this on Linux or macOS.
 
 #### Windows Terminal
 
@@ -323,10 +326,9 @@ further manual adjustments.
 #### Everything else
 
 If you're using a popular terminal and want it officially supported please open
-a pull request. You'd modify `set-theme` for the `TERMINALS` dictionary as well
-as the `change_terminal_theme` function. The basic idea is it tries to find
-specific lines within the config file and does a regex find and replace to swap
-in the theme name.
+a pull request. You'd modify `set-theme` for the `TERMINALS` and `THEMES`
+dictionaries. The basic idea is it tries to find specific lines within the
+config file and does a regex find and replace to swap in the theme name.
 
 Happy to assist in your PR to answer questions.
 
