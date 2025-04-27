@@ -51,9 +51,8 @@ I prefer using themes that have good contrast ratios and are clear to see in
 video recordings. These dotfiles currently support easily switching between
 both themes but you can use any theme you'd like.
 
-It's worth pointing out if you want to see icons you'll need a "nerd font".
-There's hundreds of them on <https://www.nerdfonts.com/font-downloads> with
-previews.
+If you want to see icons you'll need a "nerd font". There's hundreds of them on <https://www.nerdfonts.com/font-downloads> with previews.
+I personally use Inconsolata NF which these dotfiles install for you.
 
 ### Setting a theme
 
@@ -119,6 +118,32 @@ pacman -Syu --noconfirm curl
 ```sh
 # You can run this as root.
 apt-get update && apt-get install -y curl
+```
+
+#### macOS
+
+If you run `bash --version` and it says you're using Bash 3.X please follow
+the instructions below:
+
+```sh
+# Curl is installed by default but bash needs to be upgraded, we can do that
+# by brew installing bash. Once this command completes you can run the install
+# script in the same terminal where you ran this command. Before running the
+# install script `bash --version` should return a version > 3.X.
+
+# OPTION 1: Using Apple silicon?
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+  && eval "$(/opt/homebrew/bin/brew shellenv)" \
+  && brew install bash \
+  && bash
+
+# OPTION 2: Using an Intel CPU?
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" \
+  && eval "$(/usr/local/bin/brew shellenv)" \
+  && brew install bash \
+  && bash
+
+# The colors will look bad with the default macOS Terminal app. I suggest using: https://ghostty.org/
 ```
 
 ### ⚡️ Install script
