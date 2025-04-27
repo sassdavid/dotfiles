@@ -798,7 +798,6 @@ configure_git() {
   _info "CONFIGURE GIT"
 
   local config_dir="${DOTFILES_PATH}/.config/git"
-
   declare -A templates=(
     ["personal"]="full"
     ["bitbucket"]="full"
@@ -809,17 +808,23 @@ configure_git() {
   for identity in "${!templates[@]}"; do
     path="${config_dir}/config.user.${identity}"
 
-    if [ -f "$path" ]; then
-      printf "Skipped %s (already exists)\n" "$path"
+    if [ -f "${path}" ]; then
+      printf "Skipped %s (already exists)\n" "${path}"
       continue
     fi
+
+    # Clear previous values so each identity is prompted
+    unset YOUR_NAME YOUR_EMAIL
+
+    # Log current identity being configured
+    echo "CONFIGURING '${identity^^}'"
 
     ask_for_name
     ask_for_email
 
     case "${templates[$identity]}" in
       full)
-        cat >"$path" <<EOF
+        cat >"${path}" <<EOF
 [user]
   name = ${YOUR_NAME}
   email = ${YOUR_EMAIL}
@@ -845,9 +850,8 @@ configure_git() {
   #side-by-side = true
 EOF
         ;;
-
       minimal)
-        cat >"$path" <<EOF
+        cat >"${path}" <<EOF
 [user]
   name = ${YOUR_NAME}
   email = ${YOUR_EMAIL}
@@ -859,7 +863,7 @@ EOF
         ;;
     esac
 
-    printf "Created %s\n" "$path"
+    printf "Created %s\n" "${path}"
   done
 
   # Configure gitalias
@@ -970,7 +974,7 @@ $(mise x neovim -- nvim --version)
 
 EOF
 
-  fastfetch
+  mise x fastfetch -- fastfetch
 }
 
 install_mise() {
