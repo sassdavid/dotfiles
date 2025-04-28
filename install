@@ -747,12 +747,12 @@ create_symlinks() {
     "ln -fs \"${DOTFILES_PATH}/.config/ghostty/config.local\" \"${HOME}/.config/ghostty/config.local\""
     "ln -fs \"${DOTFILES_PATH}/.config/nvim\" \"${HOME}/.config/nvim\""
     "ln -fs \"${DOTFILES_PATH}/.local/bin/\"* \"${HOME}/.local/bin/\""
-    "ln -fs \"/c/Windows/System32/cmd.exe\" \"${HOME}/.local/bin/cmd.exe\""
   )
 
   local symlinks_system=()
 
   if [ -n "${OS_IN_WSL}" ]; then
+    symlinks+=("ln -fs \"/c/Windows/System32/cmd.exe\" \"${HOME}/.local/bin/cmd.exe\"")
     symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\"")
   fi
 
@@ -1014,7 +1014,7 @@ configure_git() {
     unset YOUR_NAME YOUR_EMAIL
 
     # Log current identity being configured
-    echo "CONFIGURING '${identity^^}'"
+    printf "\nCONFIGURING '%s'\n" "${identity^^}"
 
     ask_for_name
     ask_for_email
@@ -1078,10 +1078,10 @@ install_rust() {
 
   # Install rustup if not already installed
   if [ ! -x "${rustup}" ]; then
-    printf "\n\nRust not found, installing...\n"
+    printf "\n\nRust not found, installing...\n\n"
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
   else
-    printf "\n\nRust already installed, updating...\n"
+    printf "\n\nRust already installed, updating...\n\n"
     "${rustup}" self update
     "${rustup}" update
   fi
