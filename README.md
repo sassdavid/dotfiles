@@ -51,8 +51,9 @@ I prefer using themes that have good contrast ratios and are clear to see in
 video recordings. These dotfiles currently support easily switching between
 both themes but you can use any theme you'd like.
 
-If you want to see icons you'll need a "nerd font". There's hundreds of them on <https://www.nerdfonts.com/font-downloads> with previews.
-I personally use JetBrainsMono NF which these dotfiles install for you.
+If you want to see icons you'll need a "nerd font". There's hundreds of them on
+<https://www.nerdfonts.com/font-downloads> with previews. I personally use
+JetBrainsMono NF which these dotfiles install for you.
 
 ### Setting a theme
 
@@ -143,7 +144,7 @@ the instructions below:
   && brew install bash \
   && bash
 
-# The colors will look bad with the default macOS Terminal app. I suggest using: https://ghostty.org/
+# The colors will look bad with the default macOS Terminal app. These dotfiles install: https://ghostty.org/
 ```
 
 ### ⚡️ Install script
@@ -335,7 +336,8 @@ a number of terminals based on looking for specific config paths.
 
 #### Ghostty
 
-Everything should work out of the box. I suggest using this on Linux or macOS.
+Everything should work out of the box. This gets installed by default on Linux
+and macOS.
 
 #### Windows Terminal
 
