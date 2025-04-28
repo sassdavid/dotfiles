@@ -656,10 +656,10 @@ clone_dotfiles() {
 install_fonts() {
   _info "INSTALL FONTS"
 
-  local font_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Inconsolata.zip"
-  local font_tmp="/tmp/inconsolata"
-  local font_zip="/tmp/inconsolata.zip"
-  local font_filename="InconsolataNerdFontMono-Regular.ttf"
+  local font_url="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetbrainsMono.zip"
+  local font_tmp="/tmp/jetbrainsmono"
+  local font_zip="/tmp/jetbrainsmono.zip"
+  local font_filename="JetBrainsMonoNerdFontMono-Regular.ttf"
   local windows_font_path="/mnt/c/Windows/Fonts"
   local macos_font_path="${HOME}/Library/Fonts"
   local linux_font_path="${XDG_DATA_HOME:-"${HOME}/.local/share"}/fonts"
@@ -709,7 +709,8 @@ EOF
       return 0
     fi
 
-    cp "${font_tmp}"/InconsolataNerdFont*.ttf "${font_path}"
+    cp "${font_tmp}"/JetBrainsMonoNerdFont*.ttf "${font_path}"
+    cp "${font_tmp}"/JetBrainsMonoNLNerdFont*.ttf "${font_path}"
 
     # Update font cache on native Linux.
     [[ "${OS_TYPE}" = "linux" ]] && fc-cache -fv
@@ -1256,7 +1257,7 @@ You can safely close this terminal.
 The next time you open your terminal everything will be ready to go!
 EOF
 
-  if [[ -f "/tmp/inconsolata.zip" && -n "${OS_IN_WSL}" ]]; then
+  if [[ -f "/tmp/jetbrainsmono.zip" && -n "${OS_IN_WSL}" ]]; then
     cat <<EOF
 
 P.S.,

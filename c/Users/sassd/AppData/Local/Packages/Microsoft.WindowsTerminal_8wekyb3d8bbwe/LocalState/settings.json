@@ -49,7 +49,7 @@
       "cursorShape": "filledBox",
       "experimental.retroTerminalEffect": false,
       "font": {
-        "face": "Inconsolata Nerd Font",
+        "face": "JetBrainsMono Nerd Font",
         "size": 11,
         "weight": "normal"
       },
