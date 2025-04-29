@@ -78,7 +78,7 @@ When switching themes your terminal and tmux colors will update automatically,
 but if you have Neovim already open you'll need to manually close and open it
 or run the `SZ` (source zsh) alias.
 
-*If you get a message about your terminal being unknown please review [this FAQ
+*Not all terminals are supported, if yours didn't change then check [this FAQ
 item](#how-to-get-theme-support-in-your-terminal).*
 
 ## ✨ Quickly Get Set Up
