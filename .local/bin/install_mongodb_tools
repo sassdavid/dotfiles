@@ -1,18 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# bashsupport disable=BP5001,BP5007,BP5008
 
-set -e
+set -o errexit
+set -o pipefail
+set -o nounset
 
 default_install_path="$HOME/.local/bin"
 install_path="${1:-$default_install_path}"
 
 auth_header=""
-if [[ -n "$GITHUB_TOKEN" ]]; then
+if [[ -n "${GITHUB_TOKEN:-}" ]]; then
   auth_header="Authorization: Bearer $GITHUB_TOKEN"
 fi
 
+tmp_dirs=()
+
+cleanup_tmp_dirs() {
+  local dir
+  for dir in "${tmp_dirs[@]}"; do
+    if [[ -d "$dir" ]]; then
+      rm -rf "$dir"
+    fi
+  done
+}
+trap cleanup_tmp_dirs EXIT
+
 get_arch() {
-  local mode=$1
-  local arch && arch=$(uname -m)
+  local mode=${1:-standard}
+  local arch
+  arch=$(uname -m)
   case $arch in
   x86_64)
     if [[ $mode == "standard" ]]; then
@@ -21,21 +37,27 @@ get_arch() {
       printf "x64"
     fi
     ;;
-  arm64)
+  arm64 | aarch64)
     printf "arm64"
     ;;
   *)
-    printf "Unsupported architecture: %s\n" "$arch"
+    printf "Unsupported architecture: %s\n" "$arch" >&2
     exit 1
     ;;
   esac
 }
 
 create_tmp_dir() {
-  local base_dir="/tmp"
   local prefix=$1
-  local tmp_dir && tmp_dir=$(mktemp -d -p "$base_dir" "${prefix}.XXXXXXXXXX")
-  printf "%s" "$tmp_dir"
+  mktemp -d -p "/tmp" "${prefix}.XXXXXXXXXX"
+}
+
+version_lt() {
+  local v1=$1 v2=$2
+  [[ "$v1" == "$v2" ]] && return 1
+  local smallest
+  smallest=$(printf '%s\n%s\n' "$v1" "$v2" | sort -V | head -n1)
+  [[ "$smallest" == "$v1" ]]
 }
 
 install_or_update_tool() {
@@ -43,76 +65,144 @@ install_or_update_tool() {
   local url=$2
   local tmp_dir=$3
   local final_dir=$4
-  local tar_file="${tmp_dir}/${tool_name}.tgz"
+  local archive="$tmp_dir/${tool_name}.tgz"
 
-  printf "Remove previously installed version if exists from %s\n" "$final_dir"
+  printf "Removing old %s from %s if it exists...\n" "$tool_name" "$final_dir"
   rm -rf "${final_dir:?}"
 
-  printf "Downloading %s from %s to %s\n" "$tool_name" "$url" "$tar_file"
-  curl -L "$url" -o "$tar_file"
+  printf "Downloading %s from %s...\n" "$tool_name" "$url"
+  curl -L -H "$auth_header" -o "$archive" "$url"
+
+  tar --strip-components=1 -xzf "$archive" -C "$tmp_dir"
+
+  if [[ ! -d "$tmp_dir/bin" ]]; then
+    printf "Error: bin/ folder not found after extracting!\n" >&2
+    exit 1
+  fi
+
   mkdir -p "$final_dir"
-  tar -xz -f "$tar_file" -C "$final_dir" --strip-components=1
-  printf "%s installed in %s\n\n" "$tool_name" "$final_dir"
-  rm -rf "$tmp_dir"
+  mv "$tmp_dir/bin/"* "$final_dir/"
+  chmod +x "$final_dir/"*
+
+  printf "%s installed to %s\n\n" "$tool_name" "$final_dir"
 }
 
 install_or_update_mongosh() {
   local final_dir=$1
-  local arch && arch=$(get_arch)
-  local tmp_dir && tmp_dir=$(create_tmp_dir "mongosh")
-  local version_tag && version_tag=$(curl -s -H "$auth_header" https://api.github.com/repos/mongodb-js/mongosh/releases/latest | grep tag_name | cut -d '"' -f 4)
-  local version=${version_tag#v}
-  local url="https://github.com/mongodb-js/mongosh/releases/download/${version_tag}/mongosh-${version}-linux-${arch}.tgz"
+  local arch
+  arch=$(get_arch archive)
 
-  install_or_update_tool "mongosh" "$url" "$tmp_dir" "$final_dir"
+  local version_tag
+  version_tag=$(curl -s -H "$auth_header" \
+    https://api.github.com/repos/mongodb-js/mongosh/releases/latest |
+    grep -E '"tag_name"' | cut -d '"' -f4)
+  local remote_version=${version_tag#v}
+
+  local current_version=
+  if command -v mongosh >/dev/null 2>&1; then
+    current_version=$(mongosh --version | tr -d '[:space:]')
+  fi
+
+  if [[ -z "$current_version" ]] || version_lt "$current_version" "$remote_version"; then
+    printf "mongosh: %s -> %s\n" "${current_version:-none}" "$remote_version"
+    local tmp_dir
+    tmp_dir=$(create_tmp_dir mongosh)
+    tmp_dirs+=("$tmp_dir")
+    local url="https://github.com/mongodb-js/mongosh/releases/download/${version_tag}/mongosh-${remote_version}-linux-${arch}.tgz"
+    install_or_update_tool mongosh "$url" "$tmp_dir" "$final_dir"
+  else
+    printf "mongosh is up to date (%s)\n" "$current_version"
+  fi
 }
 
 install_or_update_mongodb_tools() {
   local final_dir=$1
-  local arch && arch=$(get_arch "standard")
-  local tmp_dir && tmp_dir=$(create_tmp_dir "mongodbtools")
-  local latest_version && latest_version=$(curl -s -H "$auth_header" -H "Accept: application/vnd.github.v3+json" \
-    https://api.github.com/repos/mongodb/mongo-tools/git/refs/tags |
-    sed -nE "s/^.*\"ref\"\: \"refs\/tags\/r?([[:digit:]]{2,3}\.[[:digit:]]+\.[[:digit:]]+)\",$/\1/p" |
-    sort -V | tail -n1)
-  local url="https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-${arch}-${latest_version}.tgz"
+  local arch
+  arch=$(get_arch)
 
-  install_or_update_tool "mongodb-tools" "$url" "$tmp_dir" "$final_dir"
+  local latest_version
+  latest_version=$(curl -s -H "$auth_header" \
+    -H "Accept: application/vnd.github.v3+json" \
+    https://api.github.com/repos/mongodb/mongo-tools/git/refs/tags |
+    sed -nE "s/^.*\"ref\": \"refs\/tags\/[rv]?([0-9]+\.[0-9]+\.[0-9]+)\".*\$/\1/p" |
+    sort -V | tail -n1)
+
+  local current_version=
+  if command -v bsondump >/dev/null 2>&1; then
+    current_version=$(bsondump --version 2>&1 |
+      sed -nEn 's/^bsondump version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
+  fi
+
+  if [[ -z "$current_version" ]] || version_lt "$current_version" "$latest_version"; then
+    printf "mongodb-tools: %s -> %s\n" "${current_version:-none}" "$latest_version"
+    local tmp_dir
+    tmp_dir=$(create_tmp_dir mongodbtools)
+    tmp_dirs+=("$tmp_dir")
+    local url="https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-${arch}-${latest_version}.tgz"
+    install_or_update_tool mongodb-tools "$url" "$tmp_dir" "$final_dir"
+  else
+    printf "mongodb-database-tools are up to date (%s)\n" "$current_version"
+  fi
 }
 
 install_or_update_atlas_mongo_cli() {
-  local base_final_dir=$1
-  local arch && arch=$(get_arch "standard")
+  local base_dir=$1
+  local arch
+  arch=$(get_arch)
 
-  local releases_json && releases_json=$(curl -s -H "$auth_header" https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
+  local releases_json
+  releases_json=$(curl -s -H "$auth_header" \
+    https://api.github.com/repos/mongodb/mongodb-atlas-cli/releases)
 
-  local atlas_release && atlas_release=$(printf "%s" "$releases_json" | mise x jq -- jq -r '.[] | select(.name | test("MongoDB Atlas CLI")) | .tag_name' | head -n 1)
-  local mongo_release && mongo_release=$(printf "%s" "$releases_json" | mise x jq -- jq -r '.[] | select(.name | test("MongoDB CLI")) | .tag_name' | head -n 1)
+  local atlas_tag
+  atlas_tag=$(printf "%s" "$releases_json" |
+    mise x jq -- jq -r '.[] | select(.name|test("MongoDB Atlas CLI")) | .tag_name' |
+    head -n1)
+  local mongo_tag
+  mongo_tag=$(printf "%s" "$releases_json" |
+    mise x jq -- jq -r '.[] | select(.name|test("MongoDB CLI")) | .tag_name' |
+    head -n1)
 
-  if [[ -n "$atlas_release" ]]; then
-    local atlas_tmp_dir && atlas_tmp_dir=$(create_tmp_dir "atlascli")
-    local atlas_final_dir="${base_final_dir}/atlas-cli"
-    local atlas_version=${atlas_release#*/v}
-    local atlas_url_encoded_version_tag="${atlas_release//\//%2F}"
-    local atlas_url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${atlas_url_encoded_version_tag}/mongodb-atlas-cli_${atlas_version}_linux_${arch}.tar.gz"
-
-    install_or_update_tool "atlas-cli" "$atlas_url" "$atlas_tmp_dir" "$atlas_final_dir"
+  if [[ -n "$atlas_tag" ]]; then
+    local atlas_version=${atlas_tag#atlascli/v}
+    local current_version=
+    if command -v atlas >/dev/null 2>&1; then
+      current_version=$(atlas --version 2>&1 |
+        sed -nEn 's/^atlascli version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
+    fi
+    if [[ -z "$current_version" ]] || version_lt "$current_version" "$atlas_version"; then
+      printf "atlas-cli: %s -> %s\n" "${current_version:-none}" "$atlas_version"
+      local tmp_dir
+      tmp_dir=$(create_tmp_dir atlascli)
+      tmp_dirs+=("$tmp_dir")
+      local encoded=${atlas_tag//\//%2F}
+      local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${encoded}/mongodb-atlas-cli_${atlas_version}_linux_${arch}.tar.gz"
+      install_or_update_tool atlas-cli "$url" "$tmp_dir" "$base_dir/atlas-cli"
+    else
+      printf "atlas-cli is up to date (%s)\n" "$current_version"
+    fi
   fi
 
-  if [[ -n "$mongo_release" ]]; then
-    local mongo_tmp_dir && mongo_tmp_dir=$(create_tmp_dir "mongocli")
-    local mongo_final_dir="${base_final_dir}/mongo-cli"
-    local mongo_version=${mongo_release#*/v}
-    local mongo_url_encoded_version_tag="${mongo_release//\//%2F}"
-    local mongo_url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${mongo_url_encoded_version_tag}/mongocli_${mongo_version}_linux_${arch}.tar.gz"
-
-    install_or_update_tool "mongo-cli" "$mongo_url" "$mongo_tmp_dir" "$mongo_final_dir"
+  if [[ -n "$mongo_tag" ]]; then
+    local mongo_version=${mongo_tag#mongocli/v}
+    local current_version=
+    if command -v mongocli >/dev/null 2>&1; then
+      current_version=$(mongocli --version 2>&1 |
+        sed -nEn 's/^mongocli version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
+    fi
+    if [[ -z "$current_version" ]] || version_lt "$current_version" "$mongo_version"; then
+      printf "mongocli: %s -> %s\n" "${current_version:-none}" "$mongo_version"
+      local tmp_dir
+      tmp_dir=$(create_tmp_dir mongocli)
+      tmp_dirs+=("$tmp_dir")
+      local encoded=${mongo_tag//\//%2F}
+      local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${encoded}/mongocli_${mongo_version}_linux_${arch}.tar.gz"
+      install_or_update_tool mongo-cli "$url" "$tmp_dir" "$base_dir/mongo-cli"
+    else
+      printf "mongocli is up to date (%s)\n" "$current_version"
+    fi
   fi
 }
-
-if [[ -z $1 ]]; then
-  install_path="$default_install_path"
-fi
 
 install_or_update_mongosh "$install_path/mongosh"
 install_or_update_mongodb_tools "$install_path/mongodb-tools"

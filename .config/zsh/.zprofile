@@ -25,10 +25,10 @@ export CARGO_HOME="${RUST_LANG_HOME}/.cargo"
 export PATH="${PATH}:${CARGO_HOME}/bin"
 
 # Set mongodb stuffs related enviornment variables
-export MONGOSH_HOME="${HOME}/.local/bin/mongosh/bin"
-export MONGODB_TOOLS_HOME="${HOME}/.local/bin/mongodb-tools/bin"
-export ATLAS_CLI_HOME="${HOME}/.local/bin/atlas-cli/bin"
-export MONGO_CLI_HOME="${HOME}/.local/bin/mongo-cli/bin"
+export MONGOSH_HOME="${HOME}/.local/bin/mongosh"
+export MONGODB_TOOLS_HOME="${HOME}/.local/bin/mongodb-tools"
+export ATLAS_CLI_HOME="${HOME}/.local/bin/atlas-cli"
+export MONGO_CLI_HOME="${HOME}/.local/bin/mongo-cli"
 
 export PATH="${PATH}:${MONGOSH_HOME}:${MONGODB_TOOLS_HOME}:${ATLAS_CLI_HOME}:${MONGO_CLI_HOME}"
 
