@@ -65,6 +65,7 @@ APT_PACKAGES="${APT_PACKAGES:-
   inotify-tools
   iproute2
   netcat-openbsd
+  openssh-server
   pwgen
   rsync
   tmux
@@ -88,7 +89,6 @@ BREW_PACKAGES="${BREW_PACKAGES:-
   git
   gnupg
   htop
-  openssh
   pwgen
   rsync
   tmux
