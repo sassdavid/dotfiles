@@ -530,7 +530,8 @@ create_initial_dirs() {
     "${HOME}/.local/bin" \
     "${HOME}/.local/share/fonts"
 
-  mkdir -p "${HOME}/.local/share/zsh/completions" \
+  mkdir -p "${HOME}/.config/gnupg" \
+    "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
 }
 
