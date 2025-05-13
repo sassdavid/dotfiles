@@ -893,6 +893,19 @@ configure_shell() {
   else
     # Are we in WSL 2?
     if [ -n "${OS_IN_WSL}" ]; then
+      if ! grep -q "^export GIT_SSH=.*$" "${zprofile_path}" 2>/dev/null; then
+        local git_ssh_env_config
+        git_ssh_env_config=$(
+          cat <<'EOF'
+# Configure OpenSSH in order to 1password ssh agent will be usable
+export GIT_SSH="/c/Program\ Files/OpenSSH/ssh.exe"
+export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
+EOF
+        )
+
+        printf "\n\n%s" "${git_ssh_env_config}" >>"${zprofile_path}"
+      fi
+
       if ! grep -q "^alias ssh=.*$" "${aliases_path}" 2>/dev/null; then
         local custom_aliases
         custom_aliases=$(
@@ -908,7 +921,7 @@ alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a 
 EOF
         )
 
-        printf "\n%s" "${custom_aliases}" >>"${aliases_path}"
+        printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
       fi
     fi
   fi
