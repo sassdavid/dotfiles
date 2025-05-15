@@ -874,7 +874,7 @@ configure_shell() {
   local aliases_path="${DOTFILES_PATH}/.config/zsh/.aliases.local"
 
   if ! grep -q "^export DOTFILES_PATH=.*$" "${zprofile_path}" 2>/dev/null; then
-    printf '\nexport DOTFILES_PATH="%s"\n' "${DOTFILES_PATH}" >>"${zprofile_path}"
+    printf 'export DOTFILES_PATH="%s"\n' "${DOTFILES_PATH}" >>"${zprofile_path}"
   fi
 
   if [ "${OS_TYPE}" == "darwin" ]; then
@@ -902,7 +902,7 @@ export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
 EOF
         )
 
-        printf "\n\n%s" "${git_ssh_env_config}" >>"${zprofile_path}"
+        printf "\n%s\n" "${git_ssh_env_config}" >>"${zprofile_path}"
       fi
 
       if ! grep -q "^alias ssh=.*$" "${aliases_path}" 2>/dev/null; then
@@ -920,7 +920,7 @@ alias drop_cache="sudo sh -c \"echo 3 >'/proc/sys/vm/drop_caches' && swapoff -a 
 EOF
         )
 
-        printf "\n\n%s" "${custom_aliases}" >>"${aliases_path}"
+        printf "\n%s\n" "${custom_aliases}" >>"${aliases_path}"
       fi
     fi
   fi
