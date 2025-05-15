@@ -65,7 +65,6 @@ APT_PACKAGES="${APT_PACKAGES:-
   inotify-tools
   iproute2
   netcat-openbsd
-  openssh-server
   pwgen
   rsync
   tmux
@@ -1196,7 +1195,11 @@ EOF
 install_mise() {
   _info "INSTALL MISE"
 
-  curl https://mise.run | sh
+  if ! command -v mise 1>/dev/null; then
+    curl https://mise.run | sh
+  else
+    mise self-update -y
+  fi
 
   local shell_name=${ZSH_VERSION:+zsh}${BASH_VERSION:+bash}
 
