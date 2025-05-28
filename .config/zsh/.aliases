@@ -51,6 +51,8 @@ alias gr="fd -Htd --glob '**/.git' ~/src/ | sort -u"
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 alias assol="aws sso login --no-browser --profile"
 
+alias ge="rg '[\p{Emoji}--\p{Ascii}]'"
+
 alias myip="curl -s -4 https://ifconfig.me | tee >(clipcopy)"
 
 alias g="git"
