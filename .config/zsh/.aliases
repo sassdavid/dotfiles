@@ -47,15 +47,22 @@ alias cng="fd -HIptd '.*/.angular/cache$' -x rm -rf"
 
 alias gr="fd -Htd --glob '**/.git' ~/src/ | sort -u"
 
+alias assol="aws sso login --no-browser --profile"
+
 # shellcheck disable=SC2139
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
-alias assol="aws sso login --no-browser --profile"
+
+alias gcl="git diff --name-only --diff-filter=U"
 
 alias ge="rg '[\p{Emoji}--\p{Ascii}]'"
 
 alias myip="curl -s -4 https://ifconfig.me | tee >(clipcopy)"
 
-alias g="git"
 alias k="kubectl"
 alias tf="terraform"
 alias tg="terragrunt"
+alias g="git"
+
+# A way to define and run tasks in a project. It's like make except it's pure
+# Bash so there's no make limitations like not being able to forward arguments.
+alias run=./run
