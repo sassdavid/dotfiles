@@ -177,6 +177,8 @@ complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 # shellcheck disable=SC1090
 . <(argocd completion zsh)
 # shellcheck disable=SC1090
+. <(golangci-lint completion zsh)
+# shellcheck disable=SC1090
 . <(mongocli completion zsh)
 
 # eval additional
