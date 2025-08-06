@@ -529,9 +529,12 @@ create_initial_dirs() {
     "${HOME}/.local/bin" \
     "${HOME}/.local/share/fonts"
 
-  mkdir -p "${HOME}/.config/gnupg" \
-    "${HOME}/.local/share/zsh/completions" \
+  mkdir -p "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
+
+  local gpg_home="${GNUPGHOME:-"${XDG_CONFIG_HOME:-"${HOME}/.config"}/gnupg"}"
+  mkdir -p "${gpg_home}"
+  chmod 700 "${gpg_home}"
 }
 
 install_packages() {
