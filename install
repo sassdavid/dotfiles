@@ -142,6 +142,7 @@ MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
   terraform-docs
   terragrunt
   tflint
+  trivy
   usage
   uv
   yq
@@ -185,6 +186,7 @@ MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
   terraform-docs
   terragrunt
   tflint
+  trivy
   usage
   uv
   yq
@@ -228,6 +230,7 @@ MISE_PACKAGES_MACOS="${MISE_PACKAGES_MACOS:-
   terraform-docs
   terragrunt
   tflint
+  trivy
   usage
   uv
   yq
@@ -532,9 +535,13 @@ create_initial_dirs() {
   mkdir -p "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
 
-  local gpg_home="${GNUPGHOME:-"${XDG_CONFIG_HOME:-"${HOME}/.config"}/gnupg"}"
-  mkdir -p "${gpg_home}"
-  chmod 700 "${gpg_home}"
+  if [ -z "${GNUPGHOME}" ]; then
+    # bashsupport disable=BP2001
+    export GNUPGHOME="${XDG_CONFIG_HOME:-"${HOME}/.config"}/gnupg"
+  fi
+
+  mkdir -p "${GNUPGHOME}"
+  chmod 700 "${GNUPGHOME}"
 }
 
 install_packages() {
