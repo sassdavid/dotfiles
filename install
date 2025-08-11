@@ -784,7 +784,7 @@ create_symlinks() {
   if [ "${OS_DISTRO}" = "arch" ]; then
     symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/01-options.conf\" \"/etc/pacman.d/01-options.conf\"")
 
-    if [ -f "etc/pacman.d/02-ignore.conf" ]; then
+    if [ -f "${DOTFILES_PATH}/etc/pacman.d/02-ignore.conf" ]; then
       symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/02-ignore.conf\" \"/etc/pacman.d/02-ignore.conf\"")
     else
       sudo rm -f "/etc/pacman.d/02-ignore.conf"
