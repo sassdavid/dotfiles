@@ -1109,23 +1109,29 @@ EOF
 }
 
 install_rust() {
-  local rust_lang_home="${HOME}/rust-lang"
-  local cargo_home="${rust_lang_home}/.cargo"
-  local cargo_bin_home="${cargo_home}/bin"
-  local rustup="${cargo_bin_home}/rustup"
+  export RUST_LANG_HOME="${RUST_LANG_HOME:-"${HOME}/rust-lang"}"
+  export RUSTUP_HOME="${RUSTUP_HOME:-"${RUST_LANG_HOME}/.rustup"}"
+  export CARGO_HOME="${CARGO_HOME:-"${RUST_LANG_HOME}/.cargo"}"
 
-  # Install rustup if not already installed
-  if [ ! -x "${rustup}" ]; then
-    printf "\n\nRust not found, installing...\n\n"
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
-  else
-    printf "\n\nRust already installed, updating...\n\n"
-    "${rustup}" self update
-    "${rustup}" update
+  local rustup_bin
+  rustup_bin="$(command -v rustup || true)"
+  if [ -z "${rustup_bin}" ]; then
+    rustup_bin="${CARGO_HOME}/bin/rustup"
   fi
 
-  "${rustup}" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
-  "${rustup}" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
+  # Install rustup if not already installed
+  if [ ! -x "${rustup_bin}" ]; then
+    printf "\n\nRust not found, installing to %s ...\n\n" "${RUST_LANG_HOME}"
+    curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path
+    rustup_bin="${CARGO_HOME}/bin/rustup"
+  else
+    printf "\n\nRust already installed, updating...\n\n"
+    "${rustup_bin}" self update
+    "${rustup_bin}" update
+  fi
+
+  "${rustup_bin}" completions zsh >"${HOME}/.local/share/zsh/completions/_rustup"
+  "${rustup_bin}" completions zsh cargo >"${HOME}/.local/share/zsh/completions/_cargo"
 }
 
 install_programming_languages() {
