@@ -947,7 +947,7 @@ EOF
 
   # Switch to zsh in a way that supports our supported OS and distros.
   local shell_path=
-  shell_path="$(which zsh)"
+  shell_path="$(command -v zsh)"
 
   if ! grep -q "${shell_path}" /etc/shells; then
     echo "${shell_path}" | sudo tee -a /etc/shells 1>/dev/null
