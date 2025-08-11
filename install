@@ -1121,7 +1121,7 @@ install_rust() {
 
   # Install rustup if not already installed
   if [ ! -x "${rustup_bin}" ]; then
-    printf "\n\nRust not found, installing to %s ...\n\n" "${RUST_LANG_HOME}"
+    printf "\n\nRust not found, installing to %s...\n\n" "${RUST_LANG_HOME}"
     curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path
     rustup_bin="${CARGO_HOME}/bin/rustup"
   else
