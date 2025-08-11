@@ -332,7 +332,17 @@ _install_packages_arch() {
 }
 
 _install_packages_debian() {
-  sudo add-apt-repository -y ppa:git-core/ppa
+  local ID=
+  local ID_LIKE=
+
+  # shellcheck disable=SC1091
+  if [ -r /etc/os-release ]; then . /etc/os-release; fi
+
+  if [ "$ID" = "ubuntu" ] || [[ "$ID_LIKE" =~ ubuntu ]]; then
+    sudo apt-get update
+    sudo apt-get install -y software-properties-common
+    sudo add-apt-repository -y ppa:git-core/ppa
+  fi
 
   APT_PACKAGES="$(echo "${APT_PACKAGES}" | xargs)"
 
