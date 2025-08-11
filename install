@@ -637,7 +637,7 @@ update_dotfiles() {
     exec "${0}" "${@}"
   fi
 
-  cp --update=none "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
+  [ -f "${DOTFILES_PATH}/install-config" ] || cp "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
 clone_dotfiles() {
@@ -664,7 +664,7 @@ clone_dotfiles() {
   git -C "${DOTFILES_PATH}" remote | grep -qw upstream ||
     git -C "${DOTFILES_PATH}" remote add upstream "${DOTFILES_UPSTREAM_URL}.git"
 
-  cp --update=none "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
+  [ -f "${DOTFILES_PATH}/install-config" ] || cp "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
 install_fonts() {
