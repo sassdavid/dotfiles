@@ -1243,6 +1243,7 @@ install_mise() {
   mise settings http_timeout=60s
   mise settings idiomatic_version_file=false
   mise settings not_found_auto_install=false
+  mise settings python.compile=false
   mise settings task_run_auto_install=false
   mise settings use_versions_host=false
 
