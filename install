@@ -29,11 +29,13 @@ PACMAN_PACKAGES="${PACMAN_PACKAGES:-
   base-devel
   bc
   curl
+  ffmpeg
   fontconfig
   git
   gnupg
   htop
   inotify-tools
+  keepassxc
   less
   man-db
   man-pages
@@ -58,12 +60,14 @@ APT_PACKAGES="${APT_PACKAGES:-
   bc
   build-essential
   curl
+  ffmpeg
   fontconfig
   git
   gnupg
   htop
   inotify-tools
   iproute2
+  keepassxc
   netcat-openbsd
   pwgen
   rsync
@@ -85,6 +89,7 @@ BREW_PACKAGES="${BREW_PACKAGES:-
   bc
   curl
   diffutils
+  ffmpeg
   git
   gnupg
   htop
@@ -102,6 +107,7 @@ BREW_CASK_PACKAGES="${BREW_CASK_PACKAGES:-
   firefox
   ghostty
   google-chrome
+  keepassxc
   maccy
 }
 "

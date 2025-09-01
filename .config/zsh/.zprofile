@@ -48,7 +48,7 @@ export LESS_TERMCAP_me=$'\e[0m'       # end mode
 export LESS_TERMCAP_ue=$'\e[0m'       # end underline
 export LESS_TERMCAP_se=$'\e[0m'       # end standout-mode
 
-# Configure GPG locations.
+# Configure GPG.
 export GNUPGHOME="${XDG_CONFIG_HOME}/gnupg"
 
 # Configure delta (diffs) defaults.
