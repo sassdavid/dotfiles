@@ -5,7 +5,6 @@ alias fgrep="fgrep --color=auto"
 alias egrep="egrep --color=auto"
 
 alias c='clear'
-alias mkdir='mkdir -p'
 
 alias cat='bat --paging=never'
 
