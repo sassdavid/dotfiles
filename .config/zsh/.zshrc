@@ -153,10 +153,6 @@ zstyle ":fzf-tab:complete:cd:*" fzf-preview "ls --color=always \${realpath}"
 # shellcheck disable=SC1091
 if [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.local" ]; then . "${XDG_CONFIG_HOME}/zsh/.aliases.local"; fi
 
-# Load sources from other repository if they exist.
-# shellcheck disable=SC1091
-if [ -f "${XDG_CONFIG_HOME}/zsh/.aliases.sassd" ]; then . "${XDG_CONFIG_HOME}/zsh/.aliases.sassd"; fi
-
 # Set autosuggestions
 eval "$("${HOME}/.local/bin/mise" completion zsh)"
 

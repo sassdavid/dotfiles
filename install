@@ -936,6 +936,7 @@ EOF
         local custom_aliases
         custom_aliases=$(
           cat <<'EOF'
+# Configure OpenSSH in order to 1password ssh agent will be usable
 alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
 alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
 alias ssh2="/usr/bin/ssh"

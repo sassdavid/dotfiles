@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+if (( $# != 3 )); then
+  echo "Usage: $(basename "$0") <aws-profile> <project-tag> <stack-tag>" >&2
+  exit 1
+fi
+
+profile="${1}" project_tag="${2}" stack_tag="${3}"
+config_dir="${HOME}/.msk.properties"
+config_file="${config_dir}/${project_tag}-${stack_tag}.properties"
+mkdir -p "${config_dir}"
+
+secret_name="AmazonMSK_${project_tag}.${stack_tag}.level.0"
+secret="$(aws secretsmanager get-secret-value \
+  --secret-id "${secret_name}" --profile "${profile}" \
+  --no-cli-pager --query SecretString --output text)"
+
+username="$(printf "%s" "${secret}" | jq -r '.username')"
+password="$(printf "%s" "${secret}" | jq -r '.password')"
+
+cat > "${config_file}" <<EOF
+security.protocol=SASL_SSL
+sasl.mechanism=SCRAM-SHA-512
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \\
+  username="${username}" \\
+  password="${password}";
+EOF
+
+echo "Wrote ${config_file}"
