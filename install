@@ -10,9 +10,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   ONLY_UPDATE=
 
-  BOOTSTRAP_DIR="/tmp/sassd-dotfiles"
+  BOOTSTRAP_DIR="/tmp/sassdavid-dotfiles"
 
-  DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassd/dotfiles}"
+  DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
   DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/sassdavid/dotfiles}"
   DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
   DOTFILES_PATH="${DOTFILES_PATH:-}"
@@ -511,7 +511,7 @@ bootstrap() {
 :: Welcome to ${DOTFILES_REPO_SLUG}!
 
 Given this is your first run, a few temporary files were downloaded to
-'/tmp/sassd-dotfiles' which is where you'll kick off running the install
+'/tmp/sassdavid-dotfiles' which is where you'll kick off running the install
 script. It is set up this way so you have a chance to review a few config
 values before running anything on your system.
 
