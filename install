@@ -4,257 +4,259 @@
 
 set -o errexit
 
-SKIP_SYSTEM_PACKAGES="${1:-}"
+# Only run these when calling the script, not sourcing it.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  SKIP_SYSTEM_PACKAGES="${1:-}"
 
-ONLY_UPDATE=
+  ONLY_UPDATE=
 
-# Use personalized configuration.
-FIRST_RUN=1
-if [ -f "${DOTFILES_PATH}/install-config" ]; then
+  BOOTSTRAP_DIR="/tmp/sassd-dotfiles"
+
+  DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassd/dotfiles}"
+  DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/sassdavid/dotfiles}"
+  DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
+  DOTFILES_PATH="${DOTFILES_PATH:-}"
+
   # shellcheck disable=SC1091
-  . "${DOTFILES_PATH}/install-config"
-  FIRST_RUN=
+  [ -z "${BOOTSTRAP}" ] && . "${DOTFILES_PATH}/install-config"
+
+  YOUR_NAME="${YOUR_NAME:-}"
+  YOUR_EMAIL="${YOUR_EMAIL:-}"
+
+  PACMAN_PACKAGES="${PACMAN_PACKAGES:-
+    aspell
+    base
+    base-devel
+    bc
+    btop
+    curl
+    ffmpeg
+    fontconfig
+    git
+    gnupg
+    inotify-tools
+    keepassxc
+    less
+    man-db
+    man-pages
+    openbsd-netcat
+    openssh
+    pacman-contrib
+    pwgen
+    rsync
+    tmux
+    unzip
+    wget
+    whois
+    wl-clipboard
+    zip
+    zsh
+  }
+  "
+  PACMAN_PACKAGES_EXTRAS="${PACMAN_PACKAGES_EXTRAS:-}"
+
+  APT_PACKAGES="${APT_PACKAGES:-
+    aspell
+    bc
+    btop
+    build-essential
+    curl
+    ffmpeg
+    fontconfig
+    git
+    gnupg
+    inotify-tools
+    iproute2
+    keepassxc
+    netcat-openbsd
+    openssh-server
+    pwgen
+    rsync
+    tmux
+    unzip
+    wget
+    whois
+    wl-clipboard
+    xz-utils
+    zip
+    zsh
+  }
+  "
+  APT_PACKAGES_EXTRAS="${APT_PACKAGES_EXTRAS:-}"
+
+  BREW_PACKAGES="${BREW_PACKAGES:-
+    aspell
+    bash
+    bc
+    btop
+    curl
+    diffutils
+    ffmpeg
+    git
+    gnupg
+    pwgen
+    rsync
+    tmux
+    wget
+    xz
+    zsh
+  }
+  "
+  BREW_PACKAGES_EXTRAS="${BREW_PACKAGES_EXTRAS:-}"
+
+  BREW_CASK_PACKAGES="${BREW_CASK_PACKAGES:-
+    firefox
+    ghostty
+    google-chrome
+    keepassxc
+    maccy
+  }
+  "
+  BREW_CASK_PACKAGES_EXTRAS="${BREW_CASK_PACKAGES_EXTRAS:-}"
+
+  MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
+    1password-cli
+    amazon-ecr-credential-helper
+    argocd
+    awscli
+    bat
+    cosign
+    curlie
+    delta
+    dua
+    eksctl
+    eza
+    fastfetch
+    fd
+    fzf
+    gdu
+    gitui
+    golangci-lint
+    helm
+    hyperfine
+    jq
+    k9s
+    kubectl
+    maven
+    neovim
+    pre-commit
+    ripgrep
+    ruff
+    shellcheck
+    shfmt
+    slsa-verifier
+    terraform
+    terraform-docs
+    terragrunt
+    tflint
+    trivy
+    usage
+    uv
+    yq
+    zoxide
+  }
+  "
+  MISE_PACKAGES_ARCH_EXTRAS="${MISE_PACKAGES_ARCH_EXTRAS:-}"
+
+  MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
+    1password-cli
+    amazon-ecr-credential-helper
+    argocd
+    awscli
+    bat
+    cosign
+    curlie
+    delta
+    dua
+    eksctl
+    eza
+    fastfetch
+    fd
+    fzf
+    gdu
+    gitui
+    golangci-lint
+    helm
+    hyperfine
+    jq
+    k9s
+    kubectl
+    maven
+    neovim
+    pre-commit
+    ripgrep
+    ruff
+    shellcheck
+    shfmt
+    slsa-verifier
+    terraform
+    terraform-docs
+    terragrunt
+    tflint
+    trivy
+    usage
+    uv
+    yq
+    zoxide
+  }
+  "
+  MISE_PACKAGES_DEBIAN_EXTRAS="${MISE_PACKAGES_DEBIAN_EXTRAS:-}"
+
+  MISE_PACKAGES_MACOS="${MISE_PACKAGES_MACOS:-
+    1password-cli
+    amazon-ecr-credential-helper
+    argocd
+    awscli
+    bat
+    cosign
+    curlie
+    delta
+    dua
+    eksctl
+    eza
+    fastfetch
+    fd
+    fzf
+    gdu
+    gitui
+    golangci-lint
+    helm
+    hyperfine
+    jq
+    k9s
+    kubectl
+    maven
+    neovim
+    pre-commit
+    ripgrep
+    ruff
+    shellcheck
+    shfmt
+    slsa-verifier
+    terraform
+    terraform-docs
+    terragrunt
+    tflint
+    trivy
+    usage
+    uv
+    yq
+    zoxide
+  }
+  "
+  MISE_PACKAGES_MACOS_EXTRAS="${MISE_PACKAGES_MACOS_EXTRAS:-}"
+
+  if [[ -z "${MISE_LANGUAGES[*]}" ]]; then
+    declare -gA MISE_LANGUAGES
+    MISE_LANGUAGES["node"]="node@22"
+    MISE_LANGUAGES["python"]="python@3.13"
+    MISE_LANGUAGES["go"]="go@latest"
+    MISE_LANGUAGES["java"]="java@corretto-17"
+  fi
+  declare -A MISE_LANGUAGES_EXTRAS="${MISE_LANGUAGES_EXTRAS:-}"
 fi
 
-DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
-DOTFILES_PATH="${DOTFILES_PATH:-}"
-
-YOUR_NAME="${YOUR_NAME:-}"
-YOUR_EMAIL="${YOUR_EMAIL:-}"
-
-PACMAN_PACKAGES="${PACMAN_PACKAGES:-
-  aspell
-  base
-  base-devel
-  bc
-  curl
-  ffmpeg
-  fontconfig
-  git
-  gnupg
-  htop
-  inotify-tools
-  keepassxc
-  less
-  man-db
-  man-pages
-  openbsd-netcat
-  openssh
-  pacman-contrib
-  pwgen
-  rsync
-  tmux
-  unzip
-  wget
-  whois
-  wl-clipboard
-  zip
-  zsh
-}
-"
-PACMAN_PACKAGES_EXTRAS="${PACMAN_PACKAGES_EXTRAS:-}"
-
-APT_PACKAGES="${APT_PACKAGES:-
-  aspell
-  bc
-  build-essential
-  curl
-  ffmpeg
-  fontconfig
-  git
-  gnupg
-  htop
-  inotify-tools
-  iproute2
-  keepassxc
-  netcat-openbsd
-  openssh-server
-  pwgen
-  rsync
-  tmux
-  unzip
-  wget
-  whois
-  wl-clipboard
-  xz-utils
-  zip
-  zsh
-}
-"
-APT_PACKAGES_EXTRAS="${APT_PACKAGES_EXTRAS:-}"
-
-BREW_PACKAGES="${BREW_PACKAGES:-
-  aspell
-  bash
-  bc
-  curl
-  diffutils
-  ffmpeg
-  git
-  gnupg
-  htop
-  pwgen
-  rsync
-  tmux
-  wget
-  xz
-  zsh
-}
-"
-BREW_PACKAGES_EXTRAS="${BREW_PACKAGES_EXTRAS:-}"
-
-BREW_CASK_PACKAGES="${BREW_CASK_PACKAGES:-
-  firefox
-  ghostty
-  google-chrome
-  keepassxc
-  maccy
-}
-"
-BREW_CASK_PACKAGES_EXTRAS="${BREW_CASK_PACKAGES_EXTRAS:-}"
-
-MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
-  1password-cli
-  amazon-ecr-credential-helper
-  argocd
-  awscli
-  bat
-  cosign
-  curlie
-  delta
-  dua
-  eksctl
-  eza
-  fastfetch
-  fd
-  fzf
-  gdu
-  gitui
-  golangci-lint
-  helm
-  hyperfine
-  jq
-  k9s
-  kubectl
-  maven
-  neovim
-  pre-commit
-  ripgrep
-  ruff
-  shellcheck
-  shfmt
-  slsa-verifier
-  terraform
-  terraform-docs
-  terragrunt
-  tflint
-  trivy
-  usage
-  uv
-  yq
-  zoxide
-}
-"
-MISE_PACKAGES_ARCH_EXTRAS="${MISE_PACKAGES_ARCH_EXTRAS:-}"
-
-MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
-  1password-cli
-  amazon-ecr-credential-helper
-  argocd
-  awscli
-  bat
-  cosign
-  curlie
-  delta
-  dua
-  eksctl
-  eza
-  fastfetch
-  fd
-  fzf
-  gdu
-  gitui
-  golangci-lint
-  helm
-  hyperfine
-  jq
-  k9s
-  kubectl
-  maven
-  neovim
-  pre-commit
-  ripgrep
-  ruff
-  shellcheck
-  shfmt
-  slsa-verifier
-  terraform
-  terraform-docs
-  terragrunt
-  tflint
-  trivy
-  usage
-  uv
-  yq
-  zoxide
-}
-"
-MISE_PACKAGES_DEBIAN_EXTRAS="${MISE_PACKAGES_DEBIAN_EXTRAS:-}"
-
-MISE_PACKAGES_MACOS="${MISE_PACKAGES_MACOS:-
-  1password-cli
-  amazon-ecr-credential-helper
-  argocd
-  awscli
-  bat
-  cosign
-  curlie
-  delta
-  dua
-  eksctl
-  eza
-  fastfetch
-  fd
-  fzf
-  gdu
-  gitui
-  golangci-lint
-  helm
-  hyperfine
-  jq
-  k9s
-  kubectl
-  maven
-  neovim
-  pre-commit
-  ripgrep
-  ruff
-  shellcheck
-  shfmt
-  slsa-verifier
-  terraform
-  terraform-docs
-  terragrunt
-  tflint
-  trivy
-  usage
-  uv
-  yq
-  zoxide
-}
-"
-MISE_PACKAGES_MACOS_EXTRAS="${MISE_PACKAGES_MACOS_EXTRAS:-}"
-
-if [[ -z "${MISE_LANGUAGES[*]}" ]]; then
-  declare -gA MISE_LANGUAGES
-  MISE_LANGUAGES["node"]="node@22"
-  MISE_LANGUAGES["python"]="python@3.13"
-  MISE_LANGUAGES["go"]="go@latest"
-  MISE_LANGUAGES["java"]="java@corretto-17"
-fi
-declare -A MISE_LANGUAGES_EXTRAS="${MISE_LANGUAGES_EXTRAS:-}"
-
+# We always want to determine these values no matter how this script is called.
 CPU_ARCH="$(uname -m)"
 OS_TYPE="$(uname | tr "[:upper:]" "[:lower:]")"
 OS_DISTRO=
@@ -289,12 +291,15 @@ _local_only() {
 
     # Ensure the containerized environment starts fresh.
     if [ -n "${IN_CONTAINER}" ]; then
+      # shellcheck disable=SC1091
+      . "${DOTFILES_PATH}/install-config"
+
       rm \
-        "${DOTFILES_PATH}/.config/zsh/.zsh_history" \
+        "${DOTFILES_PATH}/.config/git/config.local" \
         "${DOTFILES_PATH}/.config/zsh/.aliases.local" \
         "${DOTFILES_PATH}/.config/zsh/.zprofile.local" \
-        "${DOTFILES_PATH}/.config/zsh/.zshrc.local" \
-        "${DOTFILES_PATH}/.config/git/config.local"
+        "${DOTFILES_PATH}/.config/zsh/.zsh_history" \
+        "${DOTFILES_PATH}/.config/zsh/.zshrc.local"
 
       if grep -q "git@github.com:" "${DOTFILES_PATH}/.git/config"; then
         sed -i "s|git@github.com:|https://github.com/|g" "${DOTFILES_PATH}/.git/config"
@@ -311,7 +316,7 @@ System package installation isn't supported with your distro (${OS_DISTRO})
 
 Please install any comparable packages on your own, you can view the list at:
 
-    https://github.com/sassdavid/dotfiles/blob/master/install
+    https://github.com/sassdavid/dotfiles/blob/main/install
 
 Then re-run this script and explicitly skip installing system packages:
 
@@ -327,6 +332,23 @@ _install_packages_arch() {
   if [[ -n "${PACMAN_PACKAGES}" || -n "${PACMAN_PACKAGES_EXTRAS}" ]]; then
     # shellcheck disable=SC2086
     sudo pacman -Syu --noconfirm ${PACMAN_PACKAGES} ${PACMAN_PACKAGES_EXTRAS}
+  fi
+
+  # Install Paru (AUR) if needed.
+  if ! command -v paru >/dev/null 2>&1; then
+    local paru_download_path="/tmp/paru-install"
+    rm -rf "${paru_download_path}"
+    git clone https://aur.archlinux.org/paru.git "${paru_download_path}"
+    cd "${paru_download_path}" && makepkg --syncdeps --install --noconfirm && cd -
+    rm -rf "${paru_download_path}"
+  fi
+
+  # Install Paru packages.
+  AUR_PACKAGES="$(echo "${AUR_PACKAGES}" | xargs)"
+
+  if [[ -n "${AUR_PACKAGES}" || -n "${AUR_PACKAGES_EXTRAS}" ]]; then
+    # shellcheck disable=SC2086
+    paru -Syu --noconfirm ${AUR_PACKAGES} ${AUR_PACKAGES_EXTRAS}
   fi
 
   # Install Mise packages.
@@ -376,7 +398,7 @@ _install_packages_macos() {
   [[ "${CPU_ARCH}" == "x86_64" ]] && prefix="/usr/local"
 
   # Ensure brew's paths are available for this script
-  eval "$(${prefix}/bin/brew shellenv)"
+  eval "$("${prefix}/bin/brew" shellenv)"
 
   BREW_PACKAGES="$(echo "${BREW_PACKAGES}" | xargs)"
   BREW_CASK_PACKAGES="$(echo "${BREW_CASK_PACKAGES}" | xargs)"
@@ -403,27 +425,39 @@ _install_packages_macos() {
 _display_packages_output() {
   local packages="${1:-}"
   local packages_extras="${2:-}"
-  local mise="${3:-}"
-  local mise_extras="${4:-}"
+  local packages_aur="${3:-}"
+  local packages_aur_extras="${4:-}"
+  local mise="${5:-}"
+  local mise_extras="${6:-}"
 
   if [ -n "${packages}" ]; then
-    echo ":: Packages (default)"
-    echo -n "${packages}"
+    printf "\n:: Packages (default)\n"
+    printf "%s" "${packages}"
   fi
 
   if [ -n "${packages_extras}" ]; then
-    echo ":: Packages (extras)"
-    echo "${packages_extras}"
+    printf "\n:: Packages (extras)\n"
+    printf "%s" "${packages_extras}"
+  fi
+
+  if [ -n "${packages_aur}" ]; then
+    printf "\n:: Packages AUR (default)\n"
+    printf "%s" "${packages_aur}"
+  fi
+
+  if [ -n "${packages_aur_extras}" ]; then
+    printf "\n:: Packages AUR (extras)\n"
+    printf "%s" "${packages_aur_extras}"
   fi
 
   if [ -n "${mise}" ]; then
-    echo ":: Mise (default)"
-    echo -n "${mise}"
+    printf "\n:: Mise (default)\n"
+    printf "%s" "${mise}"
   fi
 
   if [ -n "${mise_extras}" ]; then
-    echo ":: Mise (extras)"
-    echo "${mise_extras}"
+    printf "\n:: Mise (extras)\n"
+    printf "%s" "${mise_extras}"
   fi
 }
 
@@ -431,9 +465,11 @@ _display_packages() {
   if [ "${OS_TYPE}" == "linux" ]; then
     if [ "${OS_DISTRO}" == "arch" ]; then
       _display_packages_output "${PACMAN_PACKAGES}" "${PACMAN_PACKAGES_EXTRAS}" \
+        "${AUR_PACKAGES}" "${AUR_PACKAGES_EXTRAS}" \
         "${MISE_PACKAGES_ARCH}" "${MISE_PACKAGES_ARCH_EXTRAS}"
     elif [ "${OS_DISTRO}" == "debian" ]; then
       _display_packages_output "${APT_PACKAGES}" "${APT_PACKAGES_EXTRAS}" \
+        "" "" \
         "${MISE_PACKAGES_DEBIAN}" "${MISE_PACKAGES_DEBIAN_EXTRAS}"
     fi
   else
@@ -441,6 +477,7 @@ _display_packages() {
     [ -n "${BREW_CASK_PACKAGES_EXTRAS}" ] && BREW_PACKAGES_EXTRAS+="${BREW_CASK_PACKAGES_EXTRAS}"
 
     _display_packages_output "${BREW_PACKAGES}" "${BREW_PACKAGES_EXTRAS}" \
+      "" "" \
       "${MISE_PACKAGES_MACOS}" "${MISE_PACKAGES_MACOS_EXTRAS}"
   fi
 }
@@ -448,6 +485,63 @@ _display_packages() {
 # -----------------------------------------------------------------------------
 # Main functions
 # -----------------------------------------------------------------------------
+
+bootstrap() {
+  _info "BOOTSTRAP NEW INSTALLATION"
+
+  rm -rf "${BOOTSTRAP_DIR}"
+  mkdir -p "${BOOTSTRAP_DIR}"
+
+  if [ -n "${LOCAL}" ]; then
+    [ -n "${IN_CONTAINER}" ] && DOTFILES_PATH="/app"
+
+    cp "${DOTFILES_PATH}/install" "${BOOTSTRAP_DIR}/install"
+    cp "${DOTFILES_PATH}/install-config.example" "${BOOTSTRAP_DIR}/install-config.example"
+  else
+    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install" \
+      -o "${BOOTSTRAP_DIR}/install"
+    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install-config.example" \
+      -o "${BOOTSTRAP_DIR}/install-config.example"
+  fi
+
+  mv "${BOOTSTRAP_DIR}/install-config.example" "${BOOTSTRAP_DIR}/install-config"
+  chmod +x "${BOOTSTRAP_DIR}/install"
+
+  cat <<EOF
+:: Welcome to ${DOTFILES_REPO_SLUG}!
+
+Given this is your first run, a few temporary files were downloaded to
+'/tmp/sassd-dotfiles' which is where you'll kick off running the install
+script. It is set up this way so you have a chance to review a few config
+values before running anything on your system.
+
+We'll be deleting the above at the end so don't worry about the path.
+
+:: Optionally view the install script's config file
+
+cat ${BOOTSTRAP_DIR}/install-config
+
+If you're ok with the list of packages and symlinks being created then you're
+good to go to install these dotfiles. Feel free to edit the install-config file
+beforehand if you want to make adjustments. The installed dotfiles will have
+the same config file copied over which you can edit at any time.
+
+:: Install these dotfiles
+
+${BOOTSTRAP_DIR}/install
+
+The above will re-run this script but instead of setting up temp files it will
+walk you through picking where to install these dotfiles and install /
+configure everything. From this point on you'll always be running the install
+script from your dotfiles repo.
+
+:: Delete the temporary directory
+
+rm -rf ${BOOTSTRAP_DIR}
+
+Once you've installed these dotfiles you can delete this temp directory.
+EOF
+}
 
 detect_env() {
   case "${OS_TYPE}" in
@@ -541,15 +635,20 @@ EOF
 }
 
 create_initial_dirs() {
-  mkdir -p "${HOME}/.config/tmux/plugins" \
-    "${HOME}/.config/git" \
-    "${HOME}/.config/ghostty" \
-    "${HOME}/.config/zsh" \
+  mkdir -p \
     "${HOME}/.cache/zsh" \
+    "${HOME}/.config/btop/themes" \
+    "${HOME}/.config/fzf" \
+    "${HOME}/.config/ghostty" \
+    "${HOME}/.config/git" \
+    "${HOME}/.config/gitui" \
+    "${HOME}/.config/tmux/plugins" \
+    "${HOME}/.config/zsh" \
     "${HOME}/.local/bin" \
     "${HOME}/.local/share/fonts"
 
-  mkdir -p "${HOME}/.local/share/zsh/completions" \
+  mkdir -p \
+    "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
 
   if [ -z "${GNUPGHOME}" ]; then
@@ -580,31 +679,7 @@ will exit. This gives you a chance to edit the list of packages.
 
 EOF
 
-  if [ -n "${FIRST_RUN}" ]; then
-    cat <<EOF
-Given this is the first time you've run this script, the 'install-config'
-file isn't available. That gets created in your new dotfiles directory that
-will get created after running this script to completion at least once.
-
-In the mean time, if you want to modify the list now you have a few options:
-
-1. Let this run as is and then modify the package list later
-2. Temporarily copy the example install-config from the repo[0] and create install-config in your current directory
-  - The intent will be to move this file to your new dotfiles repo afterwards
-  - You'll want to re-run this script after doing the above
-3. Re-run this script with any environment variables defined in install-config
-  - ie., XXX_PACKAGES_EXTRAS="bat eza" bash <(curl -sS https://raw.githubusercontent.com/sassdavid/dotfiles/main/install)
-  - This bypasses needing to temporarily create and move install-config
-
-I'd suggest option 1 since you can always uninstall packages, but either of the
-other 2 options are viable depending on how much you want to customize.
-
-[0]: https://github.com/sassdavid/dotfiles/blob/main/install-config.example
-
-EOF
-  else
-    printf "You can edit 'install-config' to modify the package list.\n\n"
-  fi
+  printf "You can edit 'install-config' to modify the package list.\n\n"
 
   while true; do
     read -rp "Do you want to install the above packages? (y/n) " yn
@@ -650,7 +725,7 @@ update_dotfiles() {
     git -C "${DOTFILES_PATH}" merge origin
 
     # Re-run this script because if an update happened, it's possible new
-    # packages are meant to be installed which means reading in their env vars.
+    # configuration was introduced which means reading in their env vars.
     exec "${0}" "${@}"
   fi
 
@@ -681,6 +756,8 @@ clone_dotfiles() {
   git -C "${DOTFILES_PATH}" remote | grep -qw upstream ||
     git -C "${DOTFILES_PATH}" remote add upstream "${DOTFILES_UPSTREAM_URL}.git"
 
+  # Carry over the bootstrapped config if it exists, but have a fallback plan.
+  cp "${BOOTSTRAP_DIR}/install-config" "${DOTFILES_PATH}/install-config" 2>/dev/null || true
   [ -f "${DOTFILES_PATH}/install-config" ] || cp "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
@@ -753,61 +830,62 @@ EOF
 install_zsh_plugins() {
   _info "INSTALL ZSH PLUGINS"
 
-  "${DOTFILES_PATH}/.local/bin/update-zsh-plugins"
+  "${DOTFILES_PATH}/.local/bin/dot-update-zsh-plugins"
 }
 
 create_symlinks() {
   _info "CREATE SYMLINKS"
 
-  local symlinks=(
-    "ln -fs \"${DOTFILES_PATH}/.zshenv\" \"${HOME}/.zshenv\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zshrc\" \"${HOME}/.config/zsh/.zshrc\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zshrc.local\" \"${HOME}/.config/zsh/.zshrc.local\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zprofile\" \"${HOME}/.config/zsh/.zprofile\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.zprofile.local\" \"${HOME}/.config/zsh/.zprofile.local\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.aliases\" \"${HOME}/.config/zsh/.aliases\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/.aliases.local\" \"${HOME}/.config/zsh/.aliases.local\""
-    "ln -fs \"${DOTFILES_PATH}/.config/tmux/tmux.conf\" \"${HOME}/.config/tmux/tmux.conf\""
-    "ln -fs \"${DOTFILES_PATH}/.config/zsh/themes\" \"${HOME}/.config/zsh/themes\""
-    "ln -fs \"${DOTFILES_PATH}/.config/tmux/themes\" \"${HOME}/.config/tmux/themes\""
-    "ln -fs \"${DOTFILES_PATH}/.config/git/config\" \"${HOME}/.config/git/config\""
-    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.personal\" \"${HOME}/.config/git/config.user.personal\""
-    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.bitbucket\" \"${HOME}/.config/git/config.user.bitbucket\""
-    "ln -fs \"${DOTFILES_PATH}/.config/git/config.user.work\" \"${HOME}/.config/git/config.user.work\""
-    "ln -fs \"${DOTFILES_PATH}/.config/gitui\" \"${HOME}/.config/gitui\""
-    "ln -fs \"${DOTFILES_PATH}/.config/ghostty/config\" \"${HOME}/.config/ghostty/config\""
-    "ln -fs \"${DOTFILES_PATH}/.config/ghostty/config.local\" \"${HOME}/.config/ghostty/config.local\""
-    "ln -fs \"${DOTFILES_PATH}/.config/nvim\" \"${HOME}/.config/nvim\""
-    "ln -fs \"${DOTFILES_PATH}/.local/bin/\"* \"${HOME}/.local/bin/\""
-  )
+  local symlinks=()
+  local symlinks_wsl=()
+  local symlinks_arch=()
 
-  local symlinks_system=()
+  [ -n "${SYMLINKS[*]}" ] && symlinks+=("${SYMLINKS[@]}")
+  [ -n "${SYMLINKS_EXTRAS[*]}" ] && symlinks+=("${SYMLINKS_EXTRAS[@]}")
 
-  if [ -n "${OS_IN_WSL}" ]; then
-    symlinks+=("ln -fs \"/c/Windows/System32/cmd.exe\" \"${HOME}/.local/bin/cmd.exe\"")
-    symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\"")
+  [ -n "${SYMLINKS_WSL[*]}" ] && symlinks_wsl+=("${SYMLINKS_WSL[@]}")
+  [ -n "${SYMLINKS_WSL_EXTRAS[*]}" ] && symlinks_wsl+=("${SYMLINKS_WSL_EXTRAS[@]}")
+
+  [ -n "${SYMLINKS_ARCH[*]}" ] && symlinks_arch+=("${SYMLINKS_ARCH[@]}")
+  [ -n "${SYMLINKS_ARCH_EXTRAS[*]}" ] && symlinks_arch+=("${SYMLINKS_ARCH_EXTRAS[@]}")
+
+  printf -- "-------------------------------------------------------------------------------\n"
+
+  if [ -n "${symlinks[*]}" ]; then
+    printf "\nSymlinks:\n"
+    local link
+    for link in "${symlinks[@]}"; do
+      echo "  ${link}"
+    done
   fi
 
-  if [ "${OS_DISTRO}" = "arch" ]; then
-    symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/01-options.conf\" \"/etc/pacman.d/01-options.conf\"")
+  if [[ -n "${OS_IN_WSL}" && -n "${symlinks_wsl[*]}" ]]; then
+    local windows_user=
 
+    # shellcheck disable=SC2016
+    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' | tr -d '\r\n')"
+
+    printf "\nSymlinks (WSL):\n"
+    for link in "${symlinks_wsl[@]}"; do
+      echo "  ${link//%WindowsUser/${windows_user}}"
+    done
+  fi
+
+  if [[ "${OS_DISTRO}" = "arch" && -n "${symlinks_arch[*]}" ]]; then
+    # It's a bit more complicated to extract this into a variable since it has
+    # a condition with a fallback. For now let's keep it hard coded until a
+    # better pattern arrises to handle this in a dynamic way.
     if [ -f "etc/pacman.d/02-ignore.conf" ]; then
-      symlinks_system+=("sudo ln -fs \"${DOTFILES_PATH}/etc/pacman.d/02-ignore.conf\" \"/etc/pacman.d/02-ignore.conf\"")
+      symlinks_arch+=("sudo ln -fns \"${DOTFILES_PATH}/etc/pacman.d/02-ignore.conf\" \"/etc/pacman.d/02-ignore.conf\"")
     else
       sudo rm -f "/etc/pacman.d/02-ignore.conf"
     fi
+
+    printf "\nSymlinks (Arch):\n"
+    for link in "${symlinks_arch[@]}"; do
+      echo "  ${link}"
+    done
   fi
-
-  printf -- "-------------------------------------------------------------------------------\n\n"
-
-  local link
-  for link in "${symlinks[@]}"; do
-    echo "${link}"
-  done
-
-  for link in "${symlinks_system[@]}"; do
-    echo "${link}"
-  done
 
   cat <<EOF
 
@@ -821,8 +899,8 @@ What does that mean?
 Any config files you have on the right hand side of the paths are going to get
 overwritten with the files that come with these dotfiles (left side).
 
-Without these symlinks, these dotfiles will not work. If you plan to type y
-and have existing files now would be a good time to back them up.
+Without these symlinks, these dotfiles will not work as is. If you plan to
+type y and have existing files now would be a good time to back them up.
 
 EOF
 
@@ -833,18 +911,25 @@ EOF
       # Avoid using ln -T flag since it doesn't exist on macOS. We're being
       # extra careful here to only delete symlinks if they exist. Technically
       # rm -f would work but that could delete real files potentially.
-      [ -L "${HOME}/.config/zsh/themes" ] && rm "${HOME}/.config/zsh/themes"
-      [ -L "${HOME}/.config/tmux/themes" ] && rm "${HOME}/.config/tmux/themes"
-      [ -L "${HOME}/.config/gitui" ] && rm "${HOME}/.config/gitui"
       [ -L "${HOME}/.config/nvim" ] && rm "${HOME}/.config/nvim"
 
-      for link in "${symlinks[@]}"; do
-        eval "${link}"
-      done
+      if [ -n "${symlinks[*]}" ]; then
+        for link in "${symlinks[@]}"; do
+          eval "${link}"
+        done
+      fi
 
-      for link in "${symlinks_system[@]}"; do
-        eval "${link}"
-      done
+      if [[ -n "${OS_IN_WSL}" && -n "${symlinks_wsl[*]}" ]]; then
+        for link in "${symlinks_wsl[@]}"; do
+          eval "${link//%WindowsUser/${windows_user}}"
+        done
+      fi
+
+      if [ "${OS_DISTRO}" = "arch" ]; then
+        for link in "${symlinks_arch[@]}"; do
+          eval "${link}"
+        done
+      fi
 
       break
       ;;
@@ -1193,6 +1278,82 @@ install_nvim_plugins() {
   echo "They've been installed"
 }
 
+set_theme() {
+  # Default to this theme as a fallback.
+  local theme="gruvbox-dark-medium"
+
+  local active_theme=
+  local theme_changed=
+
+  _info "SETTING THEME"
+
+  # Extract the theme name from the symlink path, ie. tokyonight-moon.
+  # There are scenarios (first run, etc.) where this will be empty in which
+  # case it being undefined is ok.
+  if [ -f "${HOME}/.config/fzf/theme.sh" ]; then
+    active_theme="$(readlink "${HOME}/.config/fzf/theme.sh")"
+    active_theme="$(dirname "${active_theme}")"
+    active_theme="$(basename "${active_theme##*/}")"
+  fi
+
+  if [[ -n "${1}" ]]; then
+    # This is when the dot-theme-set script gets run. Even if a random theme
+    # is picked by supplying no argument, $1 is always set from that script.
+    theme="${1}"
+  else
+    # We only want to do this if an active_theme was found, else we'll use the
+    # fallback theme that was set at the top of the function.
+    if [ -n "${active_theme}" ]; then
+      # This is when a user runs this install script multiple times, we don't
+      # want to adjust their theme.
+      theme="${active_theme}"
+    fi
+  fi
+
+  if [ ! -d "${DOTFILES_PATH}/themes/${theme}" ]; then
+    echo "Theme '${theme}' not found, aborting!" >&2
+    return 1
+  fi
+
+  # Did the theme change?
+  [[ -n "${active_theme}" && "${active_theme}" != "${theme}" ]] && theme_changed=1
+
+  # Only detect the env if we have to.
+  [ -z "${OS_DISTRO:-}" ] && detect_env
+
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/btop.theme" "${HOME}/.config/btop/themes/theme.theme"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/fzf.sh" "${HOME}/.config/fzf/theme.sh"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/ghostty" "${HOME}/.config/ghostty/theme"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/gitui.ron" "${HOME}/.config/gitui/theme.ron"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/nvim.lua" "${HOME}/.config/nvim/lua/plugins/theme.lua"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/tmux.conf" "${HOME}/.config/tmux/theme.conf"
+
+  echo "'${theme}' is your active theme"
+
+  # We can abort now since if we're not changing anything there's no reloading.
+  [ -z "${theme_changed}" ] && return
+
+  if [ -n "${OS_IN_WSL}" ]; then
+    local windows_user=
+
+    # shellcheck disable=SC2016
+    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' | tr -d '\r\n')"
+
+    local WT_PATH="/c/Users/${windows_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+    local SED_EXPR='s/\("\(colorScheme\|theme\)": *"\)[^"]*"/\1'"${theme}"'"/'
+
+    # Let's make sure the path exists before replacing anything in case someone
+    # removed the config entry from SYMLINKS_WSL.
+    [ -e "${WT_PATH}" ] && sed -i "${SED_EXPR}" "${WT_PATH}"
+  else
+    killall -SIGUSR2 ghostty 2>/dev/null || true
+  fi
+
+  # Reload as many apps as we can.
+  killall -SIGUSR2 btop 2>/dev/null || true
+  tmux source-file "${HOME}/.config/tmux/tmux.conf" 2>/dev/null || true
+}
+
 healthcheck() {
   _info "CHECK INFORMATION AND VERSIONS"
 
@@ -1327,113 +1488,124 @@ EOF
   fi
 }
 
-case "${1:-}" in
---diff | -d)
-  # Show a diff of any local uncommitted or committed changes vs the target.
-  #
-  # Since we have fzf, let's use it to make browsing diffs a nice experience!
-  target="${2:-origin}"
-  side_by_side="${3:-}"
+parse_args() {
+  case "${1:-}" in
+  --diff | -d)
+    # Show a diff of any local uncommitted or committed changes vs the target.
+    #
+    # Since we have fzf, let's use it to make browsing diffs a nice experience!
+    local target="${2:-origin}"
+    local side_by_side="${3:-}"
 
-  # Since target is optional we need to handle only passing in --side.
-  if [ "${target}" = "--side" ]; then
-    target="origin"
-    side_by_side="--side"
-  fi
+    # Since target is optional we need to handle only passing in --side.
+    if [ "${target}" = "--side" ]; then
+      target="origin"
+      side_by_side="--side"
+    fi
 
-  git remote | grep -q "${target//./}" && git fetch "${target//./}"
+    git remote | grep -q "${target//./}" && git fetch "${target//./}"
 
-  gd "${target}" "${side_by_side}"
+    gd "${target}" "${side_by_side}"
 
-  _info "CONDENSED GIT DIFF"
-  GIT_PAGER="" git diff "${target}" --compact-summary
+    _info "CONDENSED GIT DIFF"
+    GIT_PAGER="" git diff "${target}" --compact-summary
 
-  exit
-  ;;
---changelog | -c)
-  # Show details about new commits that only exist in the target vs local.
-  target="${2:-..origin}"
+    exit
+    ;;
+  --changelog | -c)
+    # Show details about new commits that only exist in the target vs local.
+    target="${2:-..origin}"
 
-  git remote | grep -q "${target//./}" && git fetch "${target//./}"
-  git log "${target}" --pretty="format:%C(magenta)%h %C(green)%ad %C(yellow)> %C(reset)%s" --date=short
+    git remote | grep -q "${target//./}" && git fetch "${target//./}"
+    git log "${target}" --pretty="format:%C(magenta)%h %C(green)%ad %C(yellow)> %C(reset)%s" --date=short
 
-  exit
-  ;;
---update | -u)
-  ONLY_UPDATE=1
-  ;;
---skip-system-packages | -S) ;;
---help | -h)
-  echo -e "$(
-    cat <<EOF
-Usage examples:
+    exit
+    ;;
+  --update | -u)
+    ONLY_UPDATE=1
+    ;;
+  --skip-system-packages | -S) ;;
+  --help | -h)
+    echo -e "$(
+      cat <<EOF
+  Usage examples:
 
-# Pull in remote updates and run the script to update your dotfiles.
-${C_GREEN}./install${C_RESET}
+  # Pull in remote updates and run the script to update your dotfiles.
+  ${C_GREEN}./install${C_RESET}
 
-# Only pull in remote updates and exit early.
-${C_GREEN}./install --update${C_RESET}
+  # Only pull in remote updates and exit early.
+  ${C_GREEN}./install --update${C_RESET}
 
-# Update your dotfiles with whatever version of this script that exists locally.
-${C_GREEN}LOCAL=1 ./install${C_RESET}
+  # Update your dotfiles with whatever version of this script that exists locally.
+  ${C_GREEN}LOCAL=1 ./install${C_RESET}
 
-# Show a diff of any local uncommited or committed changes vs the remote.
-${C_GREEN}./install --diff [target]${C_RESET} (it defaults to "origin" if not supplied)
+  # Show a diff of any local uncommited or committed changes vs the remote.
+  ${C_GREEN}./install --diff [target]${C_RESET} (it defaults to "origin" if not supplied)
 
-# The same as above but show the diff in side-by-side (split) mode.
-${C_GREEN}./install --diff --side${C_RESET}
+  # The same as above but show the diff in side-by-side (split) mode.
+  ${C_GREEN}./install --diff --side${C_RESET}
 
-# Compare your currently checked out branch to your local master branch, this
-# could be helpful if you have a personalized branch and you pull updates into
-# master and now you want to compare them locally.
-${C_GREEN}./install --diff master${C_RESET}
+  # Compare your currently checked out branch to your local main branch, this
+  # could be helpful if you have a personalized branch and you pull updates into
+  # main and now you want to compare them locally.
+  ${C_GREEN}./install --diff main${C_RESET}
 
-# Show new remote commits that do not exist locally.
-${C_GREEN}./install --changelog [target]${C_RESET} (it defaults to "..origin" if not supplied)
+  # Show new remote commits that do not exist locally.
+  ${C_GREEN}./install --changelog [target]${C_RESET} (it defaults to "..origin" if not supplied)
 
-# Show your local commits that don't exist in the remote.
-${C_GREEN}./install --changelog origin..${C_RESET}
+  # Show your local commits that don't exist in the remote.
+  ${C_GREEN}./install --changelog origin..${C_RESET}
 
-# The same as above except compare it to your local master branch not remote.
-${C_GREEN}./install --changelog ..master${C_RESET}
+  # The same as above except compare it to your local main branch not remote.
+  ${C_GREEN}./install --changelog ..main${C_RESET}
 
-# Show your local commits that don't exist in the remote and new remote commits.
-${C_GREEN}./install --changelog origin...${C_RESET}
+  # Show your local commits that don't exist in the remote and new remote commits.
+  ${C_GREEN}./install --changelog origin...${C_RESET}
 
-# The same as above except compare it to your local master branch not remote.
-${C_GREEN}./install --changelog ...master${C_RESET}
+  # The same as above except compare it to your local main branch not remote.
+  ${C_GREEN}./install --changelog ...main${C_RESET}
 
-# Show this help menu.
-${C_GREEN}./install --help${C_RESET}
+  # Show this help menu.
+  ${C_GREEN}./install --help${C_RESET}
 EOF
-  )"
-  exit
-  ;;
-*)
-  [ -n "${1:-}" ] && _error "'${1}' is not a supported flag"
+    )"
+    exit
+    ;;
+  *)
+    [ -n "${1:-}" ] && _error "'${1}' is not a supported flag"
 
-  ;;
-esac
+    ;;
+  esac
 
-detect_env
-warn_root
-update_dotfiles "${@}" && [ -n "${ONLY_UPDATE}" ] && exit
-check_prereqs
-create_initial_dirs
-install_mise
-install_packages
-clone_dotfiles
-install_fonts
-install_mongodb_tools
-install_zsh_plugins
-create_symlinks
-configure_system_configs
-configure_home_configs
-configure_shell
-configure_git
-configure_tools
-install_programming_languages
-install_tmux_plugins
-install_nvim_plugins
-healthcheck
-completed_message
+  return 0
+}
+
+# Only run these when calling the script, not sourcing it.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  [[ -n "${BOOTSTRAP}" && -z "${IN_CONTAINER}" ]] && bootstrap && exit
+
+  parse_args "${@}"
+  detect_env
+  warn_root
+  update_dotfiles "${@}" && [ -n "${ONLY_UPDATE}" ] && exit
+  check_prereqs
+  create_initial_dirs
+  install_mise
+  install_packages
+  clone_dotfiles
+  install_fonts
+  install_mongodb_tools
+  install_zsh_plugins
+  create_symlinks
+  configure_system_configs
+  configure_home_configs
+  configure_shell
+  configure_git
+  configure_tools
+  install_programming_languages
+  install_tmux_plugins
+  install_nvim_plugins
+  set_theme "${@}"
+  healthcheck
+  completed_message
+fi
