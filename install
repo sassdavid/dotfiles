@@ -6,19 +6,33 @@ set -o errexit
 
 # Only run these when calling the script, not sourcing it.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  BOOTSTRAP_PATH="/tmp/sassdavid-dotfiles"
+  DOTFILES_PATH="${DOTFILES_PATH:-}"
+
+  if [[ -n "${BOOTSTRAP}" || -z "${DOTFILES_PATH}" ]]; then
+    # This condition happens during 1 one of the following cases:
+    #   - BOOTSTRAP=1 is set
+    #   - Running the install script for the first time from the temp dir
+    #   - Testing things in a container
+
+    # shellcheck disable=SC1091
+    [ -f ./install-config ] && . ./install-config
+  else
+    # This is the happy path where these dotfiles are installed and you're
+    # re-running the install script. We're using an absolute path to support
+    # running the install script from any path.
+
+    # shellcheck disable=SC1091
+    . "${DOTFILES_PATH}/install-config"
+  fi
+
   SKIP_SYSTEM_PACKAGES="${1:-}"
 
   ONLY_UPDATE=
 
-  BOOTSTRAP_DIR="/tmp/sassdavid-dotfiles"
-
   DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
   DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/sassdavid/dotfiles}"
   DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
-  DOTFILES_PATH="${DOTFILES_PATH:-}"
-
-  # shellcheck disable=SC1091
-  [ -z "${BOOTSTRAP}" ] && . "${DOTFILES_PATH:-${BOOTSTRAP_DIR}}/install-config"
 
   YOUR_NAME="${YOUR_NAME:-}"
   YOUR_EMAIL="${YOUR_EMAIL:-}"
@@ -286,7 +300,7 @@ _local_only() {
     # Ensure the containerized environment starts fresh.
     if [ -n "${IN_CONTAINER}" ]; then
       # shellcheck disable=SC1091
-      . "${DOTFILES_PATH}/install-config"
+      . ./install-config
 
       rm \
         "${DOTFILES_PATH}/.config/git/config.local" \
@@ -483,23 +497,28 @@ _display_packages() {
 bootstrap() {
   _info "BOOTSTRAP NEW INSTALLATION"
 
-  rm -rf "${BOOTSTRAP_DIR}"
-  mkdir -p "${BOOTSTRAP_DIR}"
+  rm -rf "${BOOTSTRAP_PATH}"
+  mkdir -p "${BOOTSTRAP_PATH}"
 
   if [ -n "${LOCAL}" ]; then
     [ -n "${IN_CONTAINER}" ] && DOTFILES_PATH="/app"
 
-    cp "${DOTFILES_PATH}/install" "${BOOTSTRAP_DIR}/install"
-    cp "${DOTFILES_PATH}/install-config.example" "${BOOTSTRAP_DIR}/install-config.example"
+    if [ -n "${DOTFILES_PATH}" ]; then
+      cp "${DOTFILES_PATH}/install" "${BOOTSTRAP_PATH}/install"
+      cp "${DOTFILES_PATH}/install-config.example" "${BOOTSTRAP_PATH}/install-config.example"
+    else
+      echo "LOCAL=1 cannot be used if DOTFILES_PATH is unset, aborting!" >&2
+      exit 1
+    fi
   else
     curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install" \
-      -o "${BOOTSTRAP_DIR}/install"
+      -o "${BOOTSTRAP_PATH}/install"
     curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install-config.example" \
-      -o "${BOOTSTRAP_DIR}/install-config.example"
+      -o "${BOOTSTRAP_PATH}/install-config.example"
   fi
 
-  mv "${BOOTSTRAP_DIR}/install-config.example" "${BOOTSTRAP_DIR}/install-config"
-  chmod +x "${BOOTSTRAP_DIR}/install"
+  mv "${BOOTSTRAP_PATH}/install-config.example" "${BOOTSTRAP_PATH}/install-config"
+  chmod +x "${BOOTSTRAP_PATH}/install"
 
   cat <<EOF
 :: Welcome to ${DOTFILES_REPO_SLUG}!
@@ -513,7 +532,7 @@ We'll be deleting the above at the end so don't worry about the path.
 
 :: Optionally view the install script's config file
 
-cat ${BOOTSTRAP_DIR}/install-config
+cat ${BOOTSTRAP_PATH}/install-config
 
 If you're ok with the list of packages and symlinks being created then you're
 good to go to install these dotfiles. Feel free to edit the install-config file
@@ -522,7 +541,7 @@ the same config file copied over which you can edit at any time.
 
 :: Install these dotfiles
 
-${BOOTSTRAP_DIR}/install
+${BOOTSTRAP_PATH}/install
 
 The above will re-run this script but instead of setting up temp files it will
 walk you through picking where to install these dotfiles and install /
@@ -531,7 +550,7 @@ script from your dotfiles repo.
 
 :: Delete the temporary directory
 
-rm -rf ${BOOTSTRAP_DIR}
+rm -rf ${BOOTSTRAP_PATH}
 
 Once you've installed these dotfiles you can delete this temp directory.
 EOF
@@ -751,7 +770,7 @@ clone_dotfiles() {
     git -C "${DOTFILES_PATH}" remote add upstream "${DOTFILES_UPSTREAM_URL}.git"
 
   # Carry over the bootstrapped config if it exists, but have a fallback plan.
-  cp "${BOOTSTRAP_DIR}/install-config" "${DOTFILES_PATH}/install-config" 2>/dev/null || true
+  cp "${BOOTSTRAP_PATH}/install-config" "${DOTFILES_PATH}/install-config" 2>/dev/null || true
   [ -f "${DOTFILES_PATH}/install-config" ] || cp "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
 }
 
