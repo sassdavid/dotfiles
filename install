@@ -31,7 +31,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   ONLY_UPDATE=
 
   DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
-  DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/sassdavid/dotfiles}"
+  DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/${DOTFILES_REPO_SLUG}}"
   DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
 
   YOUR_NAME="${YOUR_NAME:-}"
@@ -876,7 +876,7 @@ create_symlinks() {
     local windows_user=
 
     # shellcheck disable=SC2016
-    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' | tr -d '\r\n')"
+    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' 2>/dev/null | tr -d '\r\n')"
 
     printf "\nSymlinks (WSL):\n"
     for link in "${symlinks_wsl[@]}"; do
@@ -1617,7 +1617,10 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   parse_args "${@}"
   detect_env
   warn_root
-  update_dotfiles "${@}" && [ -n "${ONLY_UPDATE}" ] && exit
+
+  update_dotfiles "${@}"
+  [ -n "${ONLY_UPDATE}" ] && exit
+
   check_prereqs
   create_initial_dirs
   install_mise
