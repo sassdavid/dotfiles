@@ -18,7 +18,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   DOTFILES_PATH="${DOTFILES_PATH:-}"
 
   # shellcheck disable=SC1091
-  [ -z "${BOOTSTRAP}" ] && . "${DOTFILES_PATH}/install-config"
+  [ -z "${BOOTSTRAP}" ] && . "${DOTFILES_PATH:-${BOOTSTRAP_DIR}}/install-config"
 
   YOUR_NAME="${YOUR_NAME:-}"
   YOUR_EMAIL="${YOUR_EMAIL:-}"
