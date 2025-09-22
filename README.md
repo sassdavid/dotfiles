@@ -204,22 +204,28 @@ your local terminal's config will not get automatically updated.*
 
 **🚀 Keeping things up to date and tinkering**
 
-If you've run the install script at least once you can `cd "${DOTFILES_PATH}"`
-and run `./install`. That will pull in the latest remote changes and re-run
-things. I suggest first running `./install --diff` or `./install --changelog`
-to compare what you have locally to what's [available
-remotely](https://github.com/sassdavid/dotfiles/commits/main/). Neither command
-modifies your git tree.
+Once you've installed these dotfiles you can run `cd "${DOTFILES_PATH}"` to
+manage them.
 
-There's also `./install --update` which will only pull in the latest remote
-changes but exit out early before any other actions occur. This could be handy
-to pull in and review any changes before they run against your system.
+Here's a few handy commands, you can run `./install --help` to see all of them:
 
-You can also run `LOCAL=1 ./install` to re-run the install script without
-pulling updates from this repo. That can be handy for testing your changes
-locally or applying `install-config` changes.
-
-Running `./install --help` shows a number of ways to call this script.
+- `./install`
+  - Pull in the latest remote commit and run the install script
+- `./install --update`
+  - Only pull in the latest remote commit but don't run the install script
+  - Allows you to review any changes locally before they are run
+- `LOCAL=1 ./install`
+  - Run the install script without pulling in the latest remote commit
+  - Keeps your system up to date or apply local changes
+- `./install --diff-config`
+  - Compare your local `install-config` to the local `install-config.example`
+  - Helps keep your git ignored `install-config` in sync with new options
+- `./install --diff`
+  - Compare what you have locally vs the latest remote commit
+  - Preview what will change if you update without modifying your git tree
+- `./install --changelog`
+  - Show new remote commits that do not exist locally
+  - Present a quick list of what's available
 
 ### 🛠 Make it your own
 
@@ -304,6 +310,8 @@ in WSL to work with 1Password.
       ```sh
       alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
       alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
+      alias scp="/c/Program\ Files/OpenSSH/scp.exe"
+      
       alias ssh2="/usr/bin/ssh"  # fallback to WSL SSH if needed
       ```
 3. Git Configuration:
