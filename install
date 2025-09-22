@@ -120,7 +120,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
-    cosign
     curlie
     delta
     dua
@@ -144,7 +143,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     ruff
     shellcheck
     shfmt
-    slsa-verifier
     terraform
     terraform-docs
     terragrunt
@@ -164,7 +162,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
-    cosign
     curlie
     delta
     dua
@@ -188,7 +185,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     ruff
     shellcheck
     shfmt
-    slsa-verifier
     terraform
     terraform-docs
     terragrunt
@@ -208,7 +204,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
-    cosign
     curlie
     delta
     dua
@@ -232,7 +227,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     ruff
     shellcheck
     shfmt
-    slsa-verifier
     terraform
     terraform-docs
     terragrunt
