@@ -9,21 +9,18 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   BOOTSTRAP_PATH="/tmp/sassdavid-dotfiles"
   DOTFILES_PATH="${DOTFILES_PATH:-}"
 
-  if [[ -n "${BOOTSTRAP}" || -z "${DOTFILES_PATH}" ]]; then
-    # This condition happens during 1 one of the following cases:
-    #   - BOOTSTRAP=1 is set
-    #   - Running the install script for the first time from the temp dir
-    #   - Testing things in a container
+  if [ -f "${DOTFILES_PATH}/install-config" ]; then
+    # shellcheck disable=SC1091
+    . "${DOTFILES_PATH}/install-config"
+  elif [ -f "${BOOTSTRAP_PATH}/install-config" ]; then
+    # shellcheck disable=SC1091
+    . "${BOOTSTRAP_PATH}/install-config"
+  else
+    # This happens on a first run that's not bootstrapped which is typically
+    # the case when running tests in a container.
 
     # shellcheck disable=SC1091
     [ -f ./install-config ] && . ./install-config
-  else
-    # This is the happy path where these dotfiles are installed and you're
-    # re-running the install script. We're using an absolute path to support
-    # running the install script from any path.
-
-    # shellcheck disable=SC1091
-    . "${DOTFILES_PATH}/install-config"
   fi
 
   SKIP_SYSTEM_PACKAGES="${1:-}"
@@ -32,9 +29,13 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   # is useful for testing in a container without committing anything.
   LOCAL="${LOCAL:-}"
 
-  # This will get optionally populated later, it controls whether or not new
-  # commits should get pulled in before running the install script.
-  PULL_UPDATES=
+  # This will get optionally populated later, it essentially does a git pull
+  # to pull in the latest changes locally.
+  PULL=
+
+  # This will get optionally populated later, it combines pulling in the latest
+  # updates and running the install script.
+  PULL_UPDATE=
 
   DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
   DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/${DOTFILES_REPO_SLUG}}"
@@ -731,8 +732,13 @@ update_dotfiles() {
     return 0
   fi
 
-  if [ -z "${PULL_UPDATES}" ]; then
-    echo "Skipping, rerun with --update if you want to pull in remote changes"
+  if [[ -z "${PULL}" && -z "${PULL_UPDATE}" ]]; then
+    echo "Skipping, rerun with --pull or --update to get the latest changes"
+    return 0
+  fi
+
+  if [ -n "${LOCAL}" ]; then
+    echo "Skipping, since LOCAL=1 is set we'll avoid remote updates"
     return 0
   fi
 
@@ -1515,7 +1521,7 @@ parse_args() {
   case "${1:-}" in
   --diff-config | -g)
     # Show a diff of your config file vs the example config file.
-    local side_by_side="${2:-}"
+   local side_by_side="${2:-}"
 
     [ "${side_by_side}" = "--side" ] && side_by_side="--side-by-side"
 
@@ -1528,8 +1534,8 @@ parse_args() {
     # Show a diff of any local uncommitted or committed changes vs the target.
     #
     # Since we have fzf, let's use it to make browsing diffs a nice experience!
-    local target="${2:-origin}"
-    local side_by_side="${3:-}"
+   local target="${2:-origin}"
+   local side_by_side="${3:-}"
 
     # Since target is optional we need to handle only passing in --side.
     if [ "${target}" = "--side" ]; then
@@ -1546,7 +1552,7 @@ parse_args() {
 
     exit
     ;;
-  --changelog | -c)
+  --new-commits | -n)
     # Show details about new commits that only exist in the target vs local.
     target="${2:-..origin}"
 
@@ -1555,8 +1561,11 @@ parse_args() {
 
     exit
     ;;
+  --pull | -p)
+    PULL=1
+    ;;
   --update | -u)
-    PULL_UPDATES=1
+    PULL_UPDATE=1
     ;;
   --skip-system-packages | -S) ;;
   --help | -h)
@@ -1566,6 +1575,9 @@ parse_args() {
 
   # Run the install script based on the local copy of your dotfiles
   ${C_GREEN}./install${C_RESET}
+
+  # Pulls in the latest remote commits.
+  ${C_GREEN}./install --pull${C_RESET}
 
   # Pulls in the latest remote commits and runs the install script.
   ${C_GREEN}./install --update${C_RESET}
@@ -1588,19 +1600,19 @@ parse_args() {
   ${C_GREEN}./install --diff main${C_RESET}
 
   # Show new remote commits that do not exist locally.
-  ${C_GREEN}./install --changelog [target]${C_RESET} (it defaults to "..origin" if not supplied)
+  ${C_GREEN}./install --new-commits [target]${C_RESET} (it defaults to "..origin" if not supplied)
 
   # Show your local commits that don't exist in the remote.
-  ${C_GREEN}./install --changelog origin..${C_RESET}
+  ${C_GREEN}./install --new-commits origin..${C_RESET}
 
   # The same as above except compare it to your local main branch not remote.
-  ${C_GREEN}./install --changelog ..main${C_RESET}
+  ${C_GREEN}./install --new-commits ..main${C_RESET}
 
   # Show your local commits that don't exist in the remote and new remote commits.
-  ${C_GREEN}./install --changelog origin...${C_RESET}
+  ${C_GREEN}./install --new-commits origin...${C_RESET}
 
   # The same as above except compare it to your local main branch not remote.
-  ${C_GREEN}./install --changelog ...main${C_RESET}
+  ${C_GREEN}./install --new-commits ...main${C_RESET}
 
   # Show this help menu.
   ${C_GREEN}./install --help${C_RESET}
@@ -1625,6 +1637,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   detect_env
   warn_root
   update_dotfiles "${@}"
+
+  [ -n "${PULL}" ] && exit
+
   check_prereqs
   create_initial_dirs
   install_mise
