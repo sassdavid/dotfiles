@@ -5,16 +5,12 @@
   "defaultProfile": "{56592c4f-38a4-45f5-96d5-6a15a0606c0d}",
   "keybindings": [
     {
-      "id": null,
+      "id": "Terminal.CopyToClipboard",
       "keys": "ctrl+c"
     },
     {
-      "id": null,
+      "id": "Terminal.PasteFromClipboard",
       "keys": "ctrl+v"
-    },
-    {
-      "id": null,
-      "keys": "ctrl+k"
     }
   ],
   "multiLinePasteWarning": false,
