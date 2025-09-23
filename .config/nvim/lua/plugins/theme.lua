@@ -1,1 +1,1 @@
-/home/nick/src/open-source/dotfiles/themes/tokyonight-moon/nvim.lua
+/home/sassd/src/github/dotfiles/themes/gruvbox-dark-medium/nvim.lua
