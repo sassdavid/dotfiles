@@ -355,7 +355,7 @@ _install_packages_arch() {
     local paru_download_path="/tmp/paru-install"
     rm -rf "${paru_download_path}"
     git clone https://aur.archlinux.org/paru.git "${paru_download_path}"
-    cd "${paru_download_path}" && makepkg --syncdeps --install --noconfirm && cd -
+    cd "${paru_download_path}" && makepkg --syncdeps --rmdeps --install --noconfirm && cd -
     rm -rf "${paru_download_path}"
   fi
 
