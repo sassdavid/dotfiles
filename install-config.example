@@ -125,7 +125,7 @@ export SYMLINKS_EXTRAS=
 
 # Symlinks that will get created only in WSL.
 export SYMLINKS_WSL=(
-  "cp \"\${DOTFILES_PATH}/c/Users/sassd/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" \"/c/Users/%WindowsUser/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" || true"
+  "cp \"\${DOTFILES_PATH}/mnt/c/Users/sassd/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" \"/mnt/c/Users/%WindowsUser/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" || true"
   "sudo ln -fns \"\${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\""
   "ln -fns \"/c/Windows/System32/cmd.exe\" \"\${HOME}/.local/bin/cmd.exe\""
 )
