@@ -886,7 +886,7 @@ create_symlinks() {
     local windows_user=
 
     # shellcheck disable=SC2016
-    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' 2>/dev/null | tr -d '\r\n')"
+    windows_user="$({ for p in pwsh.exe '/c/Program Files/PowerShell/7/pwsh.exe' '/mnt/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } 2>/dev/null | tr -d '\r\n')"
 
     printf "\nSymlinks (WSL):\n"
     for link in "${symlinks_wsl[@]}"; do
@@ -1360,7 +1360,7 @@ set_theme() {
     local windows_user=
 
     # shellcheck disable=SC2016
-    windows_user="$("/c/Program Files/PowerShell/7/pwsh.exe" -Command '$env:UserName' | tr -d '\r\n')"
+    windows_user="$({ for p in pwsh.exe '/c/Program Files/PowerShell/7/pwsh.exe' '/mnt/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } | tr -d '\r\n')"
 
     local WT_PATH="/c/Users/${windows_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
     local SED_EXPR='s/\("\(colorScheme\|theme\)": *"\)[^"]*"/\1'"${theme}"'"/'
