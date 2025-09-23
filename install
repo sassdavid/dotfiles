@@ -888,7 +888,7 @@ create_symlinks() {
     local windows_user=
 
     # shellcheck disable=SC2016
-    windows_user="$({ for p in pwsh.exe '/c/Program Files/PowerShell/7/pwsh.exe' '/mnt/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } 2>/dev/null | tr -d '\r\n')"
+    windows_user="$({ for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } 2>/dev/null | tr -d '\r\n')"
 
     printf "\nSymlinks (WSL):\n"
     for link in "${symlinks_wsl[@]}"; do
@@ -1034,8 +1034,8 @@ configure_shell() {
         git_ssh_env_config=$(
           cat <<'EOF'
 # Configure OpenSSH in order to 1password ssh agent will be usable
-export GIT_SSH="/c/Program\ Files/OpenSSH/ssh.exe"
-export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
+export GIT_SSH="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
+export GIT_SSH_COMMAND="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
 EOF
         )
 
@@ -1047,9 +1047,9 @@ EOF
         custom_aliases=$(
           cat <<'EOF'
 # Configure OpenSSH in order to 1password ssh agent will be usable
-alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
-alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
-alias scp="/c/Program\ Files/OpenSSH/scp.exe"
+alias ssh="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
+alias ssh-add="/mnt/c/Program\ Files/OpenSSH/ssh-add.exe"
+alias scp="/mnt/c/Program\ Files/OpenSSH/scp.exe"
 
 alias ssh2="/usr/bin/ssh"
 
@@ -1198,7 +1198,7 @@ configure_git() {
 #  format = ssh
 
 #[gpg "ssh"]
-#  program = ""
+#  program = "/mnt/c/Users/sassd/AppData/Local/1Password/app/8/op-ssh-sign-wsl"
 
 #[delta]
   # If you prefer side by side diffs, uncomment this.
@@ -1362,7 +1362,7 @@ set_theme() {
     local windows_user=
 
     # shellcheck disable=SC2016
-    windows_user="$({ for p in pwsh.exe '/c/Program Files/PowerShell/7/pwsh.exe' '/mnt/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } | tr -d '\r\n')"
+    windows_user="$({ for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then "$p" -NoProfile -NoLogo -Command '$env:UserName'; break; fi; done; } | tr -d '\r\n')"
 
     local WT_PATH="/mnt/c/Users/${windows_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
     local SED_EXPR='s/\("\(colorScheme\|theme\)": *"\)[^"]*"/\1'"${theme}"'"/'

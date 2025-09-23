@@ -127,7 +127,7 @@ export SYMLINKS_EXTRAS=
 export SYMLINKS_WSL=(
   "cp \"\${DOTFILES_PATH}/mnt/c/Users/sassd/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" \"/mnt/c/Users/%WindowsUser/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json\" || true"
   "sudo ln -fns \"\${DOTFILES_PATH}/etc/wsl.conf\" \"/etc/wsl.conf\""
-  "ln -fns \"/c/Windows/System32/cmd.exe\" \"\${HOME}/.local/bin/cmd.exe\""
+  "ln -fns \"/mnt/c/Windows/System32/cmd.exe\" \"\${HOME}/.local/bin/cmd.exe\""
 )
 export SYMLINKS_WSL_EXTRAS=
 

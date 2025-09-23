@@ -307,14 +307,14 @@ in WSL to work with 1Password.
 2. Shell Configuration:
     - In your `~/.config/zsh/.zprofile.local`:
       ```sh
-      export GIT_SSH="/c/Program\ Files/OpenSSH/ssh.exe"
-      export GIT_SSH_COMMAND="/c/Program\ Files/OpenSSH/ssh.exe"
+      export GIT_SSH="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
+      export GIT_SSH_COMMAND="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
       ```
     - In your `~/.config/zsh/.aliases.local`:
       ```sh
-      alias ssh="/c/Program\ Files/OpenSSH/ssh.exe"
-      alias ssh-add="/c/Program\ Files/OpenSSH/ssh-add.exe"
-      alias scp="/c/Program\ Files/OpenSSH/scp.exe"
+      alias ssh="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
+      alias ssh-add="/mnt/c/Program\ Files/OpenSSH/ssh-add.exe"
+      alias scp="/mnt/c/Program\ Files/OpenSSH/scp.exe"
       
       alias ssh2="/usr/bin/ssh"  # fallback to WSL SSH if needed
       ```
