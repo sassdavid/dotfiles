@@ -1466,7 +1466,7 @@ configure_tools() {
 
   configure_docker_completion
 
-  echo "Completion has been configured for tools"
+  printf "Completion has been configured for tools\n"
 }
 
 completed_message() {
