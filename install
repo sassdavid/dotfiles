@@ -4,25 +4,25 @@
 
 set -o errexit
 
+BOOTSTRAP_PATH="/tmp/sassdavid-dotfiles"
+DOTFILES_PATH="${DOTFILES_PATH:-}"
+
+if [ -f "${DOTFILES_PATH}/install-config" ]; then
+  # shellcheck disable=SC1091
+  . "${DOTFILES_PATH}/install-config"
+elif [ -f "${BOOTSTRAP_PATH}/install-config" ]; then
+  # shellcheck disable=SC1091
+  . "${BOOTSTRAP_PATH}/install-config"
+else
+  # This happens on a first run that's not bootstrapped which is typically
+  # the case when running tests in a container.
+
+  # shellcheck disable=SC1091
+  [ -f ./install-config ] && . ./install-config
+fi
+
 # Only run these when calling the script, not sourcing it.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-  BOOTSTRAP_PATH="/tmp/sassdavid-dotfiles"
-  DOTFILES_PATH="${DOTFILES_PATH:-}"
-
-  if [ -f "${DOTFILES_PATH}/install-config" ]; then
-    # shellcheck disable=SC1091
-    . "${DOTFILES_PATH}/install-config"
-  elif [ -f "${BOOTSTRAP_PATH}/install-config" ]; then
-    # shellcheck disable=SC1091
-    . "${BOOTSTRAP_PATH}/install-config"
-  else
-    # This happens on a first run that's not bootstrapped which is typically
-    # the case when running tests in a container.
-
-    # shellcheck disable=SC1091
-    [ -f ./install-config ] && . ./install-config
-  fi
-
   SKIP_SYSTEM_PACKAGES="${1:-}"
 
   # Instead of cloning from a remote repo, files will get copied locally. This
@@ -585,12 +585,6 @@ detect_env() {
     # Are we in WSL?
     if grep -q "\-WSL2" /proc/version; then
       OS_IN_WSL=1
-    fi
-
-    # Adjust packages depending on which display server is in use.
-    if [[ -z "${WAYLAND_DISPLAY}" ]]; then
-      PACMAN_PACKAGES="${PACMAN_PACKAGES//wl-clipboard/xclip}"
-      APT_PACKAGES="${APT_PACKAGES//wl-clipboard/xclip}"
     fi
 
     ;;
@@ -1552,7 +1546,7 @@ parse_args() {
     # Show details about new commits that only exist in the target vs local.
     target="${2:-..origin}"
 
-    git remote | grep -q "${target//./}" && git fetch "${target//./}"
+    git remote | grep -q "${target//./}" && git fetch --quiet "${target//./}"
     git log "${target}" --pretty="format:%C(magenta)%h %C(green)%ad %C(yellow)> %C(reset)%s" --date=short
 
     exit
