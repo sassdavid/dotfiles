@@ -49,6 +49,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     base
     base-devel
     bc
+    dnsutils
     btop
     curl
     ffmpeg
@@ -79,6 +80,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   APT_PACKAGES="${APT_PACKAGES:-
     aspell
     bc
+    dnsutils
     btop
     build-essential
     curl
