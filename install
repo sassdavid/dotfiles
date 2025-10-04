@@ -665,6 +665,7 @@ create_initial_dirs() {
     "${HOME}/.local/share/fonts"
 
   mkdir -p \
+    "${HOME}/.config/eza" \
     "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
 
@@ -1335,6 +1336,7 @@ set_theme() {
   ln -fns "${DOTFILES_PATH}/themes/${theme}/gitui.ron" "${HOME}/.config/gitui/theme.ron"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/nvim.lua" "${HOME}/.config/nvim/lua/plugins/theme.lua"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/tmux.conf" "${HOME}/.config/tmux/theme.conf"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/eza.yml" "${HOME}/.config/eza/theme.yml"
 
   echo "'${theme}' is your active theme"
 
