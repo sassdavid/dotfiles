@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-if (( $# != 3 )); then
+if (($# != 3)); then
   echo "Usage: $(basename "$0") <aws-profile> <project-tag> <stack-tag>" >&2
   exit 1
 fi
@@ -20,7 +20,7 @@ secret="$(aws secretsmanager get-secret-value \
 username="$(printf "%s" "${secret}" | jq -r '.username')"
 password="$(printf "%s" "${secret}" | jq -r '.password')"
 
-cat > "${config_file}" <<EOF
+cat >"${config_file}" <<EOF
 security.protocol=SASL_SSL
 sasl.mechanism=SCRAM-SHA-512
 sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \\

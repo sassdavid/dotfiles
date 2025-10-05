@@ -101,7 +101,8 @@ export MISE_LANGUAGES_EXTRAS
 # Symlinks that will get created in all operating systems. This lets you add
 # your own custom tools and set up whatever configuration you may need. Chances
 # are you'll want to customize the SYMLINKS_EXTRAS variable to add new things.
-export SYMLINKS=(
+export SYMLINKS=(\
+  "ln -fns \"\${DOTFILES_PATH}/.config/bat/config\" \"\${HOME}/.config/bat/config\""
   "ln -fns \"\${DOTFILES_PATH}/.config/btop/btop.conf\" \"\${HOME}/.config/btop/btop.conf\""
   "ln -fns \"\${DOTFILES_PATH}/.config/fzf/config.sh\" \"\${HOME}/.config/fzf/config.sh\""
   "ln -fns \"\${DOTFILES_PATH}/.config/ghostty/config.local\" \"\${HOME}/.config/ghostty/config.local\""

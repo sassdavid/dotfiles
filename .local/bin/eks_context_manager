@@ -8,7 +8,7 @@ usage() {
   local script_name
   script_name=$(basename "${0}")
 
-  cat << EOF
+  cat <<EOF
 Usage: ${script_name} [OPTIONS]
 
 Manages an EKS cluster context with automatic kubeconfig updates.
@@ -74,7 +74,7 @@ check_aws_sso_token() {
 
   log_debug "${verbose}" "Validating AWS SSO token..."
 
-  if ! aws sts get-caller-identity --profile "${profile}" &> /dev/null; then
+  if ! aws sts get-caller-identity --profile "${profile}" &>/dev/null; then
     log_warn "AWS SSO token appears to be expired or invalid."
 
     log_info "Attempting AWS SSO login..."
@@ -83,7 +83,7 @@ check_aws_sso_token() {
       return 1
     fi
 
-    if ! aws sts get-caller-identity --profile "${profile}" &> /dev/null; then
+    if ! aws sts get-caller-identity --profile "${profile}" &>/dev/null; then
       log_error "AWS SSO login succeeded, but credentials validation failed."
       return 1
     fi
@@ -136,7 +136,7 @@ check_prerequisites() {
   log_debug "${verbose}" "Checking prerequisites..."
   local cmd
   for cmd in "${prerequisites[@]}"; do
-    if ! command -v "${cmd}" &> /dev/null; then
+    if ! command -v "${cmd}" &>/dev/null; then
       missing_prereqs+=("${cmd}")
       log_debug "${verbose}" "Missing prerequisite: ${cmd}"
     else
@@ -301,9 +301,9 @@ validate_and_update_context() {
   local -r profile="${3}"
   local -r region="${4}"
 
-  if kubectl config get-contexts "${context_name}" &> /dev/null; then
+  if kubectl config get-contexts "${context_name}" &>/dev/null; then
     log_info "Validating existing context..."
-    if ! kubectl cluster-info --context "${context_name}" &> /dev/null; then
+    if ! kubectl cluster-info --context "${context_name}" &>/dev/null; then
       log_warn "Existing context '${context_name}' is not valid. Updating kubeconfig..."
       update_kubeconfig "${cluster_name}" "${profile}" "${region}"
     else
@@ -330,59 +330,59 @@ main() {
 
   while (($#)); do
     case "${1}" in
-      -h | --help)
-        usage "${default_region}"
-        exit 0
-        ;;
-      -a | --profile)
-        if [[ -z ${2:-} ]]; then
-          log_error "Missing value for parameter: ${1}"
-          usage "${default_region}"
-          exit 1
-        fi
-        profile="${2}"
-        shift 2
-        ;;
-      -r | --region)
-        if [[ -z ${2:-} ]]; then
-          log_error "Missing value for parameter: ${1}"
-          usage "${default_region}"
-          exit 1
-        fi
-        region="${2}"
-        shift 2
-        ;;
-      -p | --project)
-        if [[ -z ${2:-} ]]; then
-          log_error "Missing value for parameter: ${1}"
-          usage "${default_region}"
-          exit 1
-        fi
-        project="${2}"
-        shift 2
-        ;;
-      -s | --stack)
-        if [[ -z ${2:-} ]]; then
-          log_error "Missing value for parameter: ${1}"
-          usage "${default_region}"
-          exit 1
-        fi
-        stack="${2}"
-        shift 2
-        ;;
-      -v | --verbose)
-        verbose=true
-        shift
-        ;;
-      *)
-        if [[ ${1} == -* ]]; then
-          log_error "Unknown option: ${1}"
-        else
-          log_error "Unknown argument: ${1}"
-        fi
+    -h | --help)
+      usage "${default_region}"
+      exit 0
+      ;;
+    -a | --profile)
+      if [[ -z ${2:-} ]]; then
+        log_error "Missing value for parameter: ${1}"
         usage "${default_region}"
         exit 1
-        ;;
+      fi
+      profile="${2}"
+      shift 2
+      ;;
+    -r | --region)
+      if [[ -z ${2:-} ]]; then
+        log_error "Missing value for parameter: ${1}"
+        usage "${default_region}"
+        exit 1
+      fi
+      region="${2}"
+      shift 2
+      ;;
+    -p | --project)
+      if [[ -z ${2:-} ]]; then
+        log_error "Missing value for parameter: ${1}"
+        usage "${default_region}"
+        exit 1
+      fi
+      project="${2}"
+      shift 2
+      ;;
+    -s | --stack)
+      if [[ -z ${2:-} ]]; then
+        log_error "Missing value for parameter: ${1}"
+        usage "${default_region}"
+        exit 1
+      fi
+      stack="${2}"
+      shift 2
+      ;;
+    -v | --verbose)
+      verbose=true
+      shift
+      ;;
+    *)
+      if [[ ${1} == -* ]]; then
+        log_error "Unknown option: ${1}"
+      else
+        log_error "Unknown argument: ${1}"
+      fi
+      usage "${default_region}"
+      exit 1
+      ;;
     esac
   done
 
