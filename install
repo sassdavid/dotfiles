@@ -667,6 +667,7 @@ create_initial_dirs() {
   mkdir -p \
     "${HOME}/.config/bat/themes" \
     "${HOME}/.config/eza" \
+    "${HOME}/.config/k9s/skins" \
     "${HOME}/.local/share/zsh/completions" \
     "${HOME}/.aws"
 
@@ -1337,14 +1338,15 @@ set_theme() {
   # Only detect the env if we have to.
   [ -z "${OS_DISTRO:-}" ] && detect_env
 
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/bat.tmTheme" "${HOME}/.config/bat/themes/theme.tmTheme"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/btop.theme" "${HOME}/.config/btop/themes/theme.theme"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/eza.yml" "${HOME}/.config/eza/theme.yml"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/fzf.sh" "${HOME}/.config/fzf/theme.sh"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/ghostty" "${HOME}/.config/ghostty/theme"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/gitui.ron" "${HOME}/.config/gitui/theme.ron"
+  ln -fns "${DOTFILES_PATH}/themes/${theme}/k9s.yaml" "${HOME}/.config/k9s/skins/theme.yaml"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/nvim.lua" "${HOME}/.config/nvim/lua/plugins/theme.lua"
   ln -fns "${DOTFILES_PATH}/themes/${theme}/tmux.conf" "${HOME}/.config/tmux/theme.conf"
-  ln -fns "${DOTFILES_PATH}/themes/${theme}/bat.tmTheme" "${HOME}/.config/bat/themes/theme.tmTheme"
-  ln -fns "${DOTFILES_PATH}/themes/${theme}/eza.yml" "${HOME}/.config/eza/theme.yml"
 
   echo "'${theme}' is your active theme"
 

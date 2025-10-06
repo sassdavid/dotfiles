@@ -101,7 +101,7 @@ export MISE_LANGUAGES_EXTRAS
 # Symlinks that will get created in all operating systems. This lets you add
 # your own custom tools and set up whatever configuration you may need. Chances
 # are you'll want to customize the SYMLINKS_EXTRAS variable to add new things.
-export SYMLINKS=(\
+export SYMLINKS=(
   "ln -fns \"\${DOTFILES_PATH}/.config/bat/config\" \"\${HOME}/.config/bat/config\""
   "ln -fns \"\${DOTFILES_PATH}/.config/btop/btop.conf\" \"\${HOME}/.config/btop/btop.conf\""
   "ln -fns \"\${DOTFILES_PATH}/.config/fzf/config.sh\" \"\${HOME}/.config/fzf/config.sh\""
@@ -111,6 +111,7 @@ export SYMLINKS=(\
   "ln -fns \"\${DOTFILES_PATH}/.config/git/config.user.personal\" \"\${HOME}/.config/git/config.user.personal\""
   "ln -fns \"\${DOTFILES_PATH}/.config/git/config.user.work\" \"\${HOME}/.config/git/config.user.work\""
   "ln -fns \"\${DOTFILES_PATH}/.config/git/config\" \"\${HOME}/.config/git/config\""
+  "ln -fns \"\${DOTFILES_PATH}/.config/k9s/config.yaml\" \"\${HOME}/.config/k9s/config.yaml\""
   "ln -fns \"\${DOTFILES_PATH}/.config/nvim\" \"\${HOME}/.config/nvim\""
   "ln -fns \"\${DOTFILES_PATH}/.config/tmux/tmux.conf\" \"\${HOME}/.config/tmux/tmux.conf\""
   "ln -fns \"\${DOTFILES_PATH}/.config/zsh/.aliases.local\" \"\${HOME}/.config/zsh/.aliases.local\""
