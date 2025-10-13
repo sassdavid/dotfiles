@@ -1,1 +1,0 @@
-/home/sassd/src/github/dotfiles/themes/gruvbox-dark-medium/nvim.lua
