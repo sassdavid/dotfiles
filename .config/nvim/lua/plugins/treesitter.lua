@@ -17,7 +17,7 @@ return {
         "heex",
         "helm",
         "htmldjango",
-        "hyprlang",
+        "ini",
         "kdl",
         "liquid",
         "nginx",
