@@ -50,6 +50,8 @@ if type "${HOME}/.local/bin/mise" &>/dev/null; then
 fi
 eval "$("${HOME}/.local/bin/mise" hook-env)"
 
+eval "$(fnox activate zsh)"
+
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
 
@@ -162,8 +164,6 @@ complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 # shellcheck disable=SC1090
 . <(k9s completion zsh)
 # shellcheck disable=SC1090
-. <(eksctl completion zsh)
-# shellcheck disable=SC1090
 . <(terraform-docs completion zsh)
 # shellcheck disable=SC1090
 . <(helm completion zsh)
@@ -173,7 +173,10 @@ complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 . <(golangci-lint completion zsh)
 # shellcheck disable=SC1090
 . <(mongocli completion zsh)
+# shellcheck disable=SC1090
+. <(fnox completion zsh)
+# shellcheck disable=SC1090
+. <(uv generate-shell-completion zsh)
 
 # eval additional
 eval "$(zoxide init --cmd cd zsh)"
-eval "$(uv generate-shell-completion zsh)"

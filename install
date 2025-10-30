@@ -139,23 +139,22 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   MISE_PACKAGES_ARCH="${MISE_PACKAGES_ARCH:-
     1password-cli
+    age
     amazon-ecr-credential-helper
     argocd
     awscli
     bat
-    curlie
     delta
     dua
-    eksctl
     eza
     fastfetch
     fd
+    fnox
     fzf
     gdu
     gitui
     golangci-lint
     helm
-    hyperfine
     jq
     k9s
     kubectl
@@ -170,7 +169,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     terraform-docs
     terragrunt
     tflint
-    trivy
     usage
     uv
     yq
@@ -181,23 +179,22 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   MISE_PACKAGES_DEBIAN="${MISE_PACKAGES_DEBIAN:-
     1password-cli
+    age
     amazon-ecr-credential-helper
     argocd
     awscli
     bat
-    curlie
     delta
     dua
-    eksctl
     eza
     fastfetch
     fd
+    fnox
     fzf
     gdu
     gitui
     golangci-lint
     helm
-    hyperfine
     jq
     k9s
     kubectl
@@ -212,7 +209,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     terraform-docs
     terragrunt
     tflint
-    trivy
     usage
     uv
     yq
@@ -223,23 +219,22 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   MISE_PACKAGES_MACOS="${MISE_PACKAGES_MACOS:-
     1password-cli
+    age
     amazon-ecr-credential-helper
     argocd
     awscli
     bat
-    curlie
     delta
     dua
-    eksctl
     eza
     fastfetch
     fd
+    fnox
     fzf
     gdu
     gitui
     golangci-lint
     helm
-    hyperfine
     jq
     k9s
     kubectl
@@ -254,7 +249,6 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     terraform-docs
     terragrunt
     tflint
-    trivy
     usage
     uv
     yq
