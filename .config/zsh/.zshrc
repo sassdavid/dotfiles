@@ -50,7 +50,7 @@ if type "${HOME}/.local/bin/mise" &>/dev/null; then
 fi
 eval "$("${HOME}/.local/bin/mise" hook-env)"
 
-eval "$(fnox activate zsh)"
+eval "$($(which fnox) activate zsh)"
 
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
