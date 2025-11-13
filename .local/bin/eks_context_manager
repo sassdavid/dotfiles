@@ -62,8 +62,9 @@ log_debug() {
 
 # Check if AWS SSO token is valid and handle login if needed
 check_aws_sso_token() {
-  local -r profile="${1}"
-  local -r verbose="${2}"
+  local -r region="${1}"
+  local -r profile="${2}"
+  local -r verbose="${3}"
 
   log_debug "${verbose}" "Checking whether the profile exists..."
 
@@ -74,7 +75,7 @@ check_aws_sso_token() {
 
   log_debug "${verbose}" "Validating AWS SSO token..."
 
-  if ! aws sts get-caller-identity --profile "${profile}" &>/dev/null; then
+  if ! aws sts get-caller-identity --region "${region}" --profile "${profile}" &>/dev/null; then
     log_warn "AWS SSO token appears to be expired or invalid."
 
     log_info "Attempting AWS SSO login..."
@@ -83,7 +84,7 @@ check_aws_sso_token() {
       return 1
     fi
 
-    if ! aws sts get-caller-identity --profile "${profile}" &>/dev/null; then
+    if ! aws sts get-caller-identity --region "${region}" --profile "${profile}" &>/dev/null; then
       log_error "AWS SSO login succeeded, but credentials validation failed."
       return 1
     fi
@@ -106,7 +107,7 @@ validate_inputs() {
 
   log_debug "${verbose}" "Validating inputs..."
 
-  if ! check_aws_sso_token "${profile}" "${verbose}"; then
+  if ! check_aws_sso_token "${region}" "${profile}" "${verbose}"; then
     return 1
   fi
   log_debug "${verbose}" "AWS authentication validation successful."
@@ -170,8 +171,8 @@ show_debug_info() {
 
 # Find the EKS cluster using the specified Project and Stack tags
 get_cluster_by_tags() {
-  local -r profile="${1}"
-  local -r region="${2}"
+  local -r region="${1}"
+  local -r profile="${2}"
   local -r project="${3}"
   local -r stack="${4}"
   local -r verbose="${5}"
@@ -193,8 +194,8 @@ get_cluster_by_tags() {
   log_debug "${verbose}" "Querying AWS for matching clusters..."
   local cluster_arns
   cluster_arns=$(aws resourcegroupstaggingapi get-resources \
-    --profile "${profile}" \
     --region "${region}" \
+    --profile "${profile}" \
     --tag-filters "${tag_filters}" \
     --resource-type-filters "eks:cluster" \
     --no-cli-pager \
@@ -226,14 +227,14 @@ get_cluster_by_tags() {
 # Generate the Kubernetes context name for the specified cluster
 get_context_name() {
   local -r cluster_name="${1}"
-  local -r profile="${2}"
-  local -r region="${3}"
+  local -r region="${2}"
+  local -r profile="${3}"
   local -r verbose="${4}"
 
   log_debug "${verbose}" "Generating context name for cluster '${cluster_name}'..."
 
   local account_id
-  if ! account_id=$(aws sts get-caller-identity --profile "${profile}" --query 'Account' --output text); then
+  if ! account_id=$(aws sts get-caller-identity --region "${region}" --profile "${profile}" --query 'Account' --output text); then
     log_error "Failed to retrieve the AWS account ID."
     return 1
   fi
@@ -248,8 +249,8 @@ get_context_name() {
 # Check if the EKS cluster is active
 check_cluster_status() {
   local -r cluster_name="${1}"
-  local -r profile="${2}"
-  local -r region="${3}"
+  local -r region="${2}"
+  local -r profile="${3}"
   local -r verbose="${4}"
 
   log_debug "${verbose}" "Checking status of cluster '${cluster_name}'..."
@@ -278,8 +279,8 @@ check_cluster_status() {
 # Update the kubeconfig file for the specified cluster
 update_kubeconfig() {
   local -r cluster_name="${1}"
-  local -r profile="${2}"
-  local -r region="${3}"
+  local -r region="${2}"
+  local -r profile="${3}"
 
   log_info "Updating kubeconfig for cluster '${cluster_name}'..."
   if ! aws eks update-kubeconfig \
@@ -298,14 +299,14 @@ update_kubeconfig() {
 validate_and_update_context() {
   local -r context_name="${1}"
   local -r cluster_name="${2}"
-  local -r profile="${3}"
-  local -r region="${4}"
+  local -r region="${3}"
+  local -r profile="${4}"
 
   if kubectl config get-contexts "${context_name}" &>/dev/null; then
     log_info "Validating existing context..."
     if ! kubectl cluster-info --context "${context_name}" &>/dev/null; then
       log_warn "Existing context '${context_name}' is not valid. Updating kubeconfig..."
-      update_kubeconfig "${cluster_name}" "${profile}" "${region}"
+      update_kubeconfig "${cluster_name}" "${region}" "${profile}"
     else
       log_info "Existing context '${context_name}' is valid. Switching to it..."
       if ! kubectl config use-context "${context_name}"; then
@@ -315,7 +316,7 @@ validate_and_update_context() {
     fi
   else
     log_info "Context '${context_name}' does not exist. Updating kubeconfig..."
-    update_kubeconfig "${cluster_name}" "${profile}" "${region}"
+    update_kubeconfig "${cluster_name}" "${region}" "${profile}"
   fi
 }
 
@@ -409,23 +410,23 @@ main() {
 
   log_info "Searching for a cluster with tags Project='${project}', Stack='${stack}', Service='EKS'..."
   local cluster_name
-  if ! cluster_name=$(get_cluster_by_tags "${profile}" "${region}" "${project}" "${stack}" "${verbose}"); then
+  if ! cluster_name=$(get_cluster_by_tags "${region}" "${profile}" "${project}" "${stack}" "${verbose}"); then
     exit 1
   fi
   log_info "Cluster found: ${cluster_name}"
 
-  if ! check_cluster_status "${cluster_name}" "${profile}" "${region}" "${verbose}"; then
+  if ! check_cluster_status "${cluster_name}" "${region}" "${profile}" "${verbose}"; then
     exit 1
   fi
 
   local context_name
-  if ! context_name=$(get_context_name "${cluster_name}" "${profile}" "${region}" "${verbose}"); then
+  if ! context_name=$(get_context_name "${cluster_name}" "${region}" "${profile}" "${verbose}"); then
     log_error "Failed to generate the context name."
     exit 1
   fi
   log_info "Using context name: ${context_name}"
 
-  validate_and_update_context "${context_name}" "${cluster_name}" "${profile}" "${region}"
+  validate_and_update_context "${context_name}" "${cluster_name}" "${region}" "${profile}"
 
   log_info "EKS context configured successfully: ${context_name}"
 }

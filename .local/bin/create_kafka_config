@@ -2,19 +2,20 @@
 
 set -euo pipefail
 
-if (($# != 3)); then
-  echo "Usage: $(basename "$0") <aws-profile> <project-tag> <stack-tag>" >&2
+if (($# != 4)); then
+  echo "Usage: $(basename "$0") <aws-region> <aws-profile> <project-tag> <stack-tag>" >&2
   exit 1
 fi
 
-profile="${1}" project_tag="${2}" stack_tag="${3}"
+region="${1}" profile="${2}" project_tag="${3}" stack_tag="${4}"
 config_dir="${HOME}/.msk.properties"
 config_file="${config_dir}/${project_tag}-${stack_tag}.properties"
 mkdir -p "${config_dir}"
 
 secret_name="AmazonMSK_${project_tag}.${stack_tag}.level.0"
 secret="$(aws secretsmanager get-secret-value \
-  --secret-id "${secret_name}" --profile "${profile}" \
+  --region "${region}" --profile "${profile}" \
+  --secret-id "${secret_name}" \
   --no-cli-pager --query SecretString --output text)"
 
 username="$(printf "%s" "${secret}" | jq -r '.username')"
