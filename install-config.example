@@ -104,6 +104,7 @@ export MISE_LANGUAGES_EXTRAS
 export SYMLINKS=(
   "ln -fns \"\${DOTFILES_PATH}/.config/bat/config\" \"\${HOME}/.config/bat/config\""
   "ln -fns \"\${DOTFILES_PATH}/.config/btop/btop.conf\" \"\${HOME}/.config/btop/btop.conf\""
+  "ln -fns \"\${DOTFILES_PATH}/.config/claude/statusline.sh\" \"\${HOME}/.claude/statusline.sh\""
   "ln -fns \"\${DOTFILES_PATH}/.config/fzf/config.sh\" \"\${HOME}/.config/fzf/config.sh\""
   "ln -fns \"\${DOTFILES_PATH}/.config/ghostty/config.local\" \"\${HOME}/.config/ghostty/config.local\""
   "ln -fns \"\${DOTFILES_PATH}/.config/ghostty/config\" \"\${HOME}/.config/ghostty/config\""

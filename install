@@ -259,7 +259,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   if [[ -z "${MISE_LANGUAGES[*]}" ]]; then
     declare -gA MISE_LANGUAGES
-    MISE_LANGUAGES["node"]="node@22"
+    MISE_LANGUAGES["node"]="node@24"
     MISE_LANGUAGES["python"]="python@3.13"
     MISE_LANGUAGES["go"]="go@latest"
     MISE_LANGUAGES["java"]="java@corretto-17"
@@ -1197,7 +1197,7 @@ configure_git() {
 #  format = ssh
 
 #[gpg "ssh"]
-#  program = "/mnt/c/Users/${windows_user}/AppData/Local/1Password/app/8/op-ssh-sign-wsl"
+#  program = "/mnt/c/Users/${windows_user}/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe"
 
 #[delta]
   # If you prefer side by side diffs, uncomment this.
@@ -1432,8 +1432,6 @@ install_mise() {
   mise settings python.compile=false
   mise settings task_run_auto_install=false
   mise settings use_versions_host=false
-
-  mise plugins install --force 1password-cli https://github.com/mise-plugins/mise-1password-cli.git
 }
 
 install_mongodb_tools() {
