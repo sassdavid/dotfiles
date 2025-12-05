@@ -663,7 +663,8 @@ create_initial_dirs() {
     "${HOME}/.config/eza" \
     "${HOME}/.config/k9s/skins" \
     "${HOME}/.local/share/zsh/completions" \
-    "${HOME}/.aws"
+    "${HOME}/.aws" \
+    "${HOME}/.claude"
 
   if [ -z "${GNUPGHOME}" ]; then
     # bashsupport disable=BP2001
