@@ -158,10 +158,6 @@ install_or_update_atlas_mongo_cli() {
   atlas_tag=$(printf "%s" "$releases_json" |
     mise x jq -- jq -r '.[] | select(.name|test("MongoDB Atlas CLI")) | .tag_name' |
     head -n1)
-  local mongo_tag
-  mongo_tag=$(printf "%s" "$releases_json" |
-    mise x jq -- jq -r '.[] | select(.name|test("MongoDB CLI")) | .tag_name' |
-    head -n1)
 
   if [[ -n "$atlas_tag" ]]; then
     local atlas_version=${atlas_tag#atlascli/v}
@@ -183,25 +179,6 @@ install_or_update_atlas_mongo_cli() {
     fi
   fi
 
-  if [[ -n "$mongo_tag" ]]; then
-    local mongo_version=${mongo_tag#mongocli/v}
-    local current_version=
-    if command -v mongocli >/dev/null 2>&1; then
-      current_version=$(mongocli --version 2>&1 |
-        sed -nEn 's/^mongocli version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/p')
-    fi
-    if [[ -z "$current_version" ]] || version_lt "$current_version" "$mongo_version"; then
-      printf "mongocli: %s -> %s\n" "${current_version:-none}" "$mongo_version"
-      local tmp_dir
-      tmp_dir=$(create_tmp_dir mongocli)
-      tmp_dirs+=("$tmp_dir")
-      local encoded=${mongo_tag//\//%2F}
-      local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${encoded}/mongocli_${mongo_version}_linux_${arch}.tar.gz"
-      install_or_update_tool mongo-cli "$url" "$tmp_dir" "$base_dir/mongo-cli"
-    else
-      printf "mongocli is up to date (%s)\n" "$current_version"
-    fi
-  fi
 }
 
 install_or_update_mongosh "$install_path/mongosh"

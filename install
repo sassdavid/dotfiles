@@ -144,6 +144,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
+    claude
     delta
     dua
     eza
@@ -184,6 +185,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
+    claude
     delta
     dua
     eza
@@ -224,6 +226,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     argocd
     awscli
     bat
+    claude
     delta
     dua
     eza
