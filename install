@@ -651,6 +651,7 @@ EOF
 create_initial_dirs() {
   mkdir -p \
     "${HOME}/.cache/zsh" \
+    "${HOME}/.config/bat/themes" \
     "${HOME}/.config/btop/themes" \
     "${HOME}/.config/fzf" \
     "${HOME}/.config/ghostty" \
@@ -662,7 +663,6 @@ create_initial_dirs() {
     "${HOME}/.local/share/fonts"
 
   mkdir -p \
-    "${HOME}/.config/bat/themes" \
     "${HOME}/.config/eza" \
     "${HOME}/.config/k9s/skins" \
     "${HOME}/.local/share/zsh/completions" \

@@ -17,7 +17,7 @@ alias .3='cd ../../../'
 alias .4='cd ../../../../'
 
 alias ls="eza"
-alias ll="ls -laagobF --group-directories-first --show-symlinks --git --color-scale --time-style '+%Y-%m-%d %H:%M:%S'"
+alias ll="EZA_ICON_SPACING=2 ls -laagobh --group-directories-first --show-symlinks --git --classify auto --icons auto --time-style '+%Y-%m-%d %H:%M:%S'"
 alias ld='ll --only-dirs'
 alias lf='ll --only-files'
 
