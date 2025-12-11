@@ -55,7 +55,7 @@ eval "$($(which fnox) activate zsh)"
 # Use modern completion system. Other than enabling globdots for showing
 # hidden files, these ares values in the default generated zsh config.
 
-fpath+=${HOME}/.local/share/zsh/completions
+fpath+="${XDG_DATA_HOME}/zsh/completions"
 
 autoload -Uz compinit && compinit
 _comp_options+=(globdots)
@@ -172,7 +172,7 @@ complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 # shellcheck disable=SC1090
 . <(golangci-lint completion zsh)
 # shellcheck disable=SC1090
-. <(mongocli completion zsh)
+. <(atlas completion zsh)
 # shellcheck disable=SC1090
 . <(fnox completion zsh)
 # shellcheck disable=SC1090

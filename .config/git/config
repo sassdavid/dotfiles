@@ -3,7 +3,6 @@
   pager = delta
   sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
   longpaths = true
-  autocrlf = input
 
 [delta]
   navigate = true
@@ -32,10 +31,10 @@
   path = ~/.config/gitalias/gitalias.txt
 
 [includeIf "gitdir:~/src/github/"]
-  path = ~/.config/git/config.user.personal
+  path = ~/.config/git/config.local.personal
 [includeIf "gitdir:~/src/codecommit/"]
-  path = ~/.config/git/config.user.work
+  path = ~/.config/git/config.local.work
 [includeIf "gitdir:~/src/gerrit/"]
-  path = ~/.config/git/config.user.work
+  path = ~/.config/git/config.local.work
 [includeIf "gitdir:~/src/bitbucket/"]
-  path = ~/.config/git/config.user.bitbucket
+  path = ~/.config/git/config.local.bitbucket

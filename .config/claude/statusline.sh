@@ -19,13 +19,13 @@ CONTEXT_WINDOW_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size
 
 # Format cost display (only show if > 0)
 COST_DISPLAY=""
-if (( $(echo "$COST_TOTAL > 0" | bc -l 2>/dev/null || echo 0) )); then
+if (($(echo "$COST_TOTAL > 0" | bc -l 2>/dev/null || echo 0))); then
   COST_DISPLAY=$(printf " | 💰 \$%.4f" "$COST_TOTAL")
 fi
 
 # Format duration display (only show if > 0)
 DURATION_DISPLAY=""
-if (( $(echo "$DURATION_API_SEC > 0" | bc -l 2>/dev/null || echo 0) )); then
+if (($(echo "$DURATION_API_SEC > 0" | bc -l 2>/dev/null || echo 0))); then
   DURATION_DISPLAY=$(printf " | ⏱️  %.0fs" "$DURATION_API_SEC")
 fi
 

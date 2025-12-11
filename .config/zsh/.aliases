@@ -6,7 +6,7 @@ alias egrep="egrep --color=auto"
 
 alias c='clear'
 
-alias cat='bat --paging=never'
+alias cat='bat'
 
 alias ..='cd ..'
 alias ...='cd ../../'
@@ -21,6 +21,8 @@ alias ll="EZA_ICON_SPACING=2 ls -laagobh --group-directories-first --show-symlin
 alias ld='ll --only-dirs'
 alias lf='ll --only-files'
 
+alias diff="diff --color -u"
+
 alias sz='. ${ZDOTDIR}/.zprofile && . ${ZDOTDIR}/.zshrc'
 alias SZ='tmux-shell-cmd --kill "sz"'
 alias dt='cd ${DOTFILES_PATH} && nvim .'
@@ -28,14 +30,13 @@ alias lz='cd ${HOME}/.local/share/nvim/lazy/LazyVim && nvim .'
 alias lp='cd ${HOME}/.local/share/nvim/lazy && nvim .'
 alias dtcd='cd ${DOTFILES_PATH}'
 
-alias cfgp='${EDITOR} ${HOME}/.config/git/config.user.personal'
-alias cfgw='${EDITOR} ${HOME}/.config/git/config.user.work'
-alias cfgb='${EDITOR} ${HOME}/.config/git/config.user.bitbucket'
+alias cfgp='${EDITOR} ${HOME}/.config/git/config.local.personal'
+alias cfgw='${EDITOR} ${HOME}/.config/git/config.local.work'
+alias cfgb='${EDITOR} ${HOME}/.config/git/config.local.bitbucket'
 
 alias drun='docker container run --rm -it'
 
 alias vss='sort -u ${HOME}/.config/nvim/spell/en.utf-8.add -o ${HOME}/.config/nvim/spell/en.utf-8.add'
-
 alias vdt='rm ${HOME}/.local/state/nvim/swap/%*'
 alias ca="sudo apt-get clean && sudo rm -rf /var/lib/apt/lists /var/cache/apt/archives"
 alias ctg="fd -HItd -E .git -E .idea '\.terragrunt-cache' -x rm -rf"
@@ -52,7 +53,6 @@ alias assol="aws sso login --no-browser --profile"
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 
 alias gcl="git diff --name-only --diff-filter=U"
-
 alias ge="rg '[\p{Emoji}--\p{Ascii}]'"
 
 alias myip="curl -s -4 https://ifconfig.me | tee >(clip-copy)"

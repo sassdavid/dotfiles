@@ -1,2 +1,3 @@
 --theme="theme"
 --style="numbers,changes"
+--paging="never"
