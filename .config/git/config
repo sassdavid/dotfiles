@@ -29,12 +29,4 @@
 
 [include]
   path = ~/.config/gitalias/gitalias.txt
-
-[includeIf "gitdir:~/src/github/"]
-  path = ~/.config/git/config.local.personal
-[includeIf "gitdir:~/src/codecommit/"]
-  path = ~/.config/git/config.local.work
-[includeIf "gitdir:~/src/gerrit/"]
-  path = ~/.config/git/config.local.work
-[includeIf "gitdir:~/src/bitbucket/"]
-  path = ~/.config/git/config.local.bitbucket
+  path = ~/.config/git/config.local.includes

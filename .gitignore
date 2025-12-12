@@ -21,9 +21,8 @@ tags
 *.spl
 .aliases.local
 .config/ghostty/config.local
-.config/git/config.local.personal
-.config/git/config.local.bitbucket
-.config/git/config.local.work
+.config/git/config.local.*
+.config/git/config.local.includes
 .config/nvim/lua/plugins/theme.lua
 .config/zsh/.xdg.local
 .config/zsh/.zprofile.local
