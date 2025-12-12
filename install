@@ -1487,10 +1487,30 @@ EOF
   # Display all configured git identities
   for identity in "${!GIT_IDENTITIES[@]}"; do
     local config_file="${DOTFILES_PATH}/.config/git/config.local.${identity}"
+    printf "\n:: Git user (%s):\n" "${identity}"
+
     if [ -f "${config_file}" ]; then
-      printf "\n:: Git user (%s):\n\n" "${identity}"
-      git config --file "${config_file}" --get-regex "user.(name|email)" 2>/dev/null || echo "Not configured"
+      local git_output
+      local exit_code
+
+      # Try to read git config and capture exit code
+      git_output="$(git config --file "${config_file}" --get-regex "user.(name|email)" 2>&1)" || exit_code=$?
+
+      if [ -z "${exit_code:-}" ]; then
+        # Success - display the output
+        printf "%s\n" "${git_output}"
+      else
+        # Failed - show debugging info
+        printf "Not configured\n"
+        printf "  [DEBUG] File exists: %s\n" "${config_file}"
+        printf "  [DEBUG] File size: %s\n" "$(stat -f%z "${config_file}" 2>/dev/null || stat -c%s "${config_file}" 2>/dev/null || printf "unknown")"
+        printf "  [DEBUG] Git exit code: %s\n" "${exit_code}"
+        printf "  [DEBUG] Git output: %s\n" "${git_output}"
+      fi
+    else
+      printf "Config file not found at: %s\n" "${config_file}"
     fi
+    printf "\n"
   done
 
   cat <<EOF
