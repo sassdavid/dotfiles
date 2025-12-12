@@ -146,7 +146,7 @@ install_or_update_mongodb_tools() {
 }
 
 install_or_update_atlas_mongo_cli() {
-  local base_dir=$1
+  local final_dir=$1
   local arch
   arch=$(get_arch)
 
@@ -173,7 +173,7 @@ install_or_update_atlas_mongo_cli() {
       tmp_dirs+=("$tmp_dir")
       local encoded=${atlas_tag//\//%2F}
       local url="https://github.com/mongodb/mongodb-atlas-cli/releases/download/${encoded}/mongodb-atlas-cli_${atlas_version}_linux_${arch}.tar.gz"
-      install_or_update_tool atlas-cli "$url" "$tmp_dir" "$base_dir/atlas-cli"
+      install_or_update_tool atlas-cli "$url" "$tmp_dir" "$final_dir"
     else
       printf "atlas-cli is up to date (%s)\n" "$current_version"
     fi
@@ -183,4 +183,9 @@ install_or_update_atlas_mongo_cli() {
 
 install_or_update_mongosh "$install_path/mongosh"
 install_or_update_mongodb_tools "$install_path/mongodb-tools"
-install_or_update_atlas_mongo_cli "$install_path"
+install_or_update_atlas_mongo_cli "$install_path/atlas-cli"
+
+if [[ -x "${install_path}/atlas-cli/atlas" ]]; then
+  "${install_path}/atlas-cli/atlas" completion zsh >"${XDG_DATA_HOME}/zsh/completions/_atlas"
+  printf "atlas completion generated\n"
+fi

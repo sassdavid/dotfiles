@@ -1500,10 +1500,12 @@ configure_docker_completion() {
 configure_tools() {
   _info "CONFIGURE TOOLS COMPLETION"
 
+  curl -fsSL https://raw.githubusercontent.com/fastfetch-cli/fastfetch/refs/heads/dev/completions/fastfetch.zsh -o "${XDG_DATA_HOME}/zsh/completions/_fastfetch"
   curl -fsSL https://raw.githubusercontent.com/eza-community/eza/refs/heads/main/completions/zsh/_eza -o "${XDG_DATA_HOME}/zsh/completions/_eza"
   mise x fd -- fd --gen-completions=zsh >"${XDG_DATA_HOME}/zsh/completions/_fd"
   mise x bat -- bat --completion zsh >"${XDG_DATA_HOME}/zsh/completions/_bat"
   mise x ripgrep -- rg --generate complete-zsh >"${XDG_DATA_HOME}/zsh/completions/_rg"
+  mise x 1password-cli -- op completion zsh >"${XDG_DATA_HOME}/zsh/completions/_op"
 
   configure_docker_completion
 

@@ -160,23 +160,27 @@ complete -C "$(which terraform)" terraform
 complete -C "$(which terragrunt)" -C "$(which terraform)" terragrunt
 
 # shellcheck disable=SC1090
-. <(kubectl completion zsh)
-# shellcheck disable=SC1090
-. <(k9s completion zsh)
-# shellcheck disable=SC1090
-. <(terraform-docs completion zsh)
-# shellcheck disable=SC1090
-. <(helm completion zsh)
-# shellcheck disable=SC1090
 . <(argocd completion zsh)
-# shellcheck disable=SC1090
-. <(golangci-lint completion zsh)
-# shellcheck disable=SC1090
-. <(atlas completion zsh)
 # shellcheck disable=SC1090
 . <(fnox completion zsh)
 # shellcheck disable=SC1090
+. <(gh completion -s zsh)
+# shellcheck disable=SC1090
+. <(golangci-lint completion zsh)
+# shellcheck disable=SC1090
+. <(helm completion zsh)
+# shellcheck disable=SC1090
+. <(k9s completion zsh)
+# shellcheck disable=SC1090
+. <(kubectl completion zsh)
+# shellcheck disable=SC1090
+. <(ruff generate-shell-completion zsh)
+# shellcheck disable=SC1090
+. <(terraform-docs completion zsh)
+# shellcheck disable=SC1090
 . <(uv generate-shell-completion zsh)
+# shellcheck disable=SC1090
+. <(yq shell-completion zsh)
 
 # eval additional
 eval "$(zoxide init --cmd cd zsh)"
