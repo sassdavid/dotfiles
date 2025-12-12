@@ -1500,12 +1500,11 @@ EOF
         # Success - display the output
         printf "%s\n" "${git_output}"
       else
-        # Failed - show debugging info
-        printf "Not configured\n"
-        printf "  [DEBUG] File exists: %s\n" "${config_file}"
-        printf "  [DEBUG] File size: %s\n" "$(stat -f%z "${config_file}" 2>/dev/null || stat -c%s "${config_file}" 2>/dev/null || printf "unknown")"
-        printf "  [DEBUG] Git exit code: %s\n" "${exit_code}"
-        printf "  [DEBUG] Git output: %s\n" "${git_output}"
+        # Failed - show diagnostic info
+        local file_size
+        file_size="$(stat -c%s "${config_file}" 2>/dev/null || stat -f%z "${config_file}" 2>/dev/null || printf "unknown")"
+        printf "Not configured (file: %s bytes, exit: %s)\n" "${file_size}" "${exit_code}"
+        printf "  Error: %s\n" "${git_output}"
       fi
     else
       printf "Config file not found at: %s\n" "${config_file}"
