@@ -39,7 +39,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
   DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/${DOTFILES_REPO_SLUG}}"
-  DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
+  DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/${DOTFILES_REPO_SLUG}}"
+
+  DOTFILES_REMOTE_BRANCH="${DOTFILES_REMOTE_BRANCH:-main}"
+
+  # This will get optionally populated later.
+  DOTFILES_LOCAL_BRANCH="${DOTFILES_LOCAL_BRANCH:-}"
 
   YOUR_NAME="${YOUR_NAME:-}"
   YOUR_EMAIL="${YOUR_EMAIL:-}"
@@ -337,11 +342,11 @@ System package installation isn't supported with your distro (${OS_DISTRO})
 
 Please install any comparable packages on your own, you can view the list at:
 
-    https://github.com/sassdavid/dotfiles/blob/main/install
+    https://github.com/${DOTFILES_REPO_SLUG}/blob/${DOTFILES_REMOTE_BRANCH}/install
 
 Then re-run this script and explicitly skip installing system packages:
 
-    bash <(curl -sS https://raw.githubusercontent.com/sassdavid/dotfiles/main/install) --skip-system-packages
+    bash <(curl -sS https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/${DOTFILES_REMOTE_BRANCH}/install) --skip-system-packages
 EOF
 
   exit 1
@@ -524,9 +529,9 @@ bootstrap() {
       exit 1
     fi
   else
-    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install" \
+    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/${DOTFILES_REMOTE_BRANCH}/install" \
       -o "${BOOTSTRAP_PATH}/install"
-    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/main/install-config.example" \
+    curl -sSL "https://raw.githubusercontent.com/${DOTFILES_REPO_SLUG}/${DOTFILES_REMOTE_BRANCH}/install-config.example" \
       -o "${BOOTSTRAP_PATH}/install-config.example"
   fi
 
@@ -786,16 +791,23 @@ update_dotfiles() {
     return 0
   fi
 
-  git -C "${DOTFILES_PATH}" fetch origin
+  git -C "${DOTFILES_PATH}" fetch --quiet origin "${DOTFILES_REMOTE_BRANCH}"
+
+  # This feels like a good default because it lets you check a branch out
+  # locally and always merge into that without needing to change anything.
+  if [ -z "${DOTFILES_LOCAL_BRANCH}" ]; then
+    DOTFILES_LOCAL_BRANCH="$(git -C "${DOTFILES_PATH}" branch --show-current)"
+  fi
 
   local new_commit_count=
-  new_commit_count="$(git -C "${DOTFILES_PATH}" rev-list ..origin --count)"
+  new_commit_count="$(git -C "${DOTFILES_PATH}" rev-list "${DOTFILES_LOCAL_BRANCH}..origin/${DOTFILES_REMOTE_BRANCH}" --count)"
 
   if [ "${new_commit_count}" = "0" ]; then
     echo "Skipping, since your local dotfiles already have the latest updates"
   else
-    # Let's merge the latest updates.
-    git -C "${DOTFILES_PATH}" merge origin
+    # Let's merge the latest updates into the local branch.
+    git -C "${DOTFILES_PATH}" checkout --quiet "${DOTFILES_LOCAL_BRANCH}"
+    git -C "${DOTFILES_PATH}" merge "origin/${DOTFILES_REMOTE_BRANCH}"
 
     # Insurance to always make sure an install-config exists.
     [ -f "${DOTFILES_PATH}/install-config" ] || cp "${DOTFILES_PATH}/install-config.example" "${DOTFILES_PATH}/install-config"
@@ -826,7 +838,7 @@ clone_dotfiles() {
 
   _local_clone && return 0
 
-  git clone "${DOTFILES_CLONE_URL}" "${DOTFILES_PATH}"
+  git clone --branch "${DOTFILES_REMOTE_BRANCH}" "${DOTFILES_CLONE_URL}" "${DOTFILES_PATH}"
   git -C "${DOTFILES_PATH}" remote | grep -qw upstream ||
     git -C "${DOTFILES_PATH}" remote add upstream "${DOTFILES_UPSTREAM_URL}.git"
 
@@ -1609,7 +1621,7 @@ completed_message() {
   cat <<EOF
 Check out the README file on GitHub for any next steps:
 
-https://github.com/sassdavid/dotfiles#-make-it-your-own
+https://github.com/${DOTFILES_REPO_SLUG}#-make-it-your-own
 
 You can safely close this terminal.
 
@@ -1637,7 +1649,7 @@ parse_args() {
     [ "${side_by_side}" = "--side" ] && side_by_side="--side-by-side"
 
     # shellcheck disable=SC2086
-    delta install-config.example install-config ${side_by_side}
+    git diff --no-index install-config.example install-config ${side_by_side}
 
     exit
     ;;
@@ -1645,12 +1657,12 @@ parse_args() {
     # Show a diff of any local uncommitted or committed changes vs the target.
     #
     # Since we have fzf, let's use it to make browsing diffs a nice experience!
-    local target="${2:-origin}"
+    local target="${2:-"origin/${DOTFILES_REMOTE_BRANCH}"}"
     local side_by_side="${3:-}"
 
     # Since target is optional we need to handle only passing in --side.
     if [ "${target}" = "--side" ]; then
-      target="origin"
+      target="origin/${DOTFILES_REMOTE_BRANCH}"
       side_by_side="--side"
     fi
 
@@ -1665,7 +1677,7 @@ parse_args() {
     ;;
   --new-commits | -n)
     # Show details about new commits that only exist in the target vs local.
-    target="${2:-..origin}"
+    target="${2:-"..origin/${DOTFILES_REMOTE_BRANCH}"}"
 
     git remote | grep -q "${target//./}" && git fetch --quiet "${target//./}"
     git log "${target}" --pretty="format:%C(magenta)%h %C(green)%ad %C(yellow)> %C(reset)%s" --date=short
@@ -1674,7 +1686,7 @@ parse_args() {
     ;;
   --changelog | -c)
     # Show all remote commits.
-    target="${2:-origin}"
+    target="${2:-"origin/${DOTFILES_REMOTE_BRANCH}"}"
 
     git remote | grep -q "${target}" && git fetch --quiet "${target}"
     git log "${target}" --pretty="format:%C(magenta)%h %C(green)%ad %C(yellow)> %C(reset)%s" --date=short
@@ -1717,10 +1729,10 @@ parse_args() {
   # The same as above but show the diff in side-by-side (split) mode.
   ${C_GREEN}./install --diff --side${C_RESET}
 
-  # Compare your currently checked out branch to your local main branch, this
+  # Compare your currently checked out branch to your local ${DOTFILES_REMOTE_BRANCH} branch, this
   # could be helpful if you have a personalized branch and you pull updates into
-  # main and now you want to compare them locally.
-  ${C_GREEN}./install --diff main${C_RESET}
+  # ${DOTFILES_REMOTE_BRANCH} and now you want to compare them locally.
+  ${C_GREEN}./install --diff ${DOTFILES_REMOTE_BRANCH}${C_RESET}
 
   # Show new remote commits that do not exist locally.
   ${C_GREEN}./install --new-commits [target]${C_RESET} (it defaults to "..origin" if not supplied)
@@ -1728,14 +1740,14 @@ parse_args() {
   # Show your local commits that don't exist in the remote.
   ${C_GREEN}./install --new-commits origin..${C_RESET}
 
-  # The same as above except compare it to your local main branch not remote.
-  ${C_GREEN}./install --new-commits ..main${C_RESET}
+  # The same as above except compare it to your local ${DOTFILES_REMOTE_BRANCH} branch not remote.
+  ${C_GREEN}./install --new-commits ..${DOTFILES_REMOTE_BRANCH}${C_RESET}
 
   # Show your local commits that don't exist in the remote and new remote commits.
   ${C_GREEN}./install --new-commits origin...${C_RESET}
 
-  # The same as above except compare it to your local main branch not remote.
-  ${C_GREEN}./install --new-commits ...main${C_RESET}
+  # The same as above except compare it to your local ${DOTFILES_REMOTE_BRANCH} branch not remote.
+  ${C_GREEN}./install --new-commits ...${DOTFILES_REMOTE_BRANCH}${C_RESET}
 
   # Show a list of commits on a remote.
   ${C_GREEN}./install --changelog [target] (it defaults to "origin" if not supplied)${C_RESET}
