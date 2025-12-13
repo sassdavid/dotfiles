@@ -631,7 +631,7 @@ EOF
 }
 
 check_prereqs() {
-  _info "CHECKING SYSTEM COMPATABILITY"
+  _info "CHECKING SYSTEM COMPATIBILITY"
 
   local missing_packages=()
 
