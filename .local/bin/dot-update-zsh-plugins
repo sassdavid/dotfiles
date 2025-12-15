@@ -3,7 +3,7 @@
 
 export XDG_DATA_HOME="${XDG_DATA_HOME:-"${HOME}/.local/share"}"
 
-function clone_or_pull() {
+function clone_or_pull {
   local repo_path="${1}"
   local project=
   project="$(echo "${repo_path}" | cut -d"/" -f2)"

@@ -114,7 +114,7 @@ supported platforms:
 
 ```sh
 # You can run this as root.
-pacman -Syu --noconfirm curl
+pacman -Syu --noconfirm --needed curl
 ```
 
 #### Debian / Ubuntu
@@ -233,6 +233,10 @@ Here's a few handy commands, you can run `./install --help` to see all of them:
 - `./install --changelog`
   - Show all remote commits
   - Present a quick list of all commits to see what has changed
+- `./install --local-files`
+  - Show all local git ignored files such as configs, history and scripts
+  - Useful to see everything not committed and for optionally backing up those files
+    - Example: `./install --local-files | xargs zip dotfiles-personal.zip`
 
 *There's also a `LOCAL=1` environment variable you can set when bootstrapping
 or running the other install commands. This is handy for doing local tests
