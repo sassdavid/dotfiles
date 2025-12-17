@@ -1725,8 +1725,9 @@ parse_args() {
   --local-files | -l)
     # Show local (git ignored) configs, history and scripts.
     {
-      fd --type file --unrestricted --extension "local" .
-      fd --type file --unrestricted . ".local/bin/local"
+      fd --type file --unrestricted --extension "local" . 2>/dev/null || true
+      fd --type file --unrestricted . ".local/bin/local" 2>/dev/null || true
+      fd --type file --unrestricted --glob "config.local.*" .config/git 2>/dev/null || true
       echo ".config/zsh/.zsh_history"
     } | sort --unique | fzf --multi --bind "ctrl-a:toggle-all"
 
