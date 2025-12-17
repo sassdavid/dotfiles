@@ -12,9 +12,7 @@ DURATION_API_SEC=$(echo "$input" | jq -r '(.cost.total_api_duration_ms // 0) / 1
 LINES_ADDED=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
 LINES_REMOVED=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
 
-# Context window information
-INPUT_TOKENS=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-OUTPUT_TOKENS=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+# Context window size
 CONTEXT_WINDOW_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 0')
 
 # Format cost display (only show if > 0)
@@ -38,9 +36,19 @@ fi
 # Context window display
 CONTEXT_DISPLAY=""
 if [ "$CONTEXT_WINDOW_SIZE" -gt 0 ]; then
-  TOTAL_TOKENS=$((INPUT_TOKENS + OUTPUT_TOKENS))
-  PERCENT=$(echo "scale=1; ($TOTAL_TOKENS / $CONTEXT_WINDOW_SIZE) * 100" | bc -l 2>/dev/null || echo 0)
-  CONTEXT_DISPLAY=$(printf " | 🧠 %dk/%dk (%.0f%%)" "$((TOTAL_TOKENS / 1000))" "$((CONTEXT_WINDOW_SIZE / 1000))" "$PERCENT")
+  # Use total_input_tokens and total_output_tokens for session totals
+  TOTAL_INPUT=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+  TOTAL_OUTPUT=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+
+  if [ "$TOTAL_INPUT" -gt 0 ] || [ "$TOTAL_OUTPUT" -gt 0 ]; then
+    TOTAL_TOKENS=$((TOTAL_INPUT + TOTAL_OUTPUT))
+    # Multiply before divide to avoid truncation
+    PERCENT=$(echo "scale=1; $TOTAL_TOKENS * 100 / $CONTEXT_WINDOW_SIZE" | bc -l 2>/dev/null || echo 0)
+    CONTEXT_DISPLAY=$(printf " | 🧠 %dk/%dk (%.0f%%)" "$((TOTAL_TOKENS / 1000))" "$((CONTEXT_WINDOW_SIZE / 1000))" "$PERCENT")
+  else
+    # Fallback if no tokens used yet
+    CONTEXT_DISPLAY=$(printf " | 🧠 0k/%dk (0%%)" "$((CONTEXT_WINDOW_SIZE / 1000))")
+  fi
 fi
 
 # Show git branch if in a git repo
