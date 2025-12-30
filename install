@@ -575,7 +575,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     SYSTEMD_ENABLED_SERVICES_EXTRAS=()
   fi
 
-  if ! declare -p GIT_IDENTITIES &>/dev/null || (( ${#GIT_IDENTITIES[@]} == 0 )); then
+  if ! declare -p GIT_IDENTITIES &>/dev/null || ((${#GIT_IDENTITIES[@]} == 0)); then
     declare -A GIT_IDENTITIES=(
       ["bitbucket"]="${HOME}/src/bitbucket/"
       ["personal"]="${HOME}/src/github/"
@@ -1862,6 +1862,7 @@ EOF
           if [ ! -d /run/systemd/system ]; then
             if ! grep -q "^if service docker status.*$" "${zprofile_path}" 2>/dev/null; then
               local docker=
+              # shellcheck disable=SC2034
               docker=$(
                 cat <<'EOF'
 # Ensure Docker is running on WSL 2. This expects you've installed Docker and
@@ -2010,9 +2011,8 @@ configure_git() {
   local config_dir="${DOTFILES_PATH}/.config/git"
 
   # Ensure GIT_IDENTITIES exists and is non-empty; otherwise expect defaults were set earlier
-  if ! declare -p GIT_IDENTITIES &>/dev/null || (( ${#GIT_IDENTITIES[@]} == 0 )); then
+  if ! declare -p GIT_IDENTITIES &>/dev/null || ((${#GIT_IDENTITIES[@]} == 0)); then
     _error "GIT_IDENTITIES is empty/unset. Ensure defaults are set before configure_git."
-    return 1
   fi
 
   # Stable ordering
