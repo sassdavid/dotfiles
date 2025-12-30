@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# bashsupport disable=BP5001,BP5007,BP5008
 
 set -o errexit
 set -o pipefail

@@ -1,11 +1,5 @@
 # shellcheck shell=bash
 
-alias grep="grep --color=auto"
-alias fgrep="fgrep --color=auto"
-alias egrep="egrep --color=auto"
-
-alias c='clear'
-
 alias cat='bat'
 
 alias ..='cd ..'
@@ -30,11 +24,12 @@ alias lz='cd ${XDG_DATA_HOME}/nvim/lazy/LazyVim && nvim .'
 alias lp='cd ${XDG_DATA_HOME}/nvim/lazy && nvim .'
 alias dtcd='cd ${DOTFILES_PATH}'
 
+alias 755d="find . -type d -exec chmod 755 {} \;"
+alias 644f="find . -type f -exec chmod 644 {} \;"
+
 alias cfgp='${EDITOR} ${XDG_CONFIG_HOME}/git/config.local.personal'
 alias cfgw='${EDITOR} ${XDG_CONFIG_HOME}/git/config.local.work'
 alias cfgb='${EDITOR} ${XDG_CONFIG_HOME}/git/config.local.bitbucket'
-
-alias drun='docker container run --rm -it'
 
 alias vss='sort -u ${XDG_CONFIG_HOME}/nvim/spell/en.utf-8.add -o ${XDG_CONFIG_HOME}/nvim/spell/en.utf-8.add'
 alias vdt='rm ${XDG_STATE_HOME}/nvim/swap/%*'
@@ -52,8 +47,11 @@ alias assol="aws sso login --no-browser --profile"
 # shellcheck disable=SC2139
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
 
+alias gi="git init && git symbolic-ref HEAD refs/heads/main"
 alias gcl="git diff --name-only --diff-filter=U"
 alias ge="rg '[\p{Emoji}--\p{Ascii}]'"
+
+alias drun='docker container run --rm -it'
 
 alias myip="curl -s -4 https://ifconfig.me | tee >(clip-copy)"
 

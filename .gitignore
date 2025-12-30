@@ -20,14 +20,10 @@ tags
 
 *.spl
 .aliases.local
-.config/ghostty/config.local
+.config/**/*.local
 .config/git/config.local.*
-.config/git/config.local.includes
 .config/nvim/lua/plugins/theme.lua
-.config/zsh/.xdg.local
-.config/zsh/.zprofile.local
 .config/zsh/.zsh_history*
-.config/zsh/.zshrc.local
 .local/bin/local/
 etc/pacman.d/02-ignore.conf.example
 install-config
