@@ -37,10 +37,10 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   # This will get optionally populated later.
   SKIP_SYSTEM_PACKAGES=
 
-  DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-}"
-  DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-}"
-  DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-}"
-  DOTFILES_BRANCH="${DOTFILES_BRANCH:-}"
+  DOTFILES_REPO_SLUG="${DOTFILES_REPO_SLUG:-sassdavid/dotfiles}"
+  DOTFILES_CLONE_URL="${DOTFILES_CLONE_URL:-https://github.com/${DOTFILES_REPO_SLUG}}"
+  DOTFILES_UPSTREAM_URL="${DOTFILES_UPSTREAM_URL:-https://github.com/sassdavid/dotfiles}"
+  DOTFILES_BRANCH="${DOTFILES_BRANCH:-main}"
 
   YOUR_NAME="${YOUR_NAME:-}"
   YOUR_EMAIL="${YOUR_EMAIL:-}"
@@ -77,6 +77,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "pwgen"
       "rsync"
       "smartmontools"
+      "strace"
       "tmux"
       "unzip"
       "usbutils"
@@ -216,6 +217,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "qalc"
       "rsync"
       "smartmontools"
+      "strace"
       "tmux"
       "unzip"
       "usbutils"
@@ -253,6 +255,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "pwgen"
       "rsync"
       "smartmontools"
+      "strace"
       "tmux"
       "usbutils"
       "wget"
@@ -494,6 +497,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "ln -fns \"\${DOTFILES_PATH}/.config/mako/config.local\" \"\${XDG_CONFIG_HOME}/mako/config.local\""
       "ln -fns \"\${DOTFILES_PATH}/.config/mako/config\" \"\${XDG_CONFIG_HOME}/mako/config\""
       "ln -fns \"\${DOTFILES_PATH}/.config/mpd/mpd.conf\" \"\${XDG_CONFIG_HOME}/mpd/mpd.conf\""
+      "ln -fns \"\${DOTFILES_PATH}/.config/mpv/input.conf\" \"\${XDG_CONFIG_HOME}/mpv/input.conf\""
       "ln -fns \"\${DOTFILES_PATH}/.config/niri/config.kdl.local\" \"\${XDG_CONFIG_HOME}/niri/config.kdl.local\""
       "ln -fns \"\${DOTFILES_PATH}/.config/niri/config.kdl\" \"\${XDG_CONFIG_HOME}/niri/config.kdl\""
       "ln -fns \"\${DOTFILES_PATH}/.config/rmpc/config.ron\" \"\${XDG_CONFIG_HOME}/rmpc/config.ron\""
@@ -839,7 +843,6 @@ _display_packages() {
 _config_install() {
   local str_find="${1:-}"
   local str_replace="${2:-}"
-  local commands=("${@}")
 
   # This is a huge hack to detect if the first 2 args being passed in are
   # strings to do a template-like replacement. It can be refactored if the
@@ -848,16 +851,22 @@ _config_install() {
   # Basically this detects if %WindowsUser is passed in to chop out the first
   # 2 arguments for the string replacement so they are not commands.
   if [[ "${str_find}" == "%"* ]]; then
-    shift 3
+    shift 2
   else
     str_find=""
     str_replace=""
-    shift
   fi
+
+  local commands=("${@}")
 
   ((${#commands[@]} == 0)) && return
 
   for item in "${commands[@]}"; do
+    # A special rule to avoid breaking DNS in WSL 2.
+    if [[ "${OS_IN_WSL}" == "1" && "${OS_DISTRO}" = "arch" ]]; then
+      [[ "${item}" == *"stub-resolv.conf"* ]] && continue
+    fi
+
     eval "${item//${str_find}/${str_replace}}"
   done
 }
@@ -886,6 +895,11 @@ _config_install_display() {
   fi
 
   for item in "${commands[@]}"; do
+    # A special rule to avoid breaking DNS in WSL 2.
+    if [[ "${OS_IN_WSL}" == "1" && "${OS_DISTRO}" = "arch" ]]; then
+      [[ "${item}" == *"stub-resolv.conf"* ]] && continue
+    fi
+
     echo "   - ${item//${str_find}/${str_replace}}"
   done
 }
@@ -922,7 +936,7 @@ bootstrap() {
 
   # This only exists now, so let's source it.
   # shellcheck disable=SC1091
-  . ./install-config
+  . "${BOOTSTRAP_PATH}/install-config"
 
   cat <<EOF
 :: Welcome to ${DOTFILES_REPO_SLUG}!
@@ -1228,6 +1242,7 @@ create_initial_dirs() {
       "${XDG_CONFIG_HOME}/hypr" \
       "${XDG_CONFIG_HOME}/mako" \
       "${XDG_CONFIG_HOME}/mpd" \
+      "${XDG_CONFIG_HOME}/mpv" \
       "${XDG_CONFIG_HOME}/niri" \
       "${XDG_CONFIG_HOME}/rmpc" \
       "${XDG_CONFIG_HOME}/satty" \
@@ -2311,7 +2326,7 @@ EOF
   # Display all configured git identities
   for identity in "${!GIT_IDENTITIES[@]}"; do
     local config_file="${DOTFILES_PATH}/.config/git/config.local.${identity}"
-    printf "\n:: Git user (%s):\n" "${identity}"
+    printf "\n:: Git user (%s):\n\n" "${identity}"
 
     if [ -f "${config_file}" ]; then
       local git_output

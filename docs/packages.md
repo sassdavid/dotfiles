@@ -1,7 +1,7 @@
 All packages listed here are the names of the packages either in the official
 Arch package repository or the AUR. The AUR is used sparingly and will be
-called out when used. They get installed and configured for you by these
-dotfiles.
+called out when used. They get installed and configured by default for you by
+these dotfiles but you can modify the list.
 
 On Arch Linux with these dotfiles you can run `pkg list` to see a comparable
 list of packages you have installed.
@@ -69,6 +69,7 @@ If needed, these get automatically installed for you by these dotfiles.
 | shellcheck                 | Shell script analysis tool                                                        |
 | shfmt                      | Shell program formatter                                                           |
 | smartmontools (`smartctl`) | Control and monitor S.M.A.R.T. enabled ATA and SCSI drives                        |
+| strace                     | A diagnostic, debugging and instructional userspace tracer                        |
 | timidity++                 | MIDI to WAVE converter and player                                                 |
 | unzip                      | Extracting and viewing .zip archives                                              |
 | usbutils (`lsub`)          | USB tools to query connected USB devices                                          |
