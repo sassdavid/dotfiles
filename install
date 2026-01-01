@@ -627,6 +627,85 @@ _info() {
   printf "\n\n%b%s:%b\n\n" "${C_CYAN}" "${message}" "${C_RESET}"
 }
 
+_find_pwsh() {
+  local p=
+  for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do
+    if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then
+      printf '%s' "$p"
+      return 0
+    fi
+  done
+  return 1
+}
+
+_windows_username() {
+  # Returns the Windows username (no newline), or empty string on failure.
+  local pwsh=
+  pwsh="$(_find_pwsh 2>/dev/null)" || return 1
+
+  # shellcheck disable=SC2016
+  "${pwsh}" -NoProfile -NoLogo -Command '$env:UserName' 2>/dev/null | tr -d '\r\n'
+}
+
+_windows_has_1password() {
+  # Returns 0 if 1Password is installed on Windows, else 1.
+  local pwsh=
+  pwsh="$(_find_pwsh 2>/dev/null)" || return 1
+
+  # shellcheck disable=SC2016
+  "${pwsh}" -NoProfile -NoLogo -Command '
+    if (Get-Command "1Password.exe" -EA SilentlyContinue) { exit 0 }
+
+    $shim = Join-Path $env:LocalAppData "Microsoft\WindowsApps\1Password.exe"
+    if (Test-Path $shim) { exit 0 }
+
+    if (Get-AppxPackage -Name "*1Password*" -EA SilentlyContinue | Select-Object -First 1) { exit 0 }
+
+    $candidates = @(
+      "$env:ProgramFiles\1Password\app\1Password.exe",
+      "$env:ProgramFiles\1Password\1Password.exe",
+      "$env:LocalAppData\1Password\app\1Password.exe",
+      "$env:LocalAppData\1Password\1Password.exe",
+      "$env:LocalAppData\Programs\1Password\app\1Password.exe"
+    )
+    if ($candidates | Where-Object { Test-Path $_ } | Select-Object -First 1) { exit 0 }
+
+    $keys = @(
+      "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
+      "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*",
+      "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+    )
+    foreach ($k in $keys) {
+      $hit = Get-ItemProperty $k -EA SilentlyContinue |
+        Where-Object { $_.DisplayName -match "^1Password" } |
+        Select-Object -First 1
+      if ($hit) { exit 0 }
+    }
+
+    exit 1
+  ' >/dev/null 2>&1
+}
+
+_windows_openssh_dir() {
+  # Prefer Program Files OpenSSH, otherwise fall back to built-in System32 OpenSSH.
+  if [ -d "/mnt/c/Program Files/OpenSSH" ]; then
+    printf '%s' "/mnt/c/Program Files/OpenSSH"
+    return 0
+  fi
+
+  if [ -d "/mnt/c/Windows/System32/OpenSSH" ]; then
+    printf '%s' "/mnt/c/Windows/System32/OpenSSH"
+    return 0
+  fi
+
+  return 1
+}
+
+_escape_path_spaces() {
+  # /mnt/c/Program Files/OpenSSH -> /mnt/c/Program\ Files/OpenSSH
+  printf '%s' "${1// /\\ }"
+}
+
 _local_clone() {
   [ "${LOCAL}" != "1" ] && return 1
 
@@ -1554,12 +1633,7 @@ create_configs() {
 
   if [ "${OS_IN_WSL}" == "1" ]; then
     local windows_user=
-
-    # shellcheck disable=SC2016
-    windows_user="$({ for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then
-      "$p" -NoProfile -NoLogo -Command '$env:UserName'
-      break
-    fi; done; } 2>/dev/null | tr -d '\r\n')"
+    windows_user="$(_windows_username 2>/dev/null || true)"
 
     _config_install_display "Configs (WSL)" "%WindowsUser" "${windows_user}" "${config_install_wsl[@]}"
   fi
@@ -1895,27 +1969,6 @@ EOF
         fi
       fi
 
-      if ! grep -q "^export GIT_SSH=.*$" "${zprofile_path}" 2>/dev/null; then
-        cat <<'EOF' >>"${zprofile_path}"
-
-# Configure Windows OpenSSH so the 1Password SSH agent is usable.
-export GIT_SSH="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
-export GIT_SSH_COMMAND="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
-EOF
-      fi
-
-      if ! grep -q "^alias ssh=.*$" "${aliases_path}" 2>/dev/null; then
-        cat <<'EOF' >>"${aliases_path}"
-
-# Configure Windows OpenSSH so the 1Password SSH agent is usable.
-alias ssh="/mnt/c/Program\ Files/OpenSSH/ssh.exe"
-alias ssh-add="/mnt/c/Program\ Files/OpenSSH/ssh-add.exe"
-alias scp="/mnt/c/Program\ Files/OpenSSH/scp.exe"
-
-alias ssh2="/usr/bin/ssh"
-EOF
-      fi
-
       if ! grep -q '^alias drop_cache=' "${aliases_path}" 2>/dev/null; then
         cat <<EOF >>"${aliases_path}"
 
@@ -1932,6 +1985,38 @@ EOF
 alias open="/mnt/c/Program\ Files\ \(x86\)/Google/Chrome/Application/chrome.exe"
 alias wopen="/mnt/c/Windows/System32/cmd.exe /C start 2> /dev/null"
 EOF
+      fi
+
+      # Configure Windows OpenSSH only if 1Password is installed on Windows.
+      local win_ssh_dir=
+      local win_ssh_dir_esc=
+
+      if _windows_has_1password; then
+        win_ssh_dir="$(_windows_openssh_dir 2>/dev/null || true)"
+        if [ -n "${win_ssh_dir}" ]; then
+          win_ssh_dir_esc="$(_escape_path_spaces "${win_ssh_dir}")"
+
+          if ! grep -q "^export GIT_SSH=.*$" "${zprofile_path}" 2>/dev/null; then
+            cat <<EOF >>"${zprofile_path}"
+
+# Configure Windows OpenSSH so the 1Password SSH agent is usable.
+export GIT_SSH="${win_ssh_dir_esc}/ssh.exe"
+export GIT_SSH_COMMAND="${win_ssh_dir_esc}/ssh.exe"
+EOF
+          fi
+
+          if ! grep -q "^alias ssh=.*$" "${aliases_path}" 2>/dev/null; then
+            cat <<EOF >>"${aliases_path}"
+
+# Configure Windows OpenSSH so the 1Password SSH agent is usable.
+alias ssh="${win_ssh_dir_esc}/ssh.exe"
+alias ssh-add="${win_ssh_dir_esc}/ssh-add.exe"
+alias scp="${win_ssh_dir_esc}/scp.exe"
+
+alias ssh2="/usr/bin/ssh"
+EOF
+          fi
+        fi
       fi
     fi
   fi
@@ -2039,11 +2124,7 @@ configure_git() {
   mapfile -t identities < <(printf '%s\n' "${identities[@]}" | sort)
 
   local windows_user=
-  # shellcheck disable=SC2016
-  windows_user="$({ for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then
-    "$p" -NoProfile -NoLogo -Command '$env:UserName'
-    break
-  fi; done; } | tr -d '\r\n')"
+  windows_user="$(_windows_username 2>/dev/null || true)"
 
   local identity path
   for identity in "${identities[@]}"; do
@@ -2285,12 +2366,7 @@ set_theme() {
 
   if [ "${OS_IN_WSL}" == "1" ]; then
     local windows_user=
-
-    # shellcheck disable=SC2016
-    windows_user="$({ for p in pwsh.exe '/mnt/c/Program Files/PowerShell/7/pwsh.exe' '/c/Program Files/PowerShell/7/pwsh.exe'; do if command -v "$p" >/dev/null 2>&1 || [ -x "$p" ]; then
-      "$p" -NoProfile -NoLogo -Command '$env:UserName'
-      break
-    fi; done; } | tr -d '\r\n')"
+    windows_user="$(_windows_username 2>/dev/null || true)"
 
     WT_PATH="/mnt/c/Users/${windows_user}/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
     SED_EXPR='s/\("\(colorScheme\|theme\)": *"\)[^"]*"/\1'"${theme}"'"/'
