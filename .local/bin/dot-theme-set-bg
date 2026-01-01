@@ -41,7 +41,7 @@ else
   #
   # else $arr[($idx + 1) % ($arr | length)]
   #   - Get the next item in the list and wrap to the start if at the last item.
-  NEXT_WALLPAPER="$(jq --raw-output --arg current "${CURRENT_WALLPAPER:-}" '
+  NEXT_WALLPAPER="$(mise x jq -- jq --raw-output --arg current "${CURRENT_WALLPAPER:-}" '
     .wallpaper.synergy as $arr
     | if ($arr | length) == 0 then null
       else
@@ -55,7 +55,7 @@ fi
 
 fallback() {
   local color=
-  color="$(jq --raw-output ".wallpaper.color" "${THEME_DATA_PATH}")"
+  color="$(mise x jq -- jq --raw-output ".wallpaper.color" "${THEME_DATA_PATH}")"
 
   if [ "${color}" = "null" ]; then
     echo "${THEME_DATA_PATH} is missing wallpaper.color value, aborting!" >&2
