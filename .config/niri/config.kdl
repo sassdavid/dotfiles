@@ -21,6 +21,7 @@ spawn-sh-at-startup "sleep 1; exec mpd-mpris"
 input {
     keyboard {
         xkb {
+            layout "hu"
             // Swap these keys for all keyboard layouts.
             options "caps:swapescape"
         }
