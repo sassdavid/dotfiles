@@ -41,6 +41,7 @@ else
   #
   # else $arr[($idx + 1) % ($arr | length)]
   #   - Get the next item in the list and wrap to the start if at the last item.
+  # shellcheck disable=SC2016
   NEXT_WALLPAPER="$(mise x jq -- jq --raw-output --arg current "${CURRENT_WALLPAPER:-}" '
     .wallpaper.synergy as $arr
     | if ($arr | length) == 0 then null
