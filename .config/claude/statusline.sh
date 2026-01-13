@@ -36,15 +36,17 @@ fi
 # Context window display
 CONTEXT_DISPLAY=""
 if [ "$CONTEXT_WINDOW_SIZE" -gt 0 ]; then
+  # Use the new used_percentage field from Claude Code 2.1.6+
+  USED_PERCENTAGE=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+
   # Use total_input_tokens and total_output_tokens for session totals
   TOTAL_INPUT=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
   TOTAL_OUTPUT=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+  TOTAL_TOKENS=$((TOTAL_INPUT + TOTAL_OUTPUT))
 
-  if [ "$TOTAL_INPUT" -gt 0 ] || [ "$TOTAL_OUTPUT" -gt 0 ]; then
-    TOTAL_TOKENS=$((TOTAL_INPUT + TOTAL_OUTPUT))
-    # Multiply before divide to avoid truncation
-    PERCENT=$(echo "scale=1; $TOTAL_TOKENS * 100 / $CONTEXT_WINDOW_SIZE" | bc -l 2>/dev/null || echo 0)
-    CONTEXT_DISPLAY=$(printf " | 🧠 %dk/%dk (%.0f%%)" "$((TOTAL_TOKENS / 1000))" "$((CONTEXT_WINDOW_SIZE / 1000))" "$PERCENT")
+  if [ "$TOTAL_TOKENS" -gt 0 ]; then
+    # Use the pre-calculated percentage from Claude Code
+    CONTEXT_DISPLAY=$(printf " | 🧠 %dk/%dk (%.0f%%)" "$((TOTAL_TOKENS / 1000))" "$((CONTEXT_WINDOW_SIZE / 1000))" "$USED_PERCENTAGE")
   else
     # Fallback if no tokens used yet
     CONTEXT_DISPLAY=$(printf " | 🧠 0k/%dk (0%%)" "$((CONTEXT_WINDOW_SIZE / 1000))")
