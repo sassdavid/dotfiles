@@ -39,10 +39,10 @@ if [ "$CONTEXT_WINDOW_SIZE" -gt 0 ]; then
   # Use the new used_percentage field from Claude Code 2.1.6+
   USED_PERCENTAGE=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
 
-  # Use total_input_tokens and total_output_tokens for session totals
-  TOTAL_INPUT=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
-  TOTAL_OUTPUT=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
-  TOTAL_TOKENS=$((TOTAL_INPUT + TOTAL_OUTPUT))
+  # Use current_usage which includes cache tokens
+  USAGE=$(echo "$input" | jq '.context_window.current_usage')
+  CURRENT_TOKENS=$(echo "$USAGE" | jq '(.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0)')
+  TOTAL_TOKENS=$(printf "%.0f" "$CURRENT_TOKENS")
 
   if [ "$TOTAL_TOKENS" -gt 0 ]; then
     # Use the pre-calculated percentage from Claude Code
