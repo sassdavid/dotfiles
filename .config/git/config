@@ -1,7 +1,6 @@
 [core]
   editor = nvim
   pager = delta
-  sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
   longpaths = true
 
 [delta]

@@ -372,11 +372,6 @@ in WSL to work with 1Password.
       
       alias ssh2="/usr/bin/ssh"  # fallback to WSL SSH if needed
       ```
-3. Git Configuration:
-   ```
-   [core]
-   sshCommand = '/c/Program Files/OpenSSH/ssh.exe'
-   ```
 
 **These settings ensure that SSH and Git commands inside WSL 2 use the Windows-side OpenSSH client, which is required for 1Password's SSH agent to
 function correctly.**

@@ -74,26 +74,31 @@ export XDG_VIDEOS_DIR="${HOME}/tmp/videos"
 # System packages
 # -----------------------------------------------------------------------------
 
+# When set to 1, package managers that support non-interactive mode where you
+# can skip typing "y" to confirm will be set. Be careful, this allows hands free
+# installs at the cost of not being able to review changes before installing.
+export PACKAGES_AUTO_CONFIRM=
+
 # These rules apply to all package variables:
 # - Left as is OR commented out            -> default packages get used
 # - Remove () and set an empty value OR "" -> nothing gets used
 # - Add your own array items               -> only your packages get used
 #
 # You can use "extras" to keep the default packages but add your own to avoid
-# needing to duplicate the entire package list. Thiink of this as merging.
+# needing to duplicate the entire package list. Think of this as merging.
 
 # Applies to Arch Linux.
 export PACKAGES_PACMAN=()
 export PACKAGES_PACMAN_EXTRAS=()
 
-# Packackes defined here only get installed when GUI_LINUX=1 is set.
+# Packages defined here only get installed when GUI_LINUX=1 is set.
 export PACKAGES_PACMAN_GUI=()
 export PACKAGES_PACMAN_GUI_EXTRAS=()
 
 export PACKAGES_AUR=()
 export PACKAGES_AUR_EXTRAS=()
 
-# Packackes defined here only get installed when GUI_LINUX=1 is set.
+# Packages defined here only get installed when GUI_LINUX=1 is set.
 export PACKAGES_AUR_GUI=()
 export PACKAGES_AUR_GUI_EXTRAS=()
 
