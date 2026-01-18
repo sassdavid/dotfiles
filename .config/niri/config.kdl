@@ -83,7 +83,7 @@ layout {
 }
 
 // ----------------------------------------------------------------------------
-// Window rules
+// Window / layer rules
 // ----------------------------------------------------------------------------
 
 window-rule {
@@ -94,71 +94,75 @@ window-rule {
 
 // Assorted window rules.
 window-rule {
-    match app-id=r#"firefox$"# title="^Picture-in-Picture|Library$"
+    match app-id=r#"firefox$"# title=r#"^(Picture-in-Picture|Library|About Mozilla Firefox)$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="thunar" title="^Rename "
+    match app-id=r#"^thunar$"# title=r#"^Rename "#
     open-floating true
 }
 
 window-rule {
-    match app-id="soffice" title="^Text Import"
+    match app-id=r#"^soffice$"# title=r#"^Text Import"#
     open-floating true
 }
 
 window-rule {
-    match app-id="dot.floating.ghostty"
+    match app-id=r#"^dot\.floating\.ghostty$"#
     open-floating true
-
     default-column-width { proportion 0.33; }
     default-window-height { proportion 0.5; }
 }
 
 window-rule {
-    match app-id="dot.floating.thunar"
+    match app-id=r#"^dot\.floating\.thunar$"#
     open-floating true
-
     default-column-width { proportion 0.33; }
     default-window-height { proportion 0.5; }
 }
 
 window-rule {
-    match app-id="gimp" title="Preferences"
+    match app-id=r#"^gimp$"# title=r#"Preferences"#
     open-floating true
 }
 
 window-rule {
-    match app-id="Pinentry-gtk" title="/usr/bin/gpg"
+    match app-id=r#"^Pinentry-gtk$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="mpv"
+    match app-id=r#"^mpv$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="wev"
+    match app-id=r#"^wev$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="xarchiver"
+    match app-id=r#"^xarchiver$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="Tk"
+    match app-id=r#"^Tk$"#
     open-floating true
 }
 
 window-rule {
-    match app-id="com.gabm.satty"
+    match app-id=r#"^com\.gabm\.satty$"#
     open-floating true
     min-width 730
     min-height 300
+}
+
+window-rule {
+    match app-id=r#"^KeePassXC$"#
+
+    block-out-from "screencast"
 }
 
 // ----------------------------------------------------------------------------
@@ -176,13 +180,14 @@ binds {
     Mod+Shift+Alt+L  hotkey-overlay-title="Power off monitors" { power-off-monitors; }
     Mod+Ctrl+Shift+Q hotkey-overlay-title="Exit niri session" { quit; }
 
-    // Screenshots.
+    // Capture.
     Mod+S            hotkey-overlay-title="Screenshot (region)" { spawn "dot-screenshot" "region"; }
     Mod+Shift+S      hotkey-overlay-title="Screenshot (window)" { spawn "dot-screenshot" "window"; }
     Mod+Ctrl+S       hotkey-overlay-title="Screenshot (monitor: focused)" { spawn "dot-screenshot" "monitor-focused"; }
     Mod+Ctrl+Shift+S hotkey-overlay-title="Screenshot (monitor: all)" { spawn "dot-screenshot" "monitor-all"; }
 
-    Mod+Shift+Alt+S  hotkey-overlay-title="Color picker" { spawn-sh "killall hyprpicker || hyprpicker --autocopy --lowercase-hex"; }
+    Mod+P            hotkey-overlay-title="Pick window" { spawn "ghostty" "--class=dot.floating.ghostty" "-e" "sh" "-c" "printf 'Pick a window...\n\n'; niri msg pick-window; niri msg action focus-window-previous; printf '\nDone! Press CTRL+c to quit\n'; read"; }
+    Mod+Shift+P      hotkey-overlay-title="Pick color" { spawn-sh "killall hyprpicker || hyprpicker --autocopy --lowercase-hex"; }
 
     // Notifications.
     Mod+N            hotkey-overlay-title="Show last notification" { spawn "makoctl" "restore"; }
@@ -211,8 +216,9 @@ binds {
     XF86Calculator repeat=false hotkey-overlay-title="Launcher (calculator)" { spawn "walker" "--provider" "calc"; }
 
     // Launcher.
-    Mod+Space              hotkey-overlay-title="Launcher" { spawn "walker"; }
-    Mod+Alt+V repeat=false hotkey-overlay-title="Launcher (clipboard)" { spawn "walker" "--provider" "clipboard"; }
+    Mod+Space  hotkey-overlay-title="Launcher" { spawn "walker"; }
+    Mod+W      repeat=false hotkey-overlay-title="Launcher (windows)" { spawn "walker" "--provider" "windows"; }
+    Mod+V      repeat=false hotkey-overlay-title="Launcher (clipboard)" { spawn "walker" "--provider" "clipboard"; }
 
     // Apps.
     Mod+Alt+T            hotkey-overlay-title="Terminal" { spawn "ghostty"; }
