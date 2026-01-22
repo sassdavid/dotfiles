@@ -75,7 +75,7 @@ check_aws_sso_token() {
 
   log_debug "${verbose}" "Checking whether the profile exists..."
 
-  if ! aws configure list-profiles | grep -q "^${profile}$"; then
+  if ! aws configure list-profiles 2>/dev/null | grep -q "^${profile}$" 2>/dev/null; then
     log_error "AWS profile '${profile}' does not exist."
     return 1
   fi
