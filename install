@@ -306,6 +306,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "keepassxc"
       "key-codes"
       "maccy"
+      "obsidian"
     )
   fi
 
@@ -2070,10 +2071,11 @@ EOF
 ask_for_name() {
   _info "ASKING FOR YOUR NAME TO CONFIGURE GIT"
 
+  local config_file="${1}"
   local name=
 
   set +o errexit
-  name="$(git config user.name)"
+  name="$(git config --file "${config_file}" user.name 2>/dev/null)"
   set -o errexit
 
   if [[ -n "${name}" ]]; then
@@ -2101,10 +2103,11 @@ ask_for_name() {
 ask_for_email() {
   _info "ASKING FOR YOUR EMAIL TO CONFIGURE GIT"
 
+  local config_file="${1}"
   local email=
 
   set +o errexit
-  email="$(git config user.email)"
+  email="$(git config --file "${config_file}" user.email 2>/dev/null)"
   set -o errexit
 
   if [[ -n "${email}" ]]; then
@@ -2150,6 +2153,10 @@ configure_git() {
   local windows_user=
   windows_user="$(_windows_username 2>/dev/null || true)"
 
+  local ssh_sign_program=""
+  [[ "${OS_TYPE}" == "darwin" ]] && ssh_sign_program="/Applications/1Password.app/Contents/MacOS/op-ssh-sign"
+  [[ -n "${windows_user}" ]] && ssh_sign_program="/mnt/c/Users/${windows_user}/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe"
+
   local identity path
   for identity in "${identities[@]}"; do
     path="${config_dir}/config.local.${identity}"
@@ -2162,8 +2169,8 @@ configure_git() {
     unset YOUR_NAME YOUR_EMAIL
     printf "\nCONFIGURING '%s'\n" "${identity^^}"
 
-    ask_for_name
-    ask_for_email
+    ask_for_name "${path}"
+    ask_for_email "${path}"
 
     cat >"${path}" <<EOF
 [user]
@@ -2184,7 +2191,7 @@ configure_git() {
 #  format = ssh
 
 #[gpg "ssh"]
-#  program = "/mnt/c/Users/${windows_user}/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe"
+#  program = "${ssh_sign_program}"
 
 #[delta]
   # If you prefer side by side diffs, uncomment this.
@@ -2344,7 +2351,6 @@ set_theme() {
       theme="${active_theme}"
       switch_wallpaper=
     fi
-
   else
     # This is when the dot-theme-set script gets run. Even if a random theme
     # is picked by supplying no argument, $1 is always set from that script.

@@ -19,6 +19,7 @@ Options:
     -r, --region STRING     AWS region (default: ${default_region})
     -p, --project STRING    Project tag value (required)
     -s, --stack STRING      Stack tag value (required)
+    -n, --no-browser        Force AWS SSO login to use --no-browser (default: auto-detect based on WSL2)
     -v, --verbose           Enable verbose output
     -h, --help              Show this help message
 
@@ -60,11 +61,17 @@ log_debug() {
   fi
 }
 
+# Detect if running in WSL2
+is_wsl2() {
+  [[ -f /proc/version ]] && grep -q "\-WSL2" /proc/version
+}
+
 # Check if AWS SSO token is valid and handle login if needed
 check_aws_sso_token() {
   local -r region="${1}"
   local -r profile="${2}"
   local -r verbose="${3}"
+  local -r no_browser="${4}"
 
   log_debug "${verbose}" "Checking whether the profile exists..."
 
@@ -79,7 +86,19 @@ check_aws_sso_token() {
     log_warn "AWS SSO token appears to be expired or invalid."
 
     log_info "Attempting AWS SSO login..."
-    if ! aws sso login --no-browser --profile "${profile}"; then
+
+    # Build the AWS SSO login command
+    local -a sso_login_cmd=("aws" "sso" "login" "--profile" "${profile}")
+
+    # Add --no-browser flag if explicitly requested or running in WSL2
+    if [[ ${no_browser} == "true" ]] || is_wsl2; then
+      sso_login_cmd+=("--no-browser")
+      log_debug "${verbose}" "Using --no-browser flag for AWS SSO login"
+    else
+      log_debug "${verbose}" "Using browser-based AWS SSO login"
+    fi
+
+    if ! "${sso_login_cmd[@]}"; then
       log_error "AWS SSO login failed."
       return 1
     fi
@@ -104,10 +123,11 @@ validate_inputs() {
   local -r project="${3}"
   local -r stack="${4}"
   local -r verbose="${5}"
+  local -r no_browser="${6}"
 
   log_debug "${verbose}" "Validating inputs..."
 
-  if ! check_aws_sso_token "${region}" "${profile}" "${verbose}"; then
+  if ! check_aws_sso_token "${region}" "${profile}" "${verbose}" "${no_browser}"; then
     return 1
   fi
   log_debug "${verbose}" "AWS authentication validation successful."
@@ -328,6 +348,7 @@ main() {
   local project=""
   local stack=""
   local verbose=false
+  local no_browser=false
 
   while (($#)); do
     case "${1}" in
@@ -371,6 +392,10 @@ main() {
       stack="${2}"
       shift 2
       ;;
+    -n | --no-browser)
+      no_browser=true
+      shift
+      ;;
     -v | --verbose)
       verbose=true
       shift
@@ -404,7 +429,7 @@ main() {
     exit 1
   fi
 
-  if ! validate_inputs "${profile}" "${region}" "${project}" "${stack}" "${verbose}"; then
+  if ! validate_inputs "${profile}" "${region}" "${project}" "${stack}" "${verbose}" "${no_browser}"; then
     exit 1
   fi
 

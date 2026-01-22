@@ -102,16 +102,22 @@ install_or_update_tool() {
 
   if [[ $archive_type == ".zip" ]]; then
     unzip -q "$archive" -d "$tmp_dir"
-    # Find the extracted directory (could be nested)
-    local extracted_dir
-    extracted_dir=$(find "$tmp_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)
-    if [[ -d "$extracted_dir/bin" ]]; then
+    # Check if bin/ exists directly in tmp_dir first (atlas-cli case)
+    if [[ -d "$tmp_dir/bin" ]]; then
       mkdir -p "$final_dir"
-      mv "$extracted_dir/bin/"* "$final_dir/"
-    elif [[ -d "$extracted_dir" ]]; then
-      # Some archives have binaries directly in the root
-      mkdir -p "$final_dir"
-      find "$extracted_dir" -type f -perm +111 -exec mv {} "$final_dir/" \;
+      mv "$tmp_dir/bin/"* "$final_dir/"
+    else
+      # Find the extracted directory (could be nested)
+      local extracted_dir
+      extracted_dir=$(find "$tmp_dir" -mindepth 1 -maxdepth 1 -type d | head -n1)
+      if [[ -d "$extracted_dir/bin" ]]; then
+        mkdir -p "$final_dir"
+        mv "$extracted_dir/bin/"* "$final_dir/"
+      elif [[ -d "$extracted_dir" ]]; then
+        # Some archives have binaries directly in the root
+        mkdir -p "$final_dir"
+        find "$extracted_dir" -type f -perm +111 -exec mv {} "$final_dir/" \;
+      fi
     fi
   else
     tar --strip-components=1 -xzf "$archive" -C "$tmp_dir"

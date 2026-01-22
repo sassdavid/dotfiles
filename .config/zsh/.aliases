@@ -42,7 +42,17 @@ alias cng="fd -HIptd '.*/.angular/cache$' -x rm -rf"
 
 alias gr="fd -Htd --glob '**/.git' ~/src/ | sort -u"
 
-alias assol="aws sso login --no-browser --profile"
+# Smart AWS SSO login function that uses --no-browser only in WSL2
+assol() {
+  if [[ "$1" == "--no-browser" ]]; then
+    shift
+    aws sso login --no-browser --profile "$@"
+  elif [[ -f /proc/version ]] && grep -q "\-WSL2" /proc/version; then
+    aws sso login --no-browser --profile "$@"
+  else
+    aws sso login --profile "$@"
+  fi
+}
 
 # shellcheck disable=SC2139
 alias pf="fzf ${FZF_CTRL_T_OPTS}"
