@@ -127,6 +127,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "hyprpicker"
       "kdenlive"
       "keepassxc"
+      "lact"
       "libqalculate"
       "libreoffice"
       "mako"
@@ -573,6 +574,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   else
     SYSTEMD_ENABLED_SERVICES=(
       "docker"
+      "lact"
     )
   fi
 
@@ -1193,10 +1195,13 @@ EOF
     ;;
   *AMD*)
     # AMD drivers are handled automatically by the Linux kernel but let's get
-    # the Vulkan drivers so Steam and gaming works.
-    PACKAGES_PACMAN+=("vulkan-radeon" "lib32-vulkan-radeon")
+    # the Vulkan drivers so Steam and gaming works. amdgpu_top is for monitoring.
+    PACKAGES_PACMAN+=("vulkan-radeon" "lib32-vulkan-radeon" "amdgpu_top")
     ;;
   *Intel*)
+    # This is for monitoring.
+    PACKAGES_PACMAN+=("intel-gpu-tools")
+
     # Choose driver based on generation.
     case "${gpu_line}" in
     *HD\ Graphics* | *Iris* | *Xe*)
@@ -2511,6 +2516,12 @@ install_mongodb_tools() {
 }
 
 configure_docker_completion() {
+  # Only generate docker completion for WSL2 environments
+  if [ "${OS_IN_WSL}" != "1" ]; then
+    printf "Skipping Docker completion (not in WSL2 environment)\n\n"
+    return
+  fi
+
   if command -v docker >/dev/null 2>&1; then
     printf "Docker command found\n"
 
