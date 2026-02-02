@@ -534,8 +534,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     [ -z "${CONFIG_INSTALL_ARCH}" ] && CONFIG_INSTALL_ARCH=()
   else
     CONFIG_INSTALL_ARCH=(
-      "sudo ln -fns \"\${DOTFILES_PATH}/etc/pacman.d/01-options.conf\" \"/etc/pacman.d/01-options.conf\""
       "sudo ln -fns \"/run/systemd/resolve/stub-resolv.conf\" \"/etc/resolv.conf\""
+      "sudo ln -fns \"\${DOTFILES_PATH}/etc/conf.d/pacman-contrib\" \"/etc/conf.d/pacman-contrib\""
+      "sudo ln -fns \"\${DOTFILES_PATH}/etc/pacman.d/01-options.conf\" \"/etc/pacman.d/01-options.conf\""
     )
   fi
 
@@ -574,8 +575,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     [ -z "${SYSTEMD_ENABLED_SERVICES}" ] && SYSTEMD_ENABLED_SERVICES=()
   else
     SYSTEMD_ENABLED_SERVICES=(
-      "docker"
-      "lact"
+      "docker.service"
+      "lactd.service"
+      "paccache.timer --now"
     )
   fi
 
@@ -1818,13 +1820,13 @@ configure_systemd_services() {
     prefix=()
     [[ " ${flags[*]} " == *" --user"* ]] || prefix=(sudo)
 
-    if systemctl cat "${flags[@]}" "${service}.service" 1>/dev/null; then
-      "${prefix[@]}" systemctl "${flags[@]}" enable "${service}.service"
+    if systemctl cat "${flags[@]}" "${service}" 1>/dev/null; then
+      "${prefix[@]}" systemctl "${flags[@]}" enable "${service}"
+      echo "'${service}' has been enabled"
     fi
-
-    echo
   done
 
+  echo
   echo "They have been configured to start on boot"
 }
 
