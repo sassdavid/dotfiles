@@ -304,10 +304,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "ghostty"
       "gimp"
       "google-chrome"
+      "iina"
       "keepassxc"
       "key-codes"
       "maccy"
       "obsidian"
+      "orbstack"
+      "pearcleaner"
+      "transmission"
     )
   fi
 
