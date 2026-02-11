@@ -515,6 +515,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "ln -fns \"\${DOTFILES_PATH}/.config/walker/themes/base/style.css\" \"\${XDG_CONFIG_HOME}/walker/themes/base/style.css\""
       "ln -fns \"\${DOTFILES_PATH}/.config/waybar/config.jsonc\" \"\${XDG_CONFIG_HOME}/waybar/config.jsonc\""
       "ln -fns \"\${DOTFILES_PATH}/.config/waybar/style.css\" \"\${XDG_CONFIG_HOME}/waybar/style.css\""
+      "ln -fns \"\${DOTFILES_PATH}/.config/xarchiver/xarchiverrc\" \"\${XDG_CONFIG_HOME}/xarchiver/xarchiverrc\""
       "ln -fns \"\${DOTFILES_PATH}/.local/share/applications/\"* \"\${XDG_DATA_HOME}/applications/\""
     )
   fi
@@ -1050,7 +1051,7 @@ bootstrap() {
 :: Welcome to ${DOTFILES_REPO_SLUG}!
 
 Given this is your first run, a few temporary files were downloaded to
-'/tmp/sassdavid-dotfiles' which is where you'll kick off running the install
+'${BOOTSTRAP_PATH}' which is where you'll kick off running the install
 script. It is set up this way so you have a chance to review a few config
 values before running anything on your system.
 
@@ -1398,6 +1399,7 @@ create_initial_dirs() {
       "${XDG_CONFIG_HOME}/walker/themes/base" \
       "${XDG_CONFIG_HOME}/wallpaper" \
       "${XDG_CONFIG_HOME}/waybar" \
+      "${XDG_CONFIG_HOME}/xarchiver" \
       "${XDG_DATA_HOME}/applications" \
       "${XDG_DESKTOP_DIR}" \
       "${XDG_DOCUMENTS_DIR}" \
@@ -1910,9 +1912,9 @@ export XDG_STATE_HOME="${XDG_STATE_HOME}"
 EOF
 
   if [ "${GUI_ENABLED}" == "1" ]; then
-    cat <<EOF >>"${xdg_local_path}"
-
-# XDG user directories.
+    local xdg_paths
+    xdg_paths=$(
+      cat <<EOF
 export XDG_DESKTOP_DIR="${XDG_DESKTOP_DIR}"
 export XDG_DOCUMENTS_DIR="${XDG_DOCUMENTS_DIR}"
 export XDG_DOWNLOAD_DIR="${XDG_DOWNLOAD_DIR}"
@@ -1922,19 +1924,19 @@ export XDG_PUBLICSHARE_DIR="${XDG_PUBLICSHARE_DIR}"
 export XDG_TEMPLATES_DIR="${XDG_TEMPLATES_DIR}"
 export XDG_VIDEOS_DIR="${XDG_VIDEOS_DIR}"
 EOF
+    )
+
+    cat <<EOF >>"${xdg_local_path}"
+
+# XDG user directories.
+${xdg_paths}
+EOF
 
     cat <<EOF >"${XDG_CONFIG_HOME}/user-dirs.dirs"
 # These are set from the dotfiles' install-config script, update the values
 # in that file not here since they will get overwritten.
 
-export XDG_DESKTOP_DIR="${XDG_DESKTOP_DIR}"
-export XDG_DOCUMENTS_DIR="${XDG_DOCUMENTS_DIR}"
-export XDG_DOWNLOAD_DIR="${XDG_DOWNLOAD_DIR}"
-export XDG_MUSIC_DIR="${XDG_MUSIC_DIR}"
-export XDG_PICTURES_DIR="${XDG_PICTURES_DIR}"
-export XDG_PUBLICSHARE_DIR="${XDG_PUBLICSHARE_DIR}"
-export XDG_TEMPLATES_DIR="${XDG_TEMPLATES_DIR}"
-export XDG_VIDEOS_DIR="${XDG_VIDEOS_DIR}"
+${xdg_paths}
 EOF
 
     cat <<EOF >"${XDG_CONFIG_HOME}/user-dirs.conf"
