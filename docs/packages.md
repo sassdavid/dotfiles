@@ -17,6 +17,7 @@ installed in these environments.*
 | base-devel     | Basic tools to build Arch Linux packages                      |
 | bluez          | Daemons for the bluetooth protocol stack                      |
 | iwd            | Internet Wireless Daemon                                      |
+| lact           | Linux GPU Configuration Tool (supports AMD, NVIDIA and Intel) |
 | mpd            | Flexible, powerful, server-side application for playing music |
 | mpd-mpris      | An implementation of the MPRIS protocol for MPD               |
 | pacman-contrib | Contributed scripts and tools for pacman systems              |
@@ -70,6 +71,7 @@ If needed, these get automatically installed for you by these dotfiles.
 | shfmt                      | Shell program formatter                                                           |
 | smartmontools (`smartctl`) | Control and monitor S.M.A.R.T. enabled ATA and SCSI drives                        |
 | strace                     | A diagnostic, debugging and instructional userspace tracer                        |
+| tesseract                  | An OCR program                                                                    |
 | timidity++                 | MIDI to WAVE converter and player                                                 |
 | unzip                      | Extracting and viewing .zip archives                                              |
 | usbutils (`lsusb`)         | USB tools to query connected USB devices                                          |
@@ -171,3 +173,6 @@ If needed, these get automatically installed for you by these dotfiles.
 | libreoffice-fresh  | LibreOffice branch containing new features and enhancements          |
 | mpv                | Free, open source, cross-platform media player                       |
 | obs-studio         | Free, open source software for live streaming and recording          |
+| zathura            | Minimalistic document viewer                                         |
+| zathura-djvu       | DjVu support for Zathura                                             |
+| zathura-pdf-mupdf  | Supports PDF, ePub, and OpenXPS for Zathura                          |

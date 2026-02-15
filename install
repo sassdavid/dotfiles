@@ -147,6 +147,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "swaybg"
       "swayidle"
       "swaylock"
+      "tesseract-data-eng"
       "thunar"
       "thunar-archive-plugin"
       "timidity++"
@@ -160,6 +161,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "xdg-desktop-portal-gnome"
       "xdg-desktop-portal-gtk"
       "xwayland-satellite"
+      "zathura"
+      "zathura-djvu"
+      "zathura-pdf-mupdf"
     )
   fi
 
@@ -520,6 +524,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "ln -fns \"\${DOTFILES_PATH}/.config/waybar/config.jsonc\" \"\${XDG_CONFIG_HOME}/waybar/config.jsonc\""
       "ln -fns \"\${DOTFILES_PATH}/.config/waybar/style.css\" \"\${XDG_CONFIG_HOME}/waybar/style.css\""
       "ln -fns \"\${DOTFILES_PATH}/.config/xarchiver/xarchiverrc\" \"\${XDG_CONFIG_HOME}/xarchiver/xarchiverrc\""
+      "ln -fns \"\${DOTFILES_PATH}/.config/zathura/zathurarc\" \"\${XDG_CONFIG_HOME}/zathura/zathurarc\""
       "ln -fns \"\${DOTFILES_PATH}/.local/share/applications/\"* \"\${XDG_DATA_HOME}/applications/\""
     )
   fi
@@ -1404,6 +1409,7 @@ create_initial_dirs() {
       "${XDG_CONFIG_HOME}/wallpaper" \
       "${XDG_CONFIG_HOME}/waybar" \
       "${XDG_CONFIG_HOME}/xarchiver" \
+      "${XDG_CONFIG_HOME}/zathura" \
       "${XDG_DATA_HOME}/applications" \
       "${XDG_DESKTOP_DIR}" \
       "${XDG_DOCUMENTS_DIR}" \
@@ -1940,7 +1946,7 @@ EOF
 # These are set from the dotfiles' install-config script, update the values
 # in that file not here since they will get overwritten.
 
-${xdg_paths}
+${xdg_paths//export /}
 EOF
 
     cat <<EOF >"${XDG_CONFIG_HOME}/user-dirs.conf"
@@ -2101,7 +2107,7 @@ EOF
   [ "${SHELL: -3}" != "zsh" ] && chsh -s "${shell_path}"
 
   # shellcheck disable=SC1091
-  . "${XDG_CONFIG_HOME}/zsh/.zprofile"
+  . "${XDG_CONFIG_HOME}/zsh/.zprofile" 1>/dev/null
 
   # Given the above line sets this env var if it's defined, this ensures we
   # always use the value that was set when running this script. This is mainly
@@ -2429,6 +2435,7 @@ set_theme() {
     ln -fns "${DOTFILES_PATH}/themes/${theme}/swaylock" "${XDG_CONFIG_HOME}/swaylock/config"
     ln -fns "${DOTFILES_PATH}/themes/${theme}/walker.css" "${XDG_CONFIG_HOME}/walker/themes/base/theme.css"
     ln -fns "${DOTFILES_PATH}/themes/${theme}/waybar.css" "${XDG_CONFIG_HOME}/waybar/theme.css"
+    ln -fns "${DOTFILES_PATH}/themes/${theme}/zathurarc" "${XDG_CONFIG_HOME}/zathura/themerc"
 
     [ -n "${switch_wallpaper}" ] && "${DOTFILES_PATH}/.local/bin/dot-theme-set-bg"
   fi
