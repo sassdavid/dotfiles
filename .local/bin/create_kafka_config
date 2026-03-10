@@ -1,32 +1,268 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S usage bash
+# Requires: usage CLI  https://github.com/jdx/usage
+#   Install: mise use -g usage   |   cargo install usage-cli
+# shellcheck shell=bash
+# shellcheck disable=SC2154  # usage_* vars are injected as env vars by the usage CLI
+
+#USAGE name "create_kafka_config"
+#USAGE about "Fetch MSK credentials from AWS Secrets Manager and write Kafka\nconfig for kafka shell binaries (.properties) and/or kafkactl (YAML context).\n\nSecret name convention: AmazonMSK_<project>.<stack>.level.0\nOnly SASL/SCRAM broker endpoints (port 9096). kafkactl mode requires yq v4+."
+#USAGE flag "--region <region>"         required=#true  help="AWS region (e.g. eu-central-1)"
+#USAGE flag "--profile <profile>"       required=#true  help="AWS CLI profile name"
+#USAGE flag "--project <project>"       required=#true  help="Project identifier used in secret / cluster naming"
+#USAGE flag "--stack <stack>"           required=#true  help="Stack/environment tag (e.g. dev, staging, prod)"
+#USAGE flag "--mode <mode>"             default="properties"          help="Output mode" {
+#USAGE   choices "properties" "kafkactl" "both"
+#USAGE }
+#USAGE flag "--brokers <brokers>"                                      help="Comma-separated SASL/SCRAM bootstrap brokers (auto-detected if omitted)"
+#USAGE flag "--kafka-version <ver>"                                    help="Kafka version string, e.g. 3.6.0 (auto-detected from MSK if omitted)"
+#USAGE flag "--context <name>"                                         help="kafkactl context name (default: <project>-<stack>)"
+#USAGE flag "--kafkactl-config <path>"  env="KAFKACTL_CONFIG"          help="Path to kafkactl config (default: ~/.config/kafkactl/config.yml)"
+#USAGE flag "--properties-dir <path>"   env="KAFKA_PROPERTIES_DIR"    help="Directory for .properties files (default: ~/.config/kafka)"
+#USAGE flag "--set-current-context"                                    help="Set the written context as kafkactl current-context"
+#USAGE example "create_kafka_config --region eu-central-1 --profile my-profile --project myproject --stack dev"                                                                                   header="Write .properties config (default)"
+#USAGE example "create_kafka_config --region eu-central-1 --profile my-profile --project myproject --stack dev --mode both"                                                                       header="Write both .properties and kafkactl config"
+#USAGE example "create_kafka_config --region eu-central-1 --profile my-profile --project myproject --stack prod --mode kafkactl --set-current-context"                                            header="kafkactl only, auto-detect brokers, set as active context"
+#USAGE example "create_kafka_config --region eu-central-1 --profile my-profile --project myproject --stack prod --mode kafkactl --brokers b-1.cluster.kafka.eu-central-1.amazonaws.com:9096"     header="kafkactl only, provide brokers explicitly"
 
 set -euo pipefail
 
-if (($# != 4)); then
-  echo "Usage: $(basename "$0") <aws-region> <aws-profile> <project-tag> <stack-tag>" >&2
-  exit 1
+region="${usage_region}"
+profile="${usage_profile}"
+project_tag="${usage_project}"
+stack_tag="${usage_stack}"
+mode="${usage_mode}"
+brokers="${usage_brokers:-}"
+kafka_version="${usage_kafka_version:-}"
+context_name="${usage_context:-${project_tag}-${stack_tag}}"
+kafkactl_config="${usage_kafkactl_config:-${HOME}/.config/kafkactl/config.yml}"
+properties_dir="${usage_properties_dir:-${HOME}/.config/kafka}"
+set_current_context="${usage_set_current_context:-false}"
+
+needs_brokers() {
+  [[ "${mode}" == "kafkactl" || "${mode}" == "both" ]]
+}
+
+if [[ "${mode}" == "kafkactl" || "${mode}" == "both" ]]; then
+  if ! command -v yq &>/dev/null; then
+    printf 'Error: yq is required for kafkactl config generation but was not found.\n' >&2
+    printf '       Install it: https://github.com/mikefarah/yq#install\n' >&2
+    exit 1
+  fi
+  if ! yq --version 2>&1 | grep -qE 'v[4-9]'; then
+    printf 'Error: yq v4+ is required (found: %s)\n' "$(yq --version 2>&1)" >&2
+    printf '       Install it: https://github.com/mikefarah/yq#install\n' >&2
+    exit 1
+  fi
 fi
 
-region="${1}" profile="${2}" project_tag="${3}" stack_tag="${4}"
-config_dir="${HOME}/.msk.properties"
-config_file="${config_dir}/${project_tag}-${stack_tag}.properties"
-mkdir -p "${config_dir}"
-
 secret_name="AmazonMSK_${project_tag}.${stack_tag}.level.0"
+printf 'Fetching secret "%s" (region=%s, profile=%s) ...\n' \
+  "${secret_name}" "${region}" "${profile}"
+
 secret="$(aws secretsmanager get-secret-value \
   --region "${region}" --profile "${profile}" \
   --secret-id "${secret_name}" \
   --no-cli-pager --query SecretString --output text)"
 
-username="$(printf "%s" "${secret}" | jq -r '.username')"
-password="$(printf "%s" "${secret}" | jq -r '.password')"
+username="$(printf '%s' "${secret}" | jq -r '.username')"
+password="$(printf '%s' "${secret}" | jq -r '.password')"
 
-cat >"${config_file}" <<EOF
+_msk_cluster_arn() {
+  local arn
+  arn="$(aws kafka list-clusters-v2 \
+    --region "${region}" --profile "${profile}" \
+    --no-cli-pager \
+    --query "ClusterInfoList[?contains(ClusterName, '${project_tag}') && contains(ClusterName, '${stack_tag}')].ClusterArn | [0]" \
+    --output text 2>/dev/null || true)"
+  if [[ -z "${arn}" || "${arn}" == "None" ]]; then
+    printf 'Error: no MSK cluster found matching project="%s" stack="%s"\n' \
+      "${project_tag}" "${stack_tag}" >&2
+    printf '       Use --brokers to specify broker addresses manually.\n' >&2
+    return 1
+  fi
+  printf '%s' "${arn}"
+}
+
+_msk_kafka_version() {
+  local arn="${1}"
+  local raw
+  raw="$(aws kafka describe-cluster-v2 \
+    --region "${region}" --profile "${profile}" \
+    --cluster-arn "${arn}" \
+    --no-cli-pager \
+    --query 'ClusterInfo.Provisioned.CurrentBrokerSoftwareInfo.KafkaVersion' \
+    --output text 2>/dev/null || true)"
+  if [[ -z "${raw}" || "${raw}" == "None" ]]; then
+    return 1
+  fi
+  local v="${raw%.kraft}"
+  v="${v%.tiered}"
+  [[ "${v}" == *.x ]] && v="${v%.x}.0"
+  printf '%s' "${v}"
+}
+
+_msk_brokers() {
+  local arn="${1}"
+
+  local bootstrap_sample
+  bootstrap_sample="$(aws kafka get-bootstrap-brokers \
+    --region "${region}" --profile "${profile}" \
+    --cluster-arn "${arn}" \
+    --no-cli-pager \
+    --query 'BootstrapBrokerStringSaslScram' \
+    --output text 2>/dev/null || true)"
+
+  if [[ -z "${bootstrap_sample}" || "${bootstrap_sample}" == "None" ]]; then
+    printf 'Error: no SASL/SCRAM broker endpoints found for cluster %s\n' "${arn}" >&2
+    printf '       Ensure SASL/SCRAM authentication is enabled on the cluster.\n' >&2
+    return 1
+  fi
+
+  local port
+  port="$(printf '%s' "${bootstrap_sample}" | cut -d',' -f1 | rev | cut -d':' -f1 | rev)"
+
+  local hostnames
+  hostnames="$(aws kafka list-nodes \
+    --region "${region}" --profile "${profile}" \
+    --cluster-arn "${arn}" \
+    --no-cli-pager \
+    --query 'NodeInfoList[].BrokerNodeInfo.Endpoints[0]' \
+    --output text 2>/dev/null || true)"
+
+  if [[ -z "${hostnames}" || "${hostnames}" == "None" ]]; then
+    printf 'Warning: list-nodes returned no results, using bootstrap broker subset.\n' >&2
+    printf '%s' "${bootstrap_sample}"
+    return 0
+  fi
+
+  local all_brokers=""
+  while IFS=$'\t' read -ra hosts; do
+    for host in "${hosts[@]}"; do
+      [[ -n "${host}" ]] && all_brokers+="${host}:${port},"
+    done
+  done <<<"${hostnames}"
+  printf '%s' "${all_brokers%,}"
+}
+
+if needs_brokers && [[ -z "${brokers}" || -z "${kafka_version}" ]]; then
+  printf 'Auto-detecting MSK cluster ...\n'
+  cluster_arn="$(_msk_cluster_arn)" || {
+    if [[ "${mode}" == "kafkactl" ]]; then
+      exit 1
+    else
+      printf 'Warning: skipping kafkactl config — cluster not found. Writing .properties only.\n' >&2
+      mode="properties"
+    fi
+  }
+fi
+
+if needs_brokers && [[ -n "${cluster_arn:-}" ]]; then
+  printf 'Found MSK cluster: %s\n' "${cluster_arn}"
+
+  if [[ -z "${kafka_version}" ]]; then
+    if kafka_version="$(_msk_kafka_version "${cluster_arn}")"; then
+      printf 'Kafka version: %s\n' "${kafka_version}"
+    else
+      printf 'Warning: could not detect Kafka version; kafkactl will use its default (2.5.0).\n' >&2
+    fi
+  fi
+
+  if [[ -z "${brokers}" ]]; then
+    if ! brokers="$(_msk_brokers "${cluster_arn}")"; then
+      if [[ "${mode}" == "kafkactl" ]]; then
+        exit 1
+      else
+        printf 'Warning: skipping kafkactl config — no brokers available. Writing .properties only.\n' >&2
+        mode="properties"
+      fi
+    else
+      printf 'Bootstrap brokers: %s\n' "${brokers}"
+    fi
+  fi
+fi
+
+write_properties() {
+  mkdir -p "${properties_dir}"
+  local config_file="${properties_dir}/${project_tag}-${stack_tag}.properties"
+
+  cat >"${config_file}" <<EOF
 security.protocol=SASL_SSL
 sasl.mechanism=SCRAM-SHA-512
-sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \\
-  username="${username}" \\
+sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \
+  username="${username}" \
   password="${password}";
 EOF
 
-echo "Wrote ${config_file}"
+  printf '\nWrote .properties: %s\n' "${config_file}"
+  printf '\n  Example usage with kafka shell binaries:\n'
+  printf '    kafka-topics.sh --bootstrap-server <broker>:9096 \\\n'
+  printf '      --command-config %s --list\n' "${config_file}"
+  printf '    kafka-console-consumer.sh --bootstrap-server <broker>:9096 \\\n'
+  printf '      --consumer.config %s --topic <topic>\n' "${config_file}"
+}
+
+write_kafkactl_config() {
+  mkdir -p "$(dirname "${kafkactl_config}")"
+
+  IFS=',' read -ra broker_list <<<"${brokers}"
+
+  local ctx_tmp
+  ctx_tmp="$(mktemp)"
+  # shellcheck disable=SC2064
+  trap "rm -f '${ctx_tmp}'" RETURN
+
+  {
+    printf 'brokers:\n'
+    for broker in "${broker_list[@]}"; do
+      broker="$(printf '%s' "${broker}" | tr -d '[:space:]')"
+      printf '  - "%s"\n' "${broker}"
+    done
+    printf 'tls:\n'
+    printf '  enabled: true\n'
+    printf 'sasl:\n'
+    printf '  enabled: true\n'
+    printf '  username: "%s"\n' "${username}"
+    printf '  password: "%s"\n' "${password}"
+    printf '  mechanism: scram-sha512\n'
+    [[ -n "${kafka_version}" ]] && printf 'kafkaVersion: "%s"\n' "${kafka_version}"
+    printf 'requestTimeout: 60s\n'
+  } >"${ctx_tmp}"
+
+  if [[ ! -f "${kafkactl_config}" ]]; then
+    printf 'contexts: {}\n' >"${kafkactl_config}"
+    yq -i ".contexts.\"${context_name}\" = load(\"${ctx_tmp}\")" "${kafkactl_config}"
+    printf '\nCreated kafkactl config: %s\n' "${kafkactl_config}"
+  else
+    yq -i ".contexts.\"${context_name}\" = load(\"${ctx_tmp}\")" "${kafkactl_config}"
+    yq -i 'del(.["current-context"])' "${kafkactl_config}"
+    printf '\nUpdated kafkactl config: %s\n' "${kafkactl_config}"
+  fi
+
+  if [[ "${set_current_context}" == "true" ]]; then
+    if command -v kafkactl &>/dev/null; then
+      kafkactl config use-context "${context_name}"
+      printf 'Set current-context: %s\n' "${context_name}"
+    else
+      printf 'Warning: kafkactl not found; skipping use-context.\n' >&2
+      printf '         Run manually: kafkactl config use-context %s\n' "${context_name}" >&2
+    fi
+  fi
+
+  printf '\n  Context "%s" — %d broker(s) configured\n' "${context_name}" "${#broker_list[@]}"
+  printf '\n  Example usage with kafkactl:\n'
+  printf '    kafkactl --context %s get topics\n' "${context_name}"
+  printf '    kafkactl config use-context %s\n' "${context_name}"
+}
+
+case "${mode}" in
+properties)
+  write_properties
+  ;;
+kafkactl)
+  write_kafkactl_config
+  ;;
+both)
+  write_properties
+  write_kafkactl_config
+  ;;
+esac
