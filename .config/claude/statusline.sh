@@ -1,70 +1,98 @@
 #!/bin/bash
-# Read JSON input from stdin
+# Claude Code statusline - multi-line with ANSI colors and progress bar
 input=$(cat)
 
-# Extract values using jq
-MODEL_DISPLAY=$(echo "$input" | jq -r '.model.display_name')
-CURRENT_DIR=$(echo "$input" | jq -r '.workspace.current_dir')
+# Single jq call to extract all fields at once
+eval "$(echo "$input" | jq -r '
+  @sh "MODEL=\(.model.display_name)",
+  @sh "CURRENT_DIR=\(.workspace.current_dir)",
+  @sh "COST_TOTAL=\(.cost.total_cost_usd // 0)",
+  @sh "DURATION_MS=\(.cost.total_duration_ms // 0)",
+  @sh "API_DURATION_MS=\(.cost.total_api_duration_ms // 0)",
+  @sh "LINES_ADDED=\(.cost.total_lines_added // 0)",
+  @sh "LINES_REMOVED=\(.cost.total_lines_removed // 0)",
+  @sh "CONTEXT_SIZE=\(.context_window.context_window_size // 0)",
+  @sh "USED_PCT=\(.context_window.used_percentage // 0)"
+')"
 
-# Cost tracking - extract cost information from the correct path
-COST_TOTAL=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
-DURATION_API_SEC=$(echo "$input" | jq -r '(.cost.total_api_duration_ms // 0) / 1000')
-LINES_ADDED=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
-LINES_REMOVED=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
+# ANSI colors
+CYAN='\033[36m'
+GREEN='\033[32m'
+YELLOW='\033[33m'
+RED='\033[31m'
+DIM='\033[2m'
+RESET='\033[0m'
 
-# Context window size
-CONTEXT_WINDOW_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 0')
+# --- Git info with cache (refreshes every 5s) ---
 
-# Format cost display (only show if > 0)
-COST_DISPLAY=""
-if (($(echo "$COST_TOTAL > 0" | bc -l 2>/dev/null || echo 0))); then
-  COST_DISPLAY=$(printf " | 💰 \$%.4f" "$COST_TOTAL")
-fi
+CACHE_FILE="/tmp/statusline-git-cache"
+CACHE_MAX_AGE=5
 
-# Format duration display (only show if > 0)
-DURATION_DISPLAY=""
-if (($(echo "$DURATION_API_SEC > 0" | bc -l 2>/dev/null || echo 0))); then
-  DURATION_DISPLAY=$(printf " | ⏱️  %.0fs" "$DURATION_API_SEC")
-fi
+cache_is_stale() {
+  [ ! -f "$CACHE_FILE" ] || \
+  # stat -f %m is macOS, stat -c %Y is Linux
+  [ $(($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
+}
 
-# Format code changes display
-CHANGES_DISPLAY=""
-if [ "$LINES_ADDED" -gt 0 ] || [ "$LINES_REMOVED" -gt 0 ]; then
-  CHANGES_DISPLAY=$(printf " | 📝 +%d/-%d" "$LINES_ADDED" "$LINES_REMOVED")
-fi
-
-# Context window display
-CONTEXT_DISPLAY=""
-if [ "$CONTEXT_WINDOW_SIZE" -gt 0 ]; then
-  # Use the new used_percentage field from Claude Code 2.1.6+
-  USED_PERCENTAGE=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
-
-  # Use current_usage which includes cache tokens
-  USAGE=$(echo "$input" | jq '.context_window.current_usage')
-  CURRENT_TOKENS=$(echo "$USAGE" | jq '(.input_tokens // 0) + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0)')
-  TOTAL_TOKENS=$(printf "%.0f" "$CURRENT_TOKENS")
-
-  if [ "$TOTAL_TOKENS" -gt 0 ]; then
-    # Use the pre-calculated percentage from Claude Code
-    CONTEXT_DISPLAY=$(printf " | 🧠 %dk/%dk (%.0f%%)" "$((TOTAL_TOKENS / 1000))" "$((CONTEXT_WINDOW_SIZE / 1000))" "$USED_PERCENTAGE")
+if cache_is_stale; then
+  if git rev-parse --git-dir >/dev/null 2>&1; then
+    BRANCH=$(git branch --show-current 2>/dev/null)
+    STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
+    MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
+    echo "$BRANCH|$STAGED|$MODIFIED" > "$CACHE_FILE"
   else
-    # Fallback if no tokens used yet
-    CONTEXT_DISPLAY=$(printf " | 🧠 0k/%dk (0%%)" "$((CONTEXT_WINDOW_SIZE / 1000))")
+    echo "||" > "$CACHE_FILE"
   fi
 fi
 
-# Show git branch if in a git repo
-GIT_BRANCH=""
-if git rev-parse --git-dir >/dev/null 2>&1; then
-  BRANCH=$(git branch --show-current 2>/dev/null)
-  if [ -n "$BRANCH" ]; then
-    # Check if repo is dirty (modified files, staged changes, or untracked files)
-    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-      GIT_BRANCH=" | 🌿 $BRANCH*"
-    else
-      GIT_BRANCH=" | 🌿 $BRANCH"
-    fi
-  fi
+IFS='|' read -r BRANCH STAGED MODIFIED < "$CACHE_FILE"
+
+GIT_INFO=""
+if [ -n "$BRANCH" ]; then
+  GIT_INFO=" | ${DIM}${BRANCH}${RESET}"
+  [ "$STAGED" -gt 0 ] && GIT_INFO="${GIT_INFO} ${GREEN}+${STAGED}${RESET}"
+  [ "$MODIFIED" -gt 0 ] && GIT_INFO="${GIT_INFO} ${YELLOW}~${MODIFIED}${RESET}"
 fi
 
-echo "[$MODEL_DISPLAY] 📁 ${CURRENT_DIR##*/}$GIT_BRANCH$CONTEXT_DISPLAY$COST_DISPLAY$DURATION_DISPLAY$CHANGES_DISPLAY"
+echo -e "${CYAN}[${MODEL}]${RESET} ${CURRENT_DIR##*/}${GIT_INFO}"
+
+# --- Line 2: context progress bar, cost, duration, code changes ---
+
+# Truncate to integer
+PCT=${USED_PCT%.*}
+: "${PCT:=0}"
+
+# Color-coded progress bar based on context usage
+# 0-40% green (normal), 40-60% yellow (warning), 60%+ red (compaction zone)
+if [ "$PCT" -ge 60 ]; then BAR_COLOR="$RED"
+elif [ "$PCT" -ge 40 ]; then BAR_COLOR="$YELLOW"
+else BAR_COLOR="$GREEN"; fi
+
+BAR_WIDTH=10
+FILLED=$((PCT * BAR_WIDTH / 100))
+EMPTY=$((BAR_WIDTH - FILLED))
+BAR=""
+[ "$FILLED" -gt 0 ] && BAR=$(printf "%${FILLED}s" | tr ' ' '█')
+[ "$EMPTY" -gt 0 ] && BAR="${BAR}$(printf "%${EMPTY}s" | tr ' ' '░')"
+
+LINE2="${BAR_COLOR}${BAR}${RESET} ${PCT}%"
+
+# Cost (only if > 0)
+if [ "$(echo "$COST_TOTAL > 0" | bc -l 2>/dev/null)" = "1" ]; then
+  COST_FMT=$(printf '$%.4f' "$COST_TOTAL")
+  LINE2="${LINE2} ${DIM}|${RESET} ${YELLOW}${COST_FMT}${RESET}"
+fi
+
+# Wall-clock duration (only if > 0)
+if [ "$DURATION_MS" -gt 0 ]; then
+  MINS=$((DURATION_MS / 60000))
+  SECS=$(((DURATION_MS % 60000) / 1000))
+  LINE2="${LINE2} ${DIM}|${RESET} ${MINS}m${SECS}s"
+fi
+
+# Code changes (only if any)
+if [ "$LINES_ADDED" -gt 0 ] || [ "$LINES_REMOVED" -gt 0 ]; then
+  LINE2="${LINE2} ${DIM}|${RESET} ${GREEN}+${LINES_ADDED}${RESET}/${RED}-${LINES_REMOVED}${RESET}"
+fi
+
+echo -e "$LINE2"

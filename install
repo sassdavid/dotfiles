@@ -383,6 +383,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "helm"
       "hyperfine"
       "k9s"
+      "kafkactl"
       "kubectl"
       "maven"
       "pre-commit"
@@ -435,6 +436,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "hyperfine"
       "jq"
       "k9s"
+      "kafkactl"
       "kubectl"
       "maven"
       "neovim"
@@ -485,6 +487,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
       "helm"
       "hyperfine"
       "k9s"
+      "kafkactl"
       "kubectl"
       "maven"
       "pre-commit"
@@ -2715,6 +2718,7 @@ configure_tools() {
   mise x bat -- bat --completion zsh >"${XDG_DATA_HOME}/zsh/completions/_bat"
   mise x ripgrep -- rg --generate complete-zsh >"${XDG_DATA_HOME}/zsh/completions/_rg"
   mise x 1password-cli -- op completion zsh >"${XDG_DATA_HOME}/zsh/completions/_op"
+  mise x kafkactl -- kafkactl completion zsh >"${XDG_DATA_HOME}/zsh/completions/_kafkactl"
 
   configure_docker_completion
 
