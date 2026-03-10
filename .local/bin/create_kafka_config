@@ -38,7 +38,7 @@ kafkactl_config="${usage_kafkactl_config:-${HOME}/.config/kafkactl/config.yml}"
 properties_dir="${usage_properties_dir:-${HOME}/.config/kafka}"
 set_current_context="${usage_set_current_context:-false}"
 
-needs_brokers() {
+needs_kafka_version() {
   [[ "${mode}" == "kafkactl" || "${mode}" == "both" ]]
 }
 
@@ -144,39 +144,33 @@ _msk_brokers() {
   printf '%s' "${all_brokers%,}"
 }
 
-if needs_brokers && [[ -z "${brokers}" || -z "${kafka_version}" ]]; then
+if [[ -z "${brokers}" ]]; then
   printf 'Auto-detecting MSK cluster ...\n'
-  cluster_arn="$(_msk_cluster_arn)" || {
-    if [[ "${mode}" == "kafkactl" ]]; then
-      exit 1
-    else
-      printf 'Warning: skipping kafkactl config — cluster not found. Writing .properties only.\n' >&2
-      mode="properties"
+  if cluster_arn="$(_msk_cluster_arn)"; then
+    printf 'Found MSK cluster: %s\n' "${cluster_arn}"
+
+    if needs_kafka_version && [[ -z "${kafka_version}" ]]; then
+      if kafka_version="$(_msk_kafka_version "${cluster_arn}")"; then
+        printf 'Kafka version: %s\n' "${kafka_version}"
+      else
+        printf 'Warning: could not detect Kafka version; kafkactl will use its default (2.5.0).\n' >&2
+      fi
     fi
-  }
-fi
 
-if needs_brokers && [[ -n "${cluster_arn:-}" ]]; then
-  printf 'Found MSK cluster: %s\n' "${cluster_arn}"
-
-  if [[ -z "${kafka_version}" ]]; then
-    if kafka_version="$(_msk_kafka_version "${cluster_arn}")"; then
-      printf 'Kafka version: %s\n' "${kafka_version}"
-    else
-      printf 'Warning: could not detect Kafka version; kafkactl will use its default (2.5.0).\n' >&2
-    fi
-  fi
-
-  if [[ -z "${brokers}" ]]; then
     if ! brokers="$(_msk_brokers "${cluster_arn}")"; then
-      if [[ "${mode}" == "kafkactl" ]]; then
+      if [[ "${mode}" == "kafkactl" || "${mode}" == "both" ]]; then
         exit 1
       else
-        printf 'Warning: skipping kafkactl config — no brokers available. Writing .properties only.\n' >&2
-        mode="properties"
+        printf 'Warning: could not detect brokers; bootstrap.servers will be omitted from .properties.\n' >&2
       fi
     else
       printf 'Bootstrap brokers: %s\n' "${brokers}"
+    fi
+  else
+    if [[ "${mode}" == "kafkactl" || "${mode}" == "both" ]]; then
+      exit 1
+    else
+      printf 'Warning: could not detect MSK cluster; bootstrap.servers will be omitted from .properties.\n' >&2
     fi
   fi
 fi
@@ -185,20 +179,22 @@ write_properties() {
   mkdir -p "${properties_dir}"
   local config_file="${properties_dir}/${project_tag}-${stack_tag}.properties"
 
-  cat >"${config_file}" <<EOF
-security.protocol=SASL_SSL
-sasl.mechanism=SCRAM-SHA-512
-sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \
-  username="${username}" \
-  password="${password}";
-EOF
+  {
+    [[ -n "${brokers}" ]] && printf 'bootstrap.servers=%s\n' "${brokers}"
+    printf 'security.protocol=SASL_SSL\n'
+    printf 'sasl.mechanism=SCRAM-SHA-512\n'
+    printf 'sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \\\n'
+    printf '  username="%s" \\\n' "${username}"
+    printf '  password="%s";\n' "${password}"
+  } >"${config_file}"
 
   printf '\nWrote .properties: %s\n' "${config_file}"
-  printf '\n  Example usage with kafka shell binaries:\n'
-  printf '    kafka-topics.sh --bootstrap-server <broker>:9096 \\\n'
-  printf '      --command-config %s --list\n' "${config_file}"
-  printf '    kafka-console-consumer.sh --bootstrap-server <broker>:9096 \\\n'
-  printf '      --consumer.config %s --topic <topic>\n' "${config_file}"
+  printf '\n  Example usage with kafka shell binaries (bootstrap.servers is in the file):\n'
+  printf '    kafka-topics.sh        --command-config %s --bootstrap-server <broker>:9096 --list\n' "${config_file}"
+  printf '    kafka-console-consumer.sh --command-config %s --bootstrap-server <broker>:9096 --topic <topic>\n' "${config_file}"
+  printf '    kafka-console-producer.sh --command-config %s --bootstrap-server <broker>:9096 --topic <topic>\n' "${config_file}"
+  printf '\n  Note: --bootstrap-server is still required by admin tools even though\n'
+  printf '        bootstrap.servers is present in the file.\n'
 }
 
 write_kafkactl_config() {
