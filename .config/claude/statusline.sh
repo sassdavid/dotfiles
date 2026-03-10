@@ -29,9 +29,9 @@ CACHE_FILE="/tmp/statusline-git-cache"
 CACHE_MAX_AGE=5
 
 cache_is_stale() {
-  [ ! -f "$CACHE_FILE" ] || \
-  # stat -f %m is macOS, stat -c %Y is Linux
-  [ $(($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
+  [ ! -f "$CACHE_FILE" ] ||
+    # stat -f %m is macOS, stat -c %Y is Linux
+    [ $(($(date +%s) - $(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
 }
 
 if cache_is_stale; then
@@ -39,13 +39,13 @@ if cache_is_stale; then
     BRANCH=$(git branch --show-current 2>/dev/null)
     STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
     MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
-    echo "$BRANCH|$STAGED|$MODIFIED" > "$CACHE_FILE"
+    echo "$BRANCH|$STAGED|$MODIFIED" >"$CACHE_FILE"
   else
-    echo "||" > "$CACHE_FILE"
+    echo "||" >"$CACHE_FILE"
   fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED <"$CACHE_FILE"
 
 GIT_INFO=""
 if [ -n "$BRANCH" ]; then
@@ -64,8 +64,10 @@ PCT=${USED_PCT%.*}
 
 # Color-coded progress bar based on context usage
 # 0-40% green (normal), 40-60% yellow (warning), 60%+ red (compaction zone)
-if [ "$PCT" -ge 60 ]; then BAR_COLOR="$RED"
-elif [ "$PCT" -ge 40 ]; then BAR_COLOR="$YELLOW"
+if [ "$PCT" -ge 60 ]; then
+  BAR_COLOR="$RED"
+elif [ "$PCT" -ge 40 ]; then
+  BAR_COLOR="$YELLOW"
 else BAR_COLOR="$GREEN"; fi
 
 BAR_WIDTH=10
