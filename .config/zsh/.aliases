@@ -63,8 +63,6 @@ alias ge="rg '[\p{Emoji}--\p{Ascii}]'"
 
 alias drun='docker container run --rm -it'
 
-alias myip="curl -s -4 https://ifconfig.me | tee >(clip-copy)"
-
 alias k="kubectl"
 alias tf="terraform"
 alias tg="terragrunt"
