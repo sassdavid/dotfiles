@@ -54,7 +54,8 @@
       "UTC"
     ],
     "on-click-right": "xdg-open https://calendar.google.com",
-    "on-click-middle": "xdg-open https://www.worldtimebuddy.com",
+    "on-click-middle": "dot-tz-set --geo",
+    "on-click-backward": "xdg-open https://www.worldtimebuddy.com",
     "actions": {
       "on-scroll-up": "tz_up",
       "on-scroll-down": "tz_down"
@@ -82,8 +83,8 @@
       "paused": "⏸"
     },
     "on-click": "playerctl play-pause",
-    "on-click-middle": "dot-launch-or-focus-tui rmpc",
     "on-click-right": "playerctl stop",
+    "on-click-middle": "dot-launch-or-focus-tui rmpc",
     "on-scroll-up": "playerctl previous",
     "on-scroll-down": "playerctl next"
   },
