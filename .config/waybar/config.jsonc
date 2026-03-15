@@ -127,7 +127,7 @@
     "format-disabled": "󰂲",
     "format-connected": "",
     "tooltip-format": "Devices connected: {num_connections}",
-    "on-click": "dot-launch-or-focus-tui bluetui"
+    "on-click": "sh -c 'dot-launch-or-focus-tui bluetui || notify-send \"Bluetooth adapter not found\"'"
   },
   "network": {
     "format-icons": [
@@ -145,15 +145,18 @@
     "tooltip-format-ethernet": "⇣{bandwidthDownBytes}  ⇡{bandwidthUpBytes}\n\n{ipaddr}",
     "tooltip-format-disconnected": "Disconnected",
     "interval": 10,
-    "on-click": "dot-launch-or-focus-tui impala",
-    "on-click-right": "myip --local",
-    "on-click-middle": "myip --public"
+    "on-click": "sh -c 'dot-launch-or-focus-tui impala || notify-send \"Wi-Fi adapter not found\"'",
+    "on-click-right": "xdg-open https://speedtest.net",
+    "on-click-middle": "xdg-open http://www.asusrouter.com/Main_Login.asp",
+    "on-click-forward": "sh -c 'notify-send \"$(myip --public) copied to clipboard\"'",
+    "on-click-backward": "sh -c 'notify-send \"$(myip --local) copied to clipboard\"'"
   },
   "cpu": {
     "interval": 5,
     "format": "󰍛",
     "on-click": "dot-launch-or-focus-tui monitor",
-    "on-click-right": "fastfetch --logo none --structure-disabled 'Title:Separator:Colors:Break' | clip-copy"
+    "on-click-right": "dot-launch-or-focus-tui btop",
+    "on-click-middle": "sh -c 'specs && notify-send \"Specs copied to clipboard\"'"
   },
   "battery": {
     "format": "{capacity}% {icon}",
