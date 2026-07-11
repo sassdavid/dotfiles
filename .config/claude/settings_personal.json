@@ -34,6 +34,7 @@
   },
   "feedbackSurveyRate": 0,
   "effortLevel": "high",
+  "tui": "fullscreen",
   "theme": "dark",
-  "tui": "fullscreen"
+  "model": "sonnet"
 }
