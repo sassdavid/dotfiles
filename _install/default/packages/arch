@@ -52,6 +52,7 @@ export DEFAULT_PACKAGES_PACMAN=(
 
 export DEFAULT_PACKAGES_PACMAN_GUI=(
   "brightnessctl"
+  "chromium"
   "dnsmasq"
   "docker"
   "docker-buildx"

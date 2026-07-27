@@ -133,9 +133,9 @@ _update_bedrock_credentials() {
 
   local desired_opus_model
   if [[ "${long_context}" == "true" ]]; then
-    desired_opus_model="global.anthropic.claude-opus-4-8[1m]"
+    desired_opus_model="global.anthropic.claude-opus-5[1m]"
   else
-    desired_opus_model="global.anthropic.claude-opus-4-8"
+    desired_opus_model="global.anthropic.claude-opus-5"
   fi
 
   local profile_changed=false region_changed=false auth_changed=false model_changed=false
@@ -170,7 +170,7 @@ _update_bedrock_credentials() {
       .awsAuthRefresh = ("aws sso login " + (if $wsl then "--no-browser " else "" end) + "--profile " + $eff_p)
     else . end |
     if $mc   then
-      (if $lctx then "global.anthropic.claude-opus-4-8[1m]"   else "global.anthropic.claude-opus-4-8"   end) as $opus   |
+      (if $lctx then "global.anthropic.claude-opus-5[1m]"   else "global.anthropic.claude-opus-5"   end) as $opus   |
       (if $lctx then "global.anthropic.claude-sonnet-5[1m]" else "global.anthropic.claude-sonnet-5" end) as $sonnet |
       .env.ANTHROPIC_DEFAULT_OPUS_MODEL    = $opus   |
       .env.ANTHROPIC_DEFAULT_SONNET_MODEL  = $sonnet
@@ -238,7 +238,7 @@ _update_platform_credentials() {
     | .awsAuthRefresh = $auth
     | .env.CLAUDE_CODE_USE_ANTHROPIC_AWS = "1"
     | .env.ANTHROPIC_AWS_WORKSPACE_ID = $w
-    | .env.ANTHROPIC_DEFAULT_OPUS_MODEL   = "claude-opus-4-8"
+    | .env.ANTHROPIC_DEFAULT_OPUS_MODEL   = "claude-opus-5"
     | .env.ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-5"
     | .env.ANTHROPIC_DEFAULT_HAIKU_MODEL  = "claude-haiku-4-5"
     | del(.env.CLAUDE_CODE_USE_BEDROCK,

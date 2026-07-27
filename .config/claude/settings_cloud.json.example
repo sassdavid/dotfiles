@@ -4,7 +4,7 @@
   "env": {
     "ANTHROPIC_BEDROCK_SERVICE_TIER": "default",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "global.anthropic.claude-haiku-4-5-20251001-v1:0",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "global.anthropic.claude-opus-4-8[1m]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "global.anthropic.claude-opus-5[1m]",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "global.anthropic.claude-sonnet-5[1m]",
     "API_FORCE_IDLE_TIMEOUT": "0",
     "API_TIMEOUT_MS": "1800000",

@@ -250,6 +250,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     declare -A MISE_LANGUAGES_EXTRAS
   fi
 
+  if [[ "${MISE_LANGUAGES_SKIP+x}" ]]; then
+    [ -z "${MISE_LANGUAGES_SKIP}" ] && MISE_LANGUAGES_SKIP=()
+  else
+    MISE_LANGUAGES_SKIP=()
+  fi
+
   if [[ "${SCRIPTS_INSTALL+x}" ]]; then
     [ -z "${SCRIPTS_INSTALL}" ] && SCRIPTS_INSTALL=()
   else
@@ -349,6 +355,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     declare -A SUDOERS_ENTRIES_EXTRAS
   fi
 
+  if [[ "${SUDOERS_ENTRIES_SKIP+x}" ]]; then
+    [ -z "${SUDOERS_ENTRIES_SKIP}" ] && SUDOERS_ENTRIES_SKIP=()
+  else
+    SUDOERS_ENTRIES_SKIP=()
+  fi
+
   if [[ ! "${UDEV_RULES+x}" ]]; then
     unset UDEV_RULES
     declare -n UDEV_RULES=DEFAULT_UDEV_RULES
@@ -356,6 +368,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 
   if [[ ! "${UDEV_RULES_EXTRAS+x}" ]]; then
     declare -A UDEV_RULES_EXTRAS
+  fi
+
+  if [[ "${UDEV_RULES_SKIP+x}" ]]; then
+    [ -z "${UDEV_RULES_SKIP}" ] && UDEV_RULES_SKIP=()
+  else
+    UDEV_RULES_SKIP=()
   fi
 
   if [[ "${SYSTEMD_ENABLED_SERVICES+x}" ]]; then
@@ -368,6 +386,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     [ -z "${SYSTEMD_ENABLED_SERVICES_EXTRAS}" ] && SYSTEMD_ENABLED_SERVICES_EXTRAS=()
   else
     SYSTEMD_ENABLED_SERVICES_EXTRAS=()
+  fi
+
+  if [[ "${SYSTEMD_ENABLED_SERVICES_SKIP+x}" ]]; then
+    [ -z "${SYSTEMD_ENABLED_SERVICES_SKIP}" ] && SYSTEMD_ENABLED_SERVICES_SKIP=()
+  else
+    SYSTEMD_ENABLED_SERVICES_SKIP=()
   fi
 
   if [[ ! "${GIT_IDENTITIES+x}" ]]; then
@@ -711,6 +735,23 @@ _display_packages() {
     _package_display "Mise (default)" "${MISE_DARWIN[@]}"
     _package_display "Mise (extras)" "${MISE_DARWIN_EXTRAS[@]}"
   fi
+}
+
+_skip_associative_array() {
+  local -n assoc_target="${1}"
+  local -n assoc_skip="${2}"
+
+  declare -A skip_map
+
+  for key in "${assoc_skip[@]}"; do
+    skip_map["${key}"]=1
+  done
+
+  for key in "${!assoc_target[@]}"; do
+    if [[ -n "${skip_map[${key}]+x}" ]]; then
+      unset -v "assoc_target[${key}]"
+    fi
+  done
 }
 
 _skip_install_configs() {
@@ -1378,6 +1419,8 @@ install_programming_languages() {
     mise_languages["${key}"]="${MISE_LANGUAGES_EXTRAS[${key}]}"
   done
 
+  _skip_associative_array "mise_languages" "MISE_LANGUAGES_SKIP"
+
   if ((${#mise_languages[@]} == 0)); then
     _skipping "No languages set"
     return
@@ -1756,6 +1799,8 @@ configure_sudoers_entries() {
     sudoers_entries["${key}"]="${SUDOERS_ENTRIES_EXTRAS[${key}]}"
   done
 
+  _skip_associative_array "sudoers_entries" "SUDOERS_ENTRIES_SKIP"
+
   if ((${#sudoers_entries[@]} == 0)); then
     _skipping "No entries defined"
     return
@@ -1798,6 +1843,8 @@ configure_udev_rules() {
     udev_rules["${key}"]="${UDEV_RULES_EXTRAS[${key}]}"
   done
 
+  _skip_associative_array "udev_rules" "UDEV_RULES_SKIP"
+
   if ((${#udev_rules[@]} == 0)); then
     _skipping "No rules defined"
     return
@@ -1831,6 +1878,24 @@ configure_systemd_services() {
     "${SYSTEMD_ENABLED_SERVICES[@]}"
     "${SYSTEMD_ENABLED_SERVICES_EXTRAS[@]}"
   )
+
+  # Filter out skipped services by matching the service name (first word).
+  if ((${#SYSTEMD_ENABLED_SERVICES_SKIP[@]} > 0)); then
+    declare -A services_skip_map
+    for item in "${SYSTEMD_ENABLED_SERVICES_SKIP[@]}"; do
+      services_skip_map["${item}"]=1
+    done
+
+    local services_filtered=()
+    for item in "${services[@]}"; do
+      local service_name="${item%% *}"
+      if [[ -z "${services_skip_map[${service_name}]+x}" ]]; then
+        services_filtered+=("${item}")
+      fi
+    done
+
+    services=("${services_filtered[@]}")
+  fi
 
   if ((${#services[@]} == 0)); then
     _skipping "No services defined"
@@ -2164,7 +2229,9 @@ configure_gui_app_themes() {
     return
   fi
 
-  if [[ " ${PACKAGES_PACMAN_GUI[*]} " == *" firefox "* ]]; then
+  local packages=("${PACKAGES_PACMAN_GUI[@]}" "${PACKAGES_PACMAN_GUI_EXTRAS[@]}")
+
+  if [[ " ${packages[*]} " == *" firefox "* ]]; then
     local firefox_config_base_dir=
     local firefox_modified="0"
 
@@ -2206,6 +2273,28 @@ configure_gui_app_themes() {
     _skipping "Firefox is not installed"
   fi
 
+  if [[ " ${packages[*]} " == *" chromium "* ]]; then
+    local chromium_config="${XDG_CONFIG_HOME}/chromium/Default/Preferences"
+    local chromium_modified="0"
+
+    if [ -f "${chromium_config}" ]; then
+      if grep --fixed-strings --quiet '"system_theme":0' "${chromium_config}"; then
+        sed -i 's/"system_theme":0/"system_theme":1/g' "${chromium_config}"
+        chromium_modified="1"
+      fi
+
+      if [ "${chromium_modified}" == "1" ]; then
+        echo "'${chromium_config}' updated to use the system theme"
+      else
+        _skipping "'${chromium_config}' already set to the system theme"
+      fi
+    else
+      _warning "Chromium was never run manually, cannot modify user config, launch + close Chromium then re-run dotfriedrice"
+    fi
+  else
+    _skipping "Chromium is not installed"
+  fi
+
   local gimp_latest_version=
   local gimp_modified="0"
 
@@ -2214,7 +2303,7 @@ configure_gui_app_themes() {
     sort --version-sort |
     tail -n 1 || true)
 
-  if [[ " ${PACKAGES_PACMAN_GUI[*]} " == *" gimp "* ]]; then
+  if [[ " ${packages[*]} " == *" gimp "* ]]; then
     local gimp_config="${XDG_CONFIG_HOME}/GIMP/${gimp_latest_version}/gimprc"
 
     if [ -f "${gimp_config}" ]; then
