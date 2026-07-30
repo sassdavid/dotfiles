@@ -11,7 +11,8 @@
   },
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
   },
   "statusLine": {
     "type": "command",
@@ -37,6 +38,5 @@
   "feedbackSurveyRate": 0,
   "effortLevel": "high",
   "tui": "fullscreen",
-  "theme": "dark",
-  "model": "sonnet"
+  "theme": "dark"
 }

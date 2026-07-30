@@ -4,7 +4,25 @@ input=$(cat)
 
 # Single jq call to extract all fields at once
 eval "$(echo "$input" | jq -r '
+  # Cache-hit ratio is computed here rather than in shell so the status line
+  # keeps working without a bc dependency (same reason as COST_NONZERO below).
+  (.context_window.current_usage // {}) as $u |
+  (($u.input_tokens // 0) + ($u.cache_read_input_tokens // 0)
+     + ($u.cache_creation_input_tokens // 0)) as $prompt_tokens |
   @sh "MODEL=\(.model.display_name)",
+  @sh "MODEL_ID=\(.model.id // "")",
+  @sh "FAST_MODE=\(.fast_mode // false)",
+  @sh "THINKING=\(.thinking.enabled // false)",
+  @sh "CACHE_PCT=\(if $prompt_tokens > 0
+                   then (($u.cache_read_input_tokens // 0) * 100 / $prompt_tokens | floor)
+                   else -1 end)",
+  # Prompt size re-sent every turn — the actual cost driver. 1M-capable models
+  # bill beyond 200k at the standard per-token rate (no long-context premium),
+  # so the absolute number matters more than crossing any threshold.
+  @sh "PROMPT_TOKENS=\(if $prompt_tokens >= 1000
+                       then (($prompt_tokens / 1000 | floor | tostring) + "k")
+                       elif $prompt_tokens > 0 then ($prompt_tokens | tostring)
+                       else "" end)",
   @sh "CURRENT_DIR=\(.workspace.current_dir)",
   @sh "SESSION_ID=\(.session_id // "default")",
   @sh "COST_TOTAL=\(.cost.total_cost_usd // 0)",
@@ -97,7 +115,18 @@ fi
 
 MODEL_DISPLAY="${CYAN}[${MODEL}"
 [ -n "$EFFORT_LEVEL" ] && MODEL_DISPLAY="${MODEL_DISPLAY} · ${EFFORT_LEVEL}"
+[ "$THINKING" = "true" ] && MODEL_DISPLAY="${MODEL_DISPLAY} · ⚡thk"
+[ "$FAST_MODE" = "true" ] && MODEL_DISPLAY="${MODEL_DISPLAY} · fast"
 MODEL_DISPLAY="${MODEL_DISPLAY}]${RESET}"
+
+# Bedrock application inference profile badge: proves at a glance that the
+# session is billing through a MAP-attributed profile rather than a plain
+# system-defined one. Only ever present on the bedrock-app claude_switch mode.
+case "$MODEL_ID" in
+*application-inference-profile/*)
+  MODEL_DISPLAY="${MODEL_DISPLAY} ${DIM}⧉${MODEL_ID##*/}${RESET}"
+  ;;
+esac
 
 # Custom session name (set via --name or /rename); absent otherwise
 SESSION_LABEL=""
@@ -177,7 +206,34 @@ else
 fi
 
 LINE2="${BAR_COLOR}${BAR}${RESET} ${PCT}% ${DIM}${CTX_LABEL}${RESET}"
-[ "$EXCEEDS_200K" = "true" ] && LINE2="${LINE2} ${RED}>200k${RESET}"
+# Prompt size actually re-sent each turn, so a growing session is visible as a
+# number rather than inferred from the percentage.
+[ -n "$PROMPT_TOKENS" ] && LINE2="${LINE2} ${DIM}·${PROMPT_TOKENS}${RESET}"
+
+# Graded rather than binary: on a 200K model this means compaction is imminent,
+# which is a problem. On a 1M model there is no long-context price premium
+# (Claude 4.6+ bill beyond 200k at the standard rate), so it is informational —
+# large context still costs more in absolute terms because it is re-sent each turn.
+if [ "$EXCEEDS_200K" = "true" ]; then
+  if [ "$CONTEXT_SIZE" -lt 900000 ]; then
+    LINE2="${LINE2} ${RED}>200k${RESET}"
+  else
+    LINE2="${LINE2} ${YELLOW}>200k${RESET}"
+  fi
+fi
+
+# Prompt-cache hit ratio: makes ENABLE_PROMPT_CACHING_1H observable instead of
+# assumed. -1 means no prompt tokens counted yet (first turn).
+if [ "$CACHE_PCT" -ge 0 ]; then
+  if [ "$CACHE_PCT" -ge 70 ]; then
+    CACHE_COLOR="$GREEN"
+  elif [ "$CACHE_PCT" -ge 30 ]; then
+    CACHE_COLOR="$YELLOW"
+  else
+    CACHE_COLOR="$DIM"
+  fi
+  LINE2="${LINE2} ${DIM}|${RESET} ${CACHE_COLOR}cache ${CACHE_PCT}%${RESET}"
+fi
 
 # Cost (only if > 0; comparison done in the jq pass to avoid a bc dependency)
 if [ "$COST_NONZERO" = "1" ]; then

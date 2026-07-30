@@ -4,21 +4,24 @@
 # shellcheck shell=bash
 
 #USAGE name "claude_switch"
-#USAGE about "Switch the active Claude Code settings profile.\n\nUses ~/.claude/settings.json as a symlink pointing to the active profile.\nSettings live in the dotfriedrice repo under .config/claude/:\n  settings_personal.json         — tracked, no secrets\n  settings_bedrock.json.local    — gitignored; Amazon Bedrock (AWS-operated) creds\n  settings_platform.json.local   — gitignored; Claude Platform on AWS (Anthropic-operated) creds + workspace id\n  settings_cloud.json.example    — tracked shared template; bootstraps both .local files"
+#USAGE about "Switch the active Claude Code settings profile.\n\nUses ~/.claude/settings.json as a symlink pointing to the active profile.\nSettings live in the dotfriedrice repo under .config/claude/:\n  settings_personal.json          — tracked, no secrets\n  settings_bedrock.json.local     — gitignored; Amazon Bedrock via system-defined (global.*) inference profiles\n  settings_bedrock_app.json.local — gitignored; Amazon Bedrock via application inference profile ARNs (cost attribution)\n  settings_platform.json.local    — gitignored; Claude Platform on AWS (Anthropic-operated) creds + workspace id\n  settings_cloud.json.example     — tracked shared template; bootstraps the .local files\n  models.json                     — tracked model table shared by both bedrock modes"
 #USAGE arg "[mode]" help="Profile to activate (default: status)" default="status" {
-#USAGE   choices "personal" "bedrock" "platform" "status"
+#USAGE   choices "personal" "bedrock" "bedrock-app" "platform" "status"
 #USAGE }
-#USAGE flag "--profile <profile>"          help="AWS SSO profile name (required for bedrock/platform; updates .local if changed)"
-#USAGE flag "--region <region>"            help="AWS region (required for bedrock/platform; updates .local if changed)"
+#USAGE flag "--profile <profile>"          help="AWS SSO profile name (required for bedrock/bedrock-app/platform; updates .local if changed)"
+#USAGE flag "--region <region>"            help="AWS region (required for bedrock/bedrock-app/platform; updates .local if changed)"
 #USAGE flag "--workspace-id <workspace_id>" help="Claude Platform on AWS workspace id, wrkspc_… (required for platform only)"
-#USAGE flag "--wsl"                        help="Use --no-browser for AWS SSO login (WSL/headless; bedrock/platform only)"
-#USAGE flag "--no-long-context"            help="Disable 1M context (1M is the default): bedrock uses non-[1m] model variants, platform omits the context-1m anthropic-beta header (bedrock/platform only)"
+#USAGE flag "--wsl"                        help="Use --no-browser for AWS SSO login (WSL/headless; bedrock/bedrock-app/platform only)"
+#USAGE flag "--no-long-context"            help="Disable 1M context (1M is the default): bedrock modes use non-[1m] model variants, platform omits the context-1m anthropic-beta header"
+#USAGE flag "--mantle"                     help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; default on for bedrock, off for bedrock-app so every request stays attributed to an application inference profile)"
+#USAGE flag "--no-mantle"                  help="Disable the Mantle endpoint (bedrock/bedrock-app)"
 #USAGE example "claude_switch personal"                                                                                           header="Switch to personal subscription"
-#USAGE example "claude_switch bedrock --profile loxon-generative-ai --region us-west-2"                                            header="Switch to Amazon Bedrock (1M context by default; bootstraps .local if missing)"
-#USAGE example "claude_switch bedrock --profile loxon-generative-ai --region us-west-2 --wsl --no-long-context"                    header="Switch to Amazon Bedrock with WSL login and standard 200K context"
-#USAGE example "claude_switch platform --profile loxon-generative-ai --region us-west-2 --workspace-id wrkspc_01ABCDEF"            header="Switch to Claude Platform on AWS (1M context by default)"
-#USAGE example "claude_switch platform --profile loxon-generative-ai --region us-west-2 --workspace-id wrkspc_01ABCDEF --no-long-context" header="Switch to Claude Platform on AWS with standard 200K context"
-#USAGE example "claude_switch status"                                                                                             header="Show current active profile"
+#USAGE example "claude_switch bedrock --profile loxon-generative-ai-bedrock-opus --region us-west-2"                              header="Switch to Amazon Bedrock via global.* inference profiles (1M context by default)"
+#USAGE example "claude_switch bedrock-app --profile loxon-generative-ai --region us-west-2"                                       header="Switch to Amazon Bedrock via application inference profile ARNs (cost attribution)"
+#USAGE example "claude_switch bedrock-app --profile loxon-generative-ai --region us-west-2 --mantle"                              header="Same, but keep the Mantle endpoint reachable alongside the Invoke API"
+#USAGE example "claude_switch bedrock --profile loxon-generative-ai --region us-west-2 --wsl --no-long-context"                   header="Switch to Amazon Bedrock with WSL login and standard 200K context"
+#USAGE example "claude_switch platform --profile loxon-generative-ai --region us-west-2 --workspace-id wrkspc_01ABCDEF"           header="Switch to Claude Platform on AWS (1M context by default)"
+#USAGE example "claude_switch status"                                                                                            header="Show current active profile"
 
 set -o errexit
 set -o pipefail
@@ -28,8 +31,74 @@ dotfriedrice_claude="${DOTFRIEDRICE_PATH:-${HOME}/src/github/dotfriedrice}/.conf
 target="${HOME}/.claude/settings.json"
 personal="${dotfriedrice_claude}/settings_personal.json"
 bedrock="${dotfriedrice_claude}/settings_bedrock.json.local"
+bedrock_app="${dotfriedrice_claude}/settings_bedrock_app.json.local"
 platform="${dotfriedrice_claude}/settings_platform.json.local"
 cloud_example="${dotfriedrice_claude}/settings_cloud.json.example"
+models_table="${dotfriedrice_claude}/models.json"
+
+# Claude Code rewrites the settings file in its own schema key order whenever a
+# setting is changed in-session (/model, /config, …). Matching that order is what
+# keeps a generated file byte-stable across an in-app edit — an alphabetical sort
+# looks tidy but gets reshuffled the first time the model is switched, so every
+# later diff shows phantom key moves.
+#
+# The file being edited is the authority: whatever order it already has is, by
+# definition, the order the app last wrote. So reorder() preserves existing keys
+# where they are and only consults the reference list below to place keys this
+# script ADDS (modelOverrides, fallbackModel, …), which have no position yet.
+# Net effect: a new key introduced by a future Claude Code version keeps whatever
+# slot the app gave it, with no edit here.
+#
+# Two oracles were tested and rejected as the source for this list: the
+# schemastore.org schema the files reference is community-maintained and its
+# document order does not match the app (it puts model 16th and fallbackModel
+# 89th), and no claude subcommand reformats a settings file, so the app cannot be
+# invoked as a canonicaliser. This list is therefore read out of the schema key
+# table in the Claude Code binary (verified against 2.1.220). It only has to cover
+# the handful of keys this script writes itself — everything else is positioned by
+# the file, so this does not need updating when Claude Code adds a setting.
+# shellcheck disable=SC2016  # "$schema" is a JSON key, not a shell expansion
+settings_key_order='[
+  "$schema", "apiKeyHelper", "awsCredentialExport", "awsAuthRefresh",
+  "gcpAuthRefresh", "env", "attribution", "includeCoAuthoredBy", "permissions",
+  "fallbackModel", "modelOverrides", "statusLine", "subagentStatusLine",
+  "enabledPlugins", "extraKnownMarketplaces", "feedbackSurveyRate",
+  "effortLevel", "tui", "theme", "model"
+]'
+
+# Places $added keys relative to keys the file already has, without disturbing
+# the existing ones. For each new key, $ref gives its rank; it lands just after
+# the last existing key that outranks it, which is where the app would put it.
+# A key with no $ref entry, or one added after every known key, goes to the end.
+# Idempotent: with nothing new to add, the input order is returned unchanged.
+# shellcheck disable=SC2016  # "$ref" is a jq parameter, not a shell expansion
+settings_reorder_jq='
+  # Insert $k into the key list so it follows the last key that outranks it.
+  def _insert($ref; $k):
+    ($ref | index($k)) as $rank
+    | if $rank == null then . + [$k]
+      else
+        [ to_entries[]
+          | .key as $i
+          | .value as $existing
+          | ($ref | index($existing)) as $r
+          | select($r != null and $r < $rank)
+          | $i ] as $before
+        | ( if ($before | length) == 0 then 0 else ($before | max) + 1 end ) as $at
+        | .[0:$at] + [$k] + .[$at:]
+      end;
+
+  # $prior is the key order the file had on entry — i.e. the order Claude Code
+  # itself last wrote. Those keys keep their relative positions verbatim. Only
+  # keys absent from $prior (the ones this script just added) are placed via $ref.
+  def reorder($ref; $prior):
+    . as $obj
+    | ($obj | keys_unsorted) as $have
+    | ($prior | map(select(IN($have[])))) as $kept
+    | reduce ($have | map(select(IN($prior[]) | not)))[] as $k
+        ($kept; _insert($ref; $k))
+    | reduce .[] as $k ({}; .[$k] = $obj[$k]);
+'
 
 mode="${usage_mode:-status}"
 aws_profile="${usage_profile:-}"
@@ -37,6 +106,8 @@ aws_region="${usage_region:-}"
 workspace_id="${usage_workspace_id:-}"
 use_wsl="${usage_wsl:-}"
 use_no_long_context="${usage_no_long_context:-}"
+use_mantle="${usage_mantle:-}"
+use_no_mantle="${usage_no_mantle:-}"
 
 # 1M context is the default; --no-long-context opts down to standard 200K.
 if [[ -n "${use_no_long_context}" ]]; then
@@ -50,6 +121,24 @@ _status() {
     real="$(readlink "${target}")"
     case "${real}" in
     *personal*) echo "current: personal" ;;
+    # Must precede the *bedrock* arm: the app filename also contains "bedrock".
+    *bedrock_app*)
+      local aws_prof auth_refresh opus_model opus_name tags
+      aws_prof="$(jq -r '.env.AWS_PROFILE // ""' "${real}" 2>/dev/null)"
+      auth_refresh="$(jq -r '.awsAuthRefresh // ""' "${real}" 2>/dev/null)"
+      opus_model="$(jq -r '.env.ANTHROPIC_DEFAULT_OPUS_MODEL // ""' "${real}" 2>/dev/null)"
+      opus_name="$(jq -r '.env.ANTHROPIC_DEFAULT_OPUS_MODEL_NAME // ""' "${real}" 2>/dev/null)"
+      tags=""
+      [[ "${auth_refresh}" == *"--no-browser"* ]] && tags+=" [wsl]"
+      [[ "${opus_model}" == *"[1m]"* ]] && tags+=" [1m]"
+      [[ "$(jq -r '.env.CLAUDE_CODE_USE_MANTLE // ""' "${real}" 2>/dev/null)" == "1" ]] && tags+=" [mantle]"
+      [[ -n "${opus_name}" ]] && tags+=" ${opus_name}"
+      if [[ -n "${aws_prof}" ]]; then
+        printf 'current: bedrock-app (%s)%s\n' "${aws_prof}" "${tags}"
+      else
+        printf 'current: bedrock-app%s\n' "${tags}"
+      fi
+      ;;
     *bedrock*)
       local aws_prof auth_refresh opus_model tags
       aws_prof="$(jq -r '.env.AWS_PROFILE // ""' "${real}" 2>/dev/null)"
@@ -81,48 +170,67 @@ _status() {
     *) echo "current: unknown → ${real}" ;;
     esac
   elif [[ ! -e "${target}" ]]; then
-    printf 'No active profile: %s does not exist\nRun: claude_switch bedrock|personal\n' "${target}" >&2
+    printf 'No active profile: %s does not exist\nRun: claude_switch bedrock|bedrock-app|personal\n' "${target}" >&2
   else
-    printf 'No active profile: %s is not a symlink\nRun: claude_switch bedrock|personal\n' "${target}" >&2
+    printf 'No active profile: %s is not a symlink\nRun: claude_switch bedrock|bedrock-app|personal\n' "${target}" >&2
   fi
 }
 
-_bootstrap_bedrock() {
-  if [[ ! -f "${bedrock}" ]]; then
+_bootstrap() {
+  local file="${1}"
+  if [[ ! -f "${file}" ]]; then
     if [[ ! -f "${cloud_example}" ]]; then
       printf 'Error: example file not found: %s\n' "${cloud_example}" >&2
       exit 1
     fi
-    cp "${cloud_example}" "${bedrock}"
-    printf 'Bootstrapped %s from example\n' "${bedrock}"
+    cp "${cloud_example}" "${file}"
+    printf 'Bootstrapped %s from example\n' "${file}"
   fi
 }
 
-_bootstrap_platform() {
-  if [[ ! -f "${platform}" ]]; then
-    if [[ ! -f "${cloud_example}" ]]; then
-      printf 'Error: example file not found: %s\n' "${cloud_example}" >&2
-      exit 1
-    fi
-    cp "${cloud_example}" "${platform}"
-    printf 'Bootstrapped %s from example\n' "${platform}"
+# Resolves the account's ACTIVE application inference profiles into a JSON object
+# keyed by the backing foundation-model ID, which is what models.json joins on:
+#   { "anthropic.claude-opus-5": { "name": "map-opus-5", "arn": "arn:…" }, … }
+# Keying on the backing model rather than the profile name means renaming a
+# profile in Terraform cannot silently break the mapping. Prints "{}" and warns
+# when AWS is unreachable, so an expired SSO session never blocks the switch.
+_discover_app_profiles() {
+  local profile="${1}" region="${2}" out
+  if ! out="$(aws bedrock list-inference-profiles \
+    --type-equals APPLICATION \
+    --profile "${profile}" \
+    --region "${region}" \
+    --output json 2>/dev/null)"; then
+    printf 'Warning: could not list application inference profiles (profile %s, region %s).\n' \
+      "${profile}" "${region}" >&2
+    printf '         Leaving the existing model configuration untouched. Log in with aws sso and retry: aws sso login --profile %s\n' \
+      "${profile}" >&2
+    echo '{}'
+    return 0
   fi
+  jq -c '[ .inferenceProfileSummaries[]
+           | select(.status == "ACTIVE")
+           | { key:   (.models[0].modelArn | split("/") | last),
+               value: { name: .inferenceProfileName, arn: .inferenceProfileArn } } ]
+         | from_entries' <<<"${out}"
 }
 
+# The single place both bedrock modes derive their settings, so they cannot
+# drift: identical credential handling, identical env keys, identical model
+# table. Only the value each model ID maps to differs — a system-defined
+# global.* profile ID for `bedrock`, an application inference profile ARN for
+# `bedrock-app`.
 _update_bedrock_credentials() {
-  local file="${1}" profile="${2}" region="${3}" wsl="${4}" long_context="${5}"
+  local file="${1}" profile="${2}" region="${3}" wsl="${4}" lctx="${5}"
+  local mode="${6}" arn_json="${7}" mantle="${8}"
 
-  local current_profile current_region current_auth_refresh current_opus_model
+  local current_profile current_region current_auth_refresh
   current_profile="$(jq -r '.env.AWS_PROFILE // ""' "${file}")"
   current_region="$(jq -r '.env.AWS_REGION // ""' "${file}")"
   current_auth_refresh="$(jq -r '.awsAuthRefresh // ""' "${file}")"
-  current_opus_model="$(jq -r '.env.ANTHROPIC_DEFAULT_OPUS_MODEL // ""' "${file}")"
 
   local effective_profile="${profile:-${current_profile}}"
-
-  # The bedrock profile deliberately carries no availableModels/modelOverrides:
-  # the /model picker derives rows straight from the ANTHROPIC_DEFAULT_*_MODEL
-  # pins, so this updater manages only credentials and the model pins.
+  local effective_region="${region:-${current_region}}"
 
   local desired_auth_refresh
   if [[ "${wsl}" == "true" ]]; then
@@ -131,22 +239,13 @@ _update_bedrock_credentials() {
     desired_auth_refresh="aws sso login --profile ${effective_profile}"
   fi
 
-  local desired_opus_model
-  if [[ "${long_context}" == "true" ]]; then
-    desired_opus_model="global.anthropic.claude-opus-5[1m]"
-  else
-    desired_opus_model="global.anthropic.claude-opus-5"
-  fi
-
-  local profile_changed=false region_changed=false auth_changed=false model_changed=false
-  [[ -n "${profile}" && "${current_profile}" != "${profile}" ]] && profile_changed=true
-  [[ -n "${region}" && "${current_region}" != "${region}" ]] && region_changed=true
-  [[ "${current_auth_refresh}" != "${desired_auth_refresh}" ]] && auth_changed=true
-  [[ "${current_opus_model}" != "${desired_opus_model}" ]] && model_changed=true
-
-  if [[ "${profile_changed}" == "false" && "${region_changed}" == "false" &&
-    "${auth_changed}" == "false" && "${model_changed}" == "false" ]]; then
-    return 0
+  # A failed discovery yields {}. Credentials and provider routing do not depend
+  # on it, so still apply those — they are usually what the user came to fix —
+  # and leave the existing model config alone rather than wiping it.
+  local apply_models="true"
+  if [[ "${mode}" == "bedrock-app" && "${arn_json}" == "{}" ]]; then
+    apply_models="false"
+    printf 'Keeping existing model config: no application inference profiles resolved\n' >&2
   fi
 
   local tmp
@@ -154,47 +253,154 @@ _update_bedrock_credentials() {
   # shellcheck disable=SC2064
   trap "rm -f '${tmp}'" RETURN
 
-  jq --arg p "${profile}" \
-    --arg r "${region}" \
-    --arg cp "${current_profile}" \
-    --argjson pc "${profile_changed}" \
-    --argjson rc "${region_changed}" \
-    --argjson ac "${auth_changed}" \
-    --argjson mc "${model_changed}" \
-    --argjson wsl "${wsl}" \
-    --argjson lctx "${long_context}" '
-    (if $p != "" then $p else $cp end) as $eff_p |
-    if $pc   then .env.AWS_PROFILE = $p else . end |
-    if $rc   then .env.AWS_DEFAULT_REGION = $r | .env.AWS_REGION = $r else . end |
-    if $ac   then
-      .awsAuthRefresh = ("aws sso login " + (if $wsl then "--no-browser " else "" end) + "--profile " + $eff_p)
-    else . end |
-    if $mc   then
-      (if $lctx then "global.anthropic.claude-opus-5[1m]"   else "global.anthropic.claude-opus-5"   end) as $opus   |
-      (if $lctx then "global.anthropic.claude-sonnet-5[1m]" else "global.anthropic.claude-sonnet-5" end) as $sonnet |
-      .env.ANTHROPIC_DEFAULT_OPUS_MODEL    = $opus   |
-      .env.ANTHROPIC_DEFAULT_SONNET_MODEL  = $sonnet
-    else . end
-    | .env |= (to_entries | sort_by(.key) | from_entries)
-  ' "${file}" >"${tmp}" && mv "${tmp}" "${file}"
+  jq --slurpfile table "${models_table}" \
+    --argjson arns "${arn_json}" \
+    --arg mode "${mode}" \
+    --argjson lctx "${lctx}" \
+    --argjson mantle "${mantle}" \
+    --argjson applyModels "${apply_models}" \
+    --argjson keyOrder "${settings_key_order}" \
+    --arg p "${effective_profile}" \
+    --arg r "${effective_region}" \
+    --arg auth "${desired_auth_refresh}" "${settings_reorder_jq}"'
+    # Captured before any mutation, so it reflects how Claude Code last wrote the
+    # file; reorder() uses it to leave those keys exactly where they are.
+    (keys_unsorted) as $prior
+    | ($table[0].models) as $all
+    | ( if $mode == "bedrock-app"
+        then [ $all[]
+               | select(.foundationModel != null and $arns[.foundationModel] != null)
+               | . + { value:   $arns[.foundationModel].arn,
+                       profile: $arns[.foundationModel].name } ]
+        else [ $all[]
+               | select(.bedrock != null)
+               | . + { value: .bedrock, profile: "" } ]
+        end
+      ) as $sel
+    | ( $sel | sort_by(.family, .rank) ) as $sorted
+    | ( $sorted | group_by(.family) | map(min_by(.rank)) ) as $winners
+    | ( $sorted | map(select(.family == "opus")) ) as $opus
+    | ( $winners | map(select(.family == "sonnet")) ) as $sonnet
+    | ( $sel | map({ key: .id, value: .value }) | from_entries ) as $overrides
+    | [ ($opus[1].id // empty), ($sonnet[0].id // empty) ] as $fallback
 
-  if "${profile_changed}"; then printf 'Updated AWS_PROFILE       → %s\n' "${profile}"; fi
-  if "${region_changed}"; then printf 'Updated AWS_REGION        → %s\n' "${region}"; fi
-  if "${auth_changed}"; then
+    # --- credentials ---
+    | .env.AWS_PROFILE = $p
+    | .env.AWS_REGION = $r
+    | .env.AWS_DEFAULT_REGION = $r
+    | .awsAuthRefresh = $auth
+
+    # --- provider routing ---
+    # CLAUDE_CODE_ENABLE_AUTO_MODE has had no effect since v2.1.207; auto mode is
+    # on by default on every provider. The platform-only keys are deleted so a
+    # file bootstrapped from a sibling profile converges to this shape.
+    | .env.CLAUDE_CODE_USE_BEDROCK = "1"
+    | if $mantle then .env.CLAUDE_CODE_USE_MANTLE = "1"
+                 else del(.env.CLAUDE_CODE_USE_MANTLE) end
+    | del(.env.CLAUDE_CODE_ENABLE_AUTO_MODE,
+          .env.CLAUDE_CODE_USE_ANTHROPIC_AWS,
+          .env.ANTHROPIC_AWS_WORKSPACE_ID,
+          .env.ANTHROPIC_BETAS)
+
+    # --- models ---
+    # Skipped wholesale when discovery failed, so a transient AWS outage cannot
+    # wipe a working model config while still letting credentials be repaired.
+    | if $applyModels then
+        # Clear every pin first so a family dropped from models.json, or the
+        # display companions left behind by the other bedrock mode, cannot
+        # survive a switch.
+        (.env |= with_entries(select(.key | startswith("ANTHROPIC_DEFAULT_") | not)))
+        | reduce $winners[] as $w (.;
+            ("ANTHROPIC_DEFAULT_" + ($w.family | ascii_upcase) + "_MODEL") as $k
+            | .env[$k] = ($w.value + (if ($lctx and $w.longContext) then "[1m]" else "" end))
+            # Display names are set in both modes so the /model picker reads the
+            # same way on either: without them the row shows the raw provider ID.
+            | .env[$k + "_NAME"] = (if $mode == "bedrock-app"
+                                    then $w.id + " (" + $w.profile + ")"
+                                    else $w.id end)
+            | .env[$k + "_DESCRIPTION"] = (if $mode == "bedrock-app"
+                                           then "Bedrock application inference profile " + $w.profile
+                                           else "Bedrock system-defined inference profile " + $w.value end)
+            # _SUPPORTED_CAPABILITIES is deliberately bedrock-app only. Setting it
+            # REPLACES built-in detection with this static list, so it belongs
+            # only where detection cannot work: an application profile ARN
+            # carries no model name. A global.anthropic.claude-* ID does, so
+            # detection handles it and stays correct as capabilities evolve.
+            | if $mode == "bedrock-app"
+              then .env[$k + "_SUPPORTED_CAPABILITIES"] = $w.capabilities
+              else . end
+          )
+        | (if ($overrides | length) > 0 then .modelOverrides = $overrides
+                                        else del(.modelOverrides) end)
+        # Fallback targets are Anthropic model IDs so they resolve through
+        # modelOverrides and stay attributed to a profile.
+        | (if ($fallback | length) > 0 then .fallbackModel = $fallback
+                                       else del(.fallbackModel) end)
+      else . end
+    # env sorts alphabetically — that is how Claude Code leaves it too, and it
+    # keeps a ~30-key block readable. The top level instead follows the app schema
+    # order, so an in-app /model change does not reshuffle the file. Both are
+    # needed: without them, jq appends new keys (modelOverrides, fallbackModel)
+    # wherever the last write left off, so layout would depend on write history.
+    | .env |= (to_entries | sort_by(.key) | from_entries)
+    | reorder($keyOrder; $prior)
+  ' "${file}" >"${tmp}"
+
+  if cmp -s "${tmp}" "${file}"; then
+    printf 'Settings already up to date in %s\n' "${file}"
+    return 0
+  fi
+  mv "${tmp}" "${file}"
+
+  [[ "${current_profile}" != "${effective_profile}" ]] &&
+    printf 'Updated AWS_PROFILE       → %s\n' "${effective_profile}"
+  [[ "${current_region}" != "${effective_region}" ]] &&
+    printf 'Updated AWS_REGION        → %s\n' "${effective_region}"
+  if [[ "${current_auth_refresh}" != "${desired_auth_refresh}" ]]; then
     if [[ "${wsl}" == "true" ]]; then
       printf 'Updated awsAuthRefresh    → headless (--no-browser)\n'
     else
       printf 'Updated awsAuthRefresh    → standard\n'
     fi
   fi
-  if "${model_changed}"; then
-    if [[ "${long_context}" == "true" ]]; then
-      printf 'Updated models            → 1M-context [1m] variants\n'
-    else
-      printf 'Updated models            → standard variants\n'
-    fi
+
+  if [[ "${apply_models}" == "true" ]]; then
+    local ctx_note="200K context"
+    [[ "${lctx}" == "true" ]] && ctx_note="1M context where supported"
+    printf 'Updated models            → %s versions via modelOverrides, %s\n' \
+      "$(jq -r '.modelOverrides // {} | length' "${file}")" "${ctx_note}"
+    jq -r '.env
+         | to_entries
+         | map(select(.key | test("^ANTHROPIC_DEFAULT_[A-Z]+_MODEL$")))
+         | .[]
+         | "  " + (.key | ltrimstr("ANTHROPIC_DEFAULT_") | rtrimstr("_MODEL") | ascii_downcase)
+                + " → " + .value' "${file}"
   fi
   printf 'Settings updated in %s\n' "${file}"
+  return 0
+}
+
+# Reports drift in both directions so a model added in Terraform but missing
+# from models.json (or vice versa) is visible rather than silently dropped.
+_report_model_coverage() {
+  local arn_json="${1}"
+  [[ "${arn_json}" == "{}" ]] && return 0
+
+  local missing extra
+  missing="$(jq -r --argjson arns "${arn_json}" '
+    [ .models[] | select($arns[.foundationModel] == null) | .id ] | join(", ")
+  ' "${models_table}")"
+  extra="$(jq -r --slurpfile table "${models_table}" '
+    [ to_entries[]
+      | select(.key as $fm | ($table[0].models | map(.foundationModel) | index($fm)) == null)
+      | .value.name ] | join(", ")
+  ' <<<"${arn_json}")"
+
+  [[ -n "${missing}" ]] &&
+    printf 'Note: no application inference profile for: %s (add one in Terraform to route it)\n' "${missing}"
+  [[ -n "${extra}" ]] &&
+    printf 'Note: application profiles with no models.json row: %s (add a row to expose them)\n' "${extra}"
+  return 0
 }
 
 # Transforms a (possibly bedrock-shaped) settings file into Claude Platform on
@@ -231,17 +437,23 @@ _update_platform_credentials() {
     --arg r "${region}" \
     --arg w "${wid}" \
     --arg auth "${desired_auth_refresh}" \
-    --arg betas "${desired_betas}" '
-    .env.AWS_PROFILE = $p
+    --argjson keyOrder "${settings_key_order}" \
+    --arg betas "${desired_betas}" "${settings_reorder_jq}"'
+    (keys_unsorted) as $prior
+    | .env.AWS_PROFILE = $p
     | .env.AWS_REGION = $r
     | .env.AWS_DEFAULT_REGION = $r
     | .awsAuthRefresh = $auth
     | .env.CLAUDE_CODE_USE_ANTHROPIC_AWS = "1"
     | .env.ANTHROPIC_AWS_WORKSPACE_ID = $w
+    | .env |= with_entries(select(.key | startswith("ANTHROPIC_DEFAULT_") | not))
     | .env.ANTHROPIC_DEFAULT_OPUS_MODEL   = "claude-opus-5"
     | .env.ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-5"
     | .env.ANTHROPIC_DEFAULT_HAIKU_MODEL  = "claude-haiku-4-5"
-    | del(.env.CLAUDE_CODE_USE_BEDROCK,
+    | .env.ANTHROPIC_DEFAULT_FABLE_MODEL  = "claude-fable-5"
+    | del(.modelOverrides,
+          .fallbackModel,
+          .env.CLAUDE_CODE_USE_BEDROCK,
           .env.CLAUDE_CODE_USE_MANTLE,
           .env.CLAUDE_CODE_ENABLE_AUTO_MODE,
           .env.ANTHROPIC_BEDROCK_SERVICE_TIER,
@@ -249,6 +461,7 @@ _update_platform_credentials() {
           .env.CLAUDE_ENABLE_BYTE_WATCHDOG_BEDROCK)
     | if $betas == "" then del(.env.ANTHROPIC_BETAS) else .env.ANTHROPIC_BETAS = $betas end
     | .env |= (to_entries | sort_by(.key) | from_entries)
+    | reorder($keyOrder; $prior)
   ' "${file}" >"${tmp}"
 
   if cmp -s "${tmp}" "${file}"; then
@@ -277,8 +490,19 @@ _update_platform_credentials() {
 }
 
 if [[ -n "${use_wsl}" || -n "${use_no_long_context}" ]] &&
-  [[ "${mode}" != "bedrock" && "${mode}" != "platform" ]]; then
-  printf 'Error: --wsl and --no-long-context are only supported for bedrock and platform modes\n' >&2
+  [[ "${mode}" != "bedrock" && "${mode}" != "bedrock-app" && "${mode}" != "platform" ]]; then
+  printf 'Error: --wsl and --no-long-context are only supported for bedrock, bedrock-app and platform modes\n' >&2
+  exit 1
+fi
+
+if [[ -n "${use_mantle}" && -n "${use_no_mantle}" ]]; then
+  printf 'Error: --mantle and --no-mantle are mutually exclusive\n' >&2
+  exit 1
+fi
+
+if [[ -n "${use_mantle}" || -n "${use_no_mantle}" ]] &&
+  [[ "${mode}" != "bedrock" && "${mode}" != "bedrock-app" ]]; then
+  printf 'Error: --mantle and --no-mantle are only supported for bedrock and bedrock-app modes\n' >&2
   exit 1
 fi
 
@@ -287,26 +511,25 @@ if [[ -n "${workspace_id}" && "${mode}" != "platform" ]]; then
   exit 1
 fi
 
-if [[ "${mode}" == "bedrock" ]]; then
+if [[ "${mode}" == "bedrock" || "${mode}" == "bedrock-app" || "${mode}" == "platform" ]]; then
   [[ -n "${aws_profile}" ]] || {
-    printf 'Error: --profile is required when switching to bedrock\n' >&2
+    printf 'Error: --profile is required when switching to %s\n' "${mode}" >&2
     exit 1
   }
   [[ -n "${aws_region}" ]] || {
-    printf 'Error: --region is required when switching to bedrock\n' >&2
+    printf 'Error: --region is required when switching to %s\n' "${mode}" >&2
+    exit 1
+  }
+fi
+
+if [[ "${mode}" == "bedrock" || "${mode}" == "bedrock-app" ]]; then
+  [[ -f "${models_table}" ]] || {
+    printf 'Error: model table not found: %s\n' "${models_table}" >&2
     exit 1
   }
 fi
 
 if [[ "${mode}" == "platform" ]]; then
-  [[ -n "${aws_profile}" ]] || {
-    printf 'Error: --profile is required when switching to platform\n' >&2
-    exit 1
-  }
-  [[ -n "${aws_region}" ]] || {
-    printf 'Error: --region is required when switching to platform\n' >&2
-    exit 1
-  }
   [[ -n "${workspace_id}" ]] || {
     printf 'Error: --workspace-id is required when switching to platform\n' >&2
     exit 1
@@ -323,14 +546,36 @@ personal)
   printf 'Switched to personal config\n'
   ;;
 bedrock)
-  _bootstrap_bedrock
+  _bootstrap "${bedrock}"
+  # Mantle defaults ON here: it is the escape hatch for models served only
+  # through the native-Anthropic-shape endpoint, and nothing in this mode is
+  # attributed to an application profile anyway.
+  mantle_flag="true"
+  [[ -n "${use_no_mantle}" ]] && mantle_flag="false"
   _update_bedrock_credentials "${bedrock}" "${aws_profile}" "${aws_region}" \
-    "${use_wsl:-false}" "${long_context}"
+    "${use_wsl:-false}" "${long_context}" "bedrock" "{}" "${mantle_flag}"
   ln -fns "${bedrock}" "${target}"
-  printf 'Switched to bedrock config\n'
+  printf 'Switched to bedrock config (system-defined inference profiles)\n'
+  ;;
+bedrock-app)
+  _bootstrap "${bedrock_app}"
+  app_profiles="$(_discover_app_profiles "${aws_profile}" "${aws_region}")"
+  # Mantle defaults OFF here so no request can take the Mantle path and escape
+  # application-inference-profile attribution.
+  mantle_flag="false"
+  [[ -n "${use_mantle}" ]] && mantle_flag="true"
+  _update_bedrock_credentials "${bedrock_app}" "${aws_profile}" "${aws_region}" \
+    "${use_wsl:-false}" "${long_context}" "bedrock-app" "${app_profiles}" "${mantle_flag}"
+  _report_model_coverage "${app_profiles}"
+  ln -fns "${bedrock_app}" "${target}"
+  printf 'Switched to bedrock-app config (application inference profiles)\n'
+  printf 'Reminder: invoking these ARNs needs bedrock:InvokeModel* on\n'
+  printf '          arn:aws:bedrock:*:<account>:application-inference-profile/*\n'
+  printf '          — the AWSBedrock{,Opus}UserAccessPolicy permission sets only\n'
+  printf '          allow inference-profile/*anthropic*, which does not match.\n'
   ;;
 platform)
-  _bootstrap_platform
+  _bootstrap "${platform}"
   _update_platform_credentials "${platform}" "${aws_profile}" "${aws_region}" \
     "${use_wsl:-false}" "${long_context}" "${workspace_id}"
   ln -fns "${platform}" "${target}"
