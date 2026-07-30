@@ -13,8 +13,8 @@
 #USAGE flag "--workspace-id <workspace_id>" help="Claude Platform on AWS workspace id, wrkspc_… (required for platform only)"
 #USAGE flag "--wsl"                        help="Use --no-browser for AWS SSO login (WSL/headless; bedrock/bedrock-app/platform only)"
 #USAGE flag "--no-long-context"            help="Disable 1M context (1M is the default): bedrock modes use non-[1m] model variants, platform omits the context-1m anthropic-beta header"
-#USAGE flag "--mantle"                     help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; default on for bedrock, off for bedrock-app so every request stays attributed to an application inference profile)"
-#USAGE flag "--no-mantle"                  help="Disable the Mantle endpoint (bedrock/bedrock-app)"
+#USAGE flag "--mantle"                     help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; off by default — the Invoke API serves every model in models.json, and on bedrock-app a Mantle request would escape application-inference-profile attribution)"
+#USAGE flag "--no-mantle"                  help="Disable the Mantle endpoint (bedrock/bedrock-app; already the default, so this only overrides an earlier --mantle)"
 #USAGE example "claude_switch personal"                                                                                           header="Switch to personal subscription"
 #USAGE example "claude_switch bedrock --profile loxon-generative-ai-bedrock-opus --region us-west-2"                              header="Switch to Amazon Bedrock via global.* inference profiles (1M context by default)"
 #USAGE example "claude_switch bedrock-app --profile loxon-generative-ai --region us-west-2"                                       header="Switch to Amazon Bedrock via application inference profile ARNs (cost attribution)"
@@ -62,9 +62,55 @@ settings_key_order='[
   "$schema", "apiKeyHelper", "awsCredentialExport", "awsAuthRefresh",
   "gcpAuthRefresh", "env", "attribution", "includeCoAuthoredBy", "permissions",
   "fallbackModel", "modelOverrides", "statusLine", "subagentStatusLine",
-  "enabledPlugins", "extraKnownMarketplaces", "feedbackSurveyRate",
-  "effortLevel", "tui", "theme", "model"
+  "enabledPlugins", "extraKnownMarketplaces", "skipWebFetchPreflight",
+  "feedbackSurveyRate", "effortLevel", "tui", "theme", "model"
 ]'
+
+# Opt out of every Anthropic-bound non-inference transmission. Applied to every
+# generated profile so a switch can never silently re-enable one.
+#
+# NOTE: this covers only Claude Code's own traffic. Bedrock model-invocation
+# logging is configured server-side in AWS and is untouched by any of this, so
+# the Athena cost-reconciliation pipeline keeps working.
+#
+# On Bedrock and Claude Platform on AWS, metrics, error reports and /feedback are
+# already off by default (they require the provider flag to be unset), so most of
+# this block is belt-and-braces there. It is load-bearing on `personal`, which
+# talks to the Claude API where telemetry defaults ON. Two paths ignore the
+# provider entirely and are the real gap on every profile: session quality
+# surveys, and the WebFetch hostname check.
+# shellcheck disable=SC2016  # jq program text, no shell expansion intended
+settings_privacy_jq='
+  def privacy:
+    # Master switch: telemetry, error reporting, /feedback, release notes, gateway
+    # model discovery, availability checks. Any non-empty value enables the
+    # opt-out — "0" would too, so this is set, never toggled.
+      .env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
+    # Set individually as well: each is the documented opt-out for one channel and
+    # stays correct if the master switch ever narrows its scope.
+    | .env.DISABLE_TELEMETRY = "1"
+    | .env.DISABLE_ERROR_REPORTING = "1"
+    # Covers /bug and /share too — they report through the same path.
+    | .env.DISABLE_FEEDBACK_COMMAND = "1"
+    # Surveys are default-ON for every provider, Bedrock included, so this is
+    # required rather than redundant. feedbackSurveyRate: 0 also suppresses them;
+    # both are set because the env var wins if the settings key is ever dropped.
+    | .env.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY = "1"
+    # Cross-tool convention, same effect as DISABLE_TELEMETRY. Subprocesses
+    # inherit it, so other CLIs honouring DO_NOT_TRACK opt out as well.
+    | .env.DO_NOT_TRACK = "1"
+    # Restores fast mode: the availability check goes straight to
+    # api.anthropic.com and is suppressed by the master switch, which would
+    # otherwise leave /fast reporting "currently unavailable".
+    | .env.CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS = "1"
+    # Stops WebFetch sending each requested hostname to api.anthropic.com. This
+    # check runs on every provider and is deliberately NOT covered by the master
+    # switch, so it needs its own opt-out. Trade-off: Anthropic-maintained
+    # blocklist no longer consulted, so pair with WebFetch permission rules if
+    # the set of reachable domains needs constraining.
+    | .skipWebFetchPreflight = true
+    | .feedbackSurveyRate = 0;
+'
 
 # Places $added keys relative to keys the file already has, without disturbing
 # the existing ones. For each new key, $ref gives its rank; it lands just after
@@ -147,6 +193,8 @@ _status() {
       tags=""
       [[ "${auth_refresh}" == *"--no-browser"* ]] && tags+=" [wsl]"
       [[ "${opus_model}" == *"[1m]"* ]] && tags+=" [1m]"
+      # Mantle is opt-in in this mode too, so it is worth surfacing when on.
+      [[ "$(jq -r '.env.CLAUDE_CODE_USE_MANTLE // ""' "${real}" 2>/dev/null)" == "1" ]] && tags+=" [mantle]"
       if [[ -n "${aws_prof}" ]]; then
         printf 'current: bedrock (%s)%s\n' "${aws_prof}" "${tags}"
       else
@@ -262,7 +310,7 @@ _update_bedrock_credentials() {
     --argjson keyOrder "${settings_key_order}" \
     --arg p "${effective_profile}" \
     --arg r "${effective_region}" \
-    --arg auth "${desired_auth_refresh}" "${settings_reorder_jq}"'
+    --arg auth "${desired_auth_refresh}" "${settings_privacy_jq}${settings_reorder_jq}"'
     # Captured before any mutation, so it reflects how Claude Code last wrote the
     # file; reorder() uses it to leave those keys exactly where they are.
     (keys_unsorted) as $prior
@@ -342,6 +390,7 @@ _update_bedrock_credentials() {
     # order, so an in-app /model change does not reshuffle the file. Both are
     # needed: without them, jq appends new keys (modelOverrides, fallbackModel)
     # wherever the last write left off, so layout would depend on write history.
+    | privacy
     | .env |= (to_entries | sort_by(.key) | from_entries)
     | reorder($keyOrder; $prior)
   ' "${file}" >"${tmp}"
@@ -438,7 +487,7 @@ _update_platform_credentials() {
     --arg w "${wid}" \
     --arg auth "${desired_auth_refresh}" \
     --argjson keyOrder "${settings_key_order}" \
-    --arg betas "${desired_betas}" "${settings_reorder_jq}"'
+    --arg betas "${desired_betas}" "${settings_privacy_jq}${settings_reorder_jq}"'
     (keys_unsorted) as $prior
     | .env.AWS_PROFILE = $p
     | .env.AWS_REGION = $r
@@ -460,6 +509,7 @@ _update_platform_credentials() {
           .env.API_FORCE_IDLE_TIMEOUT,
           .env.CLAUDE_ENABLE_BYTE_WATCHDOG_BEDROCK)
     | if $betas == "" then del(.env.ANTHROPIC_BETAS) else .env.ANTHROPIC_BETAS = $betas end
+    | privacy
     | .env |= (to_entries | sort_by(.key) | from_entries)
     | reorder($keyOrder; $prior)
   ' "${file}" >"${tmp}"
@@ -547,11 +597,11 @@ personal)
   ;;
 bedrock)
   _bootstrap "${bedrock}"
-  # Mantle defaults ON here: it is the escape hatch for models served only
-  # through the native-Anthropic-shape endpoint, and nothing in this mode is
-  # attributed to an application profile anyway.
-  mantle_flag="true"
-  [[ -n "${use_no_mantle}" ]] && mantle_flag="false"
+  # Mantle defaults OFF in both bedrock modes: the Invoke API serves every model
+  # in models.json, so the second endpoint buys nothing here. --mantle opts in
+  # when a model is reachable only through the native-Anthropic-shape endpoint.
+  mantle_flag="false"
+  [[ -n "${use_mantle}" ]] && mantle_flag="true"
   _update_bedrock_credentials "${bedrock}" "${aws_profile}" "${aws_region}" \
     "${use_wsl:-false}" "${long_context}" "bedrock" "{}" "${mantle_flag}"
   ln -fns "${bedrock}" "${target}"
@@ -560,8 +610,8 @@ bedrock)
 bedrock-app)
   _bootstrap "${bedrock_app}"
   app_profiles="$(_discover_app_profiles "${aws_profile}" "${aws_region}")"
-  # Mantle defaults OFF here so no request can take the Mantle path and escape
-  # application-inference-profile attribution.
+  # Also off by default here, with the extra reason that a Mantle request would
+  # escape application-inference-profile attribution entirely.
   mantle_flag="false"
   [[ -n "${use_mantle}" ]] && mantle_flag="true"
   _update_bedrock_credentials "${bedrock_app}" "${aws_profile}" "${aws_region}" \
