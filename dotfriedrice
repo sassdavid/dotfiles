@@ -2744,7 +2744,7 @@ install_mise() {
   mise settings minimum_release_age=0s
   mise settings not_found_auto_install=false
   mise settings python.compile=false
-  mise settings task_run_auto_install=false
+  mise settings task.run_auto_install=false
   mise settings use_versions_host=false
 }
 
