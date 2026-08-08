@@ -1,0 +1,745 @@
+#!/usr/bin/env -S usage bash
+# Requires: usage CLI  https://github.com/jdx/usage
+#   Install: mise use -g usage   |   cargo install usage-cli
+# shellcheck shell=bash
+#
+# NOTE ON THE SPEC BELOW: the #USAGE block must stay contiguous. A blank line
+# between two #USAGE lines terminates the spec, and every command declared after
+# it is silently dropped from parsing and from --help. Keep comments out of it.
+
+#USAGE name "adq"
+#USAGE about "Query Active Directory from a domain-bound macOS host (read-only).\n\nWraps the Directory Services CLIs that ship with macOS — dscl(1), dsmemberutil(1),\ndscacheutil(1) — so no LDAP bind, no password and no extra tooling is needed:\nevery lookup reuses the computer account's existing AD binding.\n\nThe directory node is auto-detected from the /Search policy, so this script holds\nno site-specific values and is safe to commit. Override with --node or AD_NODE.\n\nMEMBERSHIP HAS TWO DIFFERENT ANSWERS — pick deliberately:\n  direct    (default)  the memberOf attribute: groups the object is listed in\n                       explicitly. Includes distribution groups.\n  effective (-e)       what the OS actually grants: security groups only, but\n                       resolved transitively through nested groups.\nOn a typical account these differ by an order of magnitude, and neither is a\nsuperset of the other, so 'groups -a' prints both side by side with the delta."
+#USAGE flag "-n --node <node>" help="Directory node (default: auto-detected from /Search, or the AD_NODE env var)" global=#true
+#USAGE flag "-v --verbose" help="Log the underlying dscl/dsmemberutil commands to stderr" global=#true
+#USAGE cmd "whoami" help="Show the current user, the detected node and the AD binding" {
+#USAGE   flag "-g --groups" help="Also print the effective (transitive) group list"
+#USAGE }
+#USAGE cmd "user" help="Show an account's common attributes" {
+#USAGE   arg "<user>" help="sAMAccountName (login name), e.g. jdoe"
+#USAGE   flag "-r --raw" help="Dump every attribute dscl returns instead of the curated set"
+#USAGE }
+#USAGE cmd "groups" help="List an account's group memberships" {
+#USAGE   arg "<user>" help="sAMAccountName (login name)"
+#USAGE   flag "-e --effective" help="Transitive security groups as granted by the OS instead of direct memberOf"
+#USAGE   flag "-a --all" help="Print direct and effective side by side, and diff them"
+#USAGE   flag "-d --dn" help="Print full distinguished names instead of bare CNs (direct mode only)"
+#USAGE }
+#USAGE cmd "members" help="List a group's members" {
+#USAGE   arg "<group>" help="Group name (CN or sAMAccountName), e.g. DEVOPS"
+#USAGE   flag "-R --recursive" help="Expand nested groups depth-first and print only leaf accounts"
+#USAGE   flag "-l --login" help="Resolve each member to its sAMAccountName (one extra lookup per member)"
+#USAGE   flag "-d --dn" help="Print full distinguished names instead of bare CNs"
+#USAGE }
+#USAGE cmd "group" help="Show a group's attributes (DN, type, owner, member count)" {
+#USAGE   arg "<group>" help="Group name (CN or sAMAccountName)"
+#USAGE   flag "-r --raw" help="Dump every attribute dscl returns instead of the curated set"
+#USAGE }
+#USAGE cmd "check" help="Test whether a user is a member of a group (exit 0 = yes, 1 = no)" {
+#USAGE   arg "<user>" help="sAMAccountName (login name)"
+#USAGE   arg "<group>" help="Group name"
+#USAGE   flag "-q --quiet" help="Print nothing; signal the answer through the exit status only"
+#USAGE }
+#USAGE cmd "search" help="Find users or groups by pattern (enumeration caps at 1000 records; warns when partial)" {
+#USAGE   arg "<kind>" help="What to search for" {
+#USAGE     choices "user" "group"
+#USAGE   }
+#USAGE   arg "<pattern>" help="Case-insensitive match. Without '*' it is a substring search ('sass'); with '*' the pattern is anchored ('Sass*' = starts with)"
+#USAGE   flag "-A --attribute <attribute>" help="AD attribute to match against" default="cn"
+#USAGE }
+#USAGE cmd "flush" help="Flush the local Directory Services cache after an out-of-band AD change"
+#USAGE example "adq whoami --groups" header="Who am I, and everything the OS grants me"
+#USAGE example "adq user jdoe" header="Account overview: mail, UPN, expiry, lock state"
+#USAGE example "adq groups jdoe --all" header="Direct vs effective membership, with the delta"
+#USAGE example "adq members DEVOPS --login" header="Group roster as login names"
+#USAGE example "adq members DEVOPS --recursive" header="Flatten a group tree down to leaf accounts"
+#USAGE example "adq check jdoe DEVOPS && echo allowed" header="Gate a script on group membership"
+#USAGE example "adq search user smith" header="Find an account when you only know the display name"
+#USAGE example "adq search group 'DEVOPS*'" header="List every group whose name starts with DEVOPS"
+#USAGE example "adq search user jane.doe@example.com -A mail" header="Reverse-lookup a login name from an email address"
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+readonly RED=$'\033[0;31m'
+readonly GREEN=$'\033[0;32m'
+readonly YELLOW=$'\033[1;33m'
+readonly BLUE=$'\033[0;34m'
+readonly BOLD=$'\033[1m'
+readonly NC=$'\033[0m'
+
+log_error() { printf "%s[ERROR]%s %s\n" "${RED}" "${NC}" "${1}" >&2; }
+log_warn() { printf "%s[WARN]%s %s\n" "${YELLOW}" "${NC}" "${1}" >&2; }
+log_info() { printf "%s[INFO]%s %s\n" "${GREEN}" "${NC}" "${1}"; }
+
+log_debug() {
+  [[ ${usage_verbose:-false} == "true" ]] || return 0
+  printf "%s[DEBUG]%s %s\n" "${BLUE}" "${NC}" "${1}" >&2
+}
+
+heading() { printf "\n%s%s%s\n" "${BOLD}" "${1}" "${NC}"; }
+
+# Print an "attribute: value" line, substituting a placeholder when empty.
+print_field() { printf "  %-22s %s\n" "${1}" "${2:-—}"; }
+
+# List the effective (transitive, security-only) groups of an account, one per line.
+#
+# This resolves GIDs rather than parsing 'id -Gn' because that output is
+# space-separated while AD group names routinely contain spaces: a group called
+# "PD Budapest Meerkats" would split into three bogus entries. 'id -G' returns
+# unambiguous numeric GIDs, and each is then resolved to its single true name.
+#
+# Names come back domain-qualified ("DOMAIN\Group"); the prefix is stripped so the
+# result is directly comparable to the bare CNs that memberOf yields.
+effective_groups() {
+  local -r user="${1}"
+  local gid name
+
+  id -G "${user}" 2>/dev/null | tr ' ' '\n' | grep -v '^$' | while IFS= read -r gid; do
+    name=$(dscacheutil -q group -a gid "${gid}" 2>/dev/null |
+      awk -F': ' '/^name:/ { print $2; exit }')
+    # A GID with no group record still belongs to the identity, so surface it
+    # rather than dropping it silently from the count.
+    printf "%s\n" "${name:-gid:${gid}}"
+  done | sed 's|^[^\\]*\\||' | sort -u
+}
+
+# Identify which subcommand was invoked.
+#
+# usage(1) exports each parsed argument as usage_<name> but does not export the
+# selected subcommand, and "$1" cannot stand in for it: a global flag may precede
+# the subcommand ("adq -v groups jdoe"), in which case "$1" is the flag. Scanning
+# the positional arguments for the first token that matches a declared command
+# name is therefore the reliable way to recover it.
+detect_cmd() {
+  local arg
+  for arg in "$@"; do
+    case "${arg}" in
+    whoami | user | groups | members | group | check | search | flush)
+      printf "%s" "${arg}"
+      return 0
+      ;;
+    esac
+  done
+  return 1
+}
+
+# Resolve the Active Directory node to query.
+#
+# Preference order: --node, $AD_NODE, then the first Active Directory entry in the
+# /Search policy. Auto-detection is what keeps this script free of site-specific
+# values: on a bound host the search policy already names the node, so there is
+# nothing to hardcode and nothing to gitignore.
+resolve_node() {
+  local node="${usage_node:-${AD_NODE:-}}"
+
+  if [[ -n ${node} ]]; then
+    log_debug "node from flag/env: ${node}"
+    printf "%s" "${node}"
+    return 0
+  fi
+
+  # CSPSearchPath lists every node consulted for identity lookups, one per line
+  # and indented. Only the "/Active Directory/..." entry is of interest here.
+  node=$(dscl /Search -read / CSPSearchPath 2>/dev/null |
+    sed -n 's|^ *\(/Active Directory/.*\)$|\1|p' |
+    head -1) || true
+
+  if [[ -z ${node} ]]; then
+    log_error "No Active Directory node found in the /Search policy."
+    log_error "This host does not look AD-bound. Check 'dsconfigad -show', or pass --node."
+    exit 1
+  fi
+
+  log_debug "node auto-detected: ${node}"
+  printf "%s" "${node}"
+}
+
+# Read one attribute of one record, emitting only the values.
+#
+# dscl prints "attr: value" for a single-valued result but "attr:\n value\n value"
+# for a multi-valued one. Stripping the attribute name from the first form and the
+# indent from the second normalises both into a plain list of values.
+dscl_attr() {
+  local -r node="${1}" record="${2}" attr="${3}"
+
+  log_debug "dscl '${node}' -read ${record} ${attr}"
+  dscl "${node}" -read "${record}" "${attr}" 2>/dev/null |
+    sed -e "s|^${attr}: *||" -e 's|^ *||' |
+    grep -v "^${attr}:$" |
+    grep -v '^$' || true
+}
+
+# Look up a record by an arbitrary AD attribute and print its RecordName.
+#
+# This exists because dscl -read only accepts a record's RecordName, which for AD
+# users is the sAMAccountName. A group's member list, by contrast, holds DNs built
+# from the cn — so 'dscl -read "/Users/Jane Doe"' fails with eDSRecordNotFound even
+# though the account exists. Searching the native cn attribute bridges the two.
+dscl_find() {
+  local -r node="${1}" path="${2}" attr="${3}" value="${4}"
+
+  log_debug "dscl '${node}' -search ${path} dsAttrTypeNative:${attr} '${value}'"
+  # Each hit starts at column 0 as "RecordName<TAB><TAB>attr = (" and is followed by
+  # indented value lines. The RecordName must be cut at the tab, not at whitespace:
+  # AD record names contain spaces ("DEVOPS HEAD"), so splitting on space would
+  # truncate them into names that then fail to resolve.
+  dscl "${node}" -search "${path}" "dsAttrTypeNative:${attr}" "${value}" 2>/dev/null |
+    sed -n $'s|^\\([^\t ][^\t]*\\)\t.*|\\1|p' || true
+}
+
+# Normalise a stream of DN values to exactly one DN per line.
+#
+# dscl does not reliably emit one value per line: when a multi-valued attribute's
+# values contain no spaces it packs them all onto a single space-separated line, so
+# a group whose members are themselves groups arrives as
+# "CN=A,OU=x,DC=y CN=B,OU=x,DC=y". Any counting or per-value processing has to
+# split on the " CN=" boundary first, or every value after the first is lost.
+split_dns() {
+  sed -e 's| CN=|\
+CN=|g' | grep '^CN=' || true
+}
+
+# Reduce a stream of DNs to their leading CN values.
+# "CN=Jane Doe,OU=Staff,DC=x" -> "Jane Doe"
+dn_to_cn() { split_dns | sed -n 's|^CN=\([^,]*\),.*|\1|p'; }
+
+# Resolve a bare CN to a login name, trying users first and then groups.
+#
+# A group's member attribute mixes users, nested groups and computer accounts with
+# no marker distinguishing them, so both record types have to be probed. Anything
+# resolving to neither is echoed back unchanged rather than dropped, so that an
+# unresolvable member stays visible in the output instead of silently vanishing.
+cn_to_login() {
+  local -r node="${1}" cn="${2}"
+  local login
+
+  login=$(dscl_find "${node}" /Users cn "${cn}" | head -1)
+  if [[ -n ${login} ]]; then
+    printf "%s" "${login}"
+    return 0
+  fi
+
+  login=$(dscl_find "${node}" /Groups cn "${cn}" | head -1)
+  if [[ -n ${login} ]]; then
+    printf "%s (group)" "${login}"
+    return 0
+  fi
+
+  printf "%s (unresolved)" "${cn}"
+}
+
+# Verify a record exists, exiting with guidance if it does not.
+require_record() {
+  local -r node="${1}" path="${2}" name="${3}" kind="${4}"
+
+  if dscl "${node}" -read "${path}/${name}" RecordName >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log_error "No ${kind} record named '${name}' in ${node}"
+
+  # A cn hit here means the caller passed a display name where a RecordName was
+  # required — by far the most common mistake, so name the value that will work.
+  local suggestion
+  suggestion=$(dscl_find "${node}" "${path}" cn "${name}" | head -3)
+  if [[ -n ${suggestion} ]]; then
+    log_warn "dscl addresses records by RecordName, not display name. Try:"
+    printf "%s\n" "${suggestion}" | sed 's|^|         |' >&2
+  else
+    log_warn "Search for it with: adq search ${kind} '${name}'"
+    if [[ ${kind} == "group" ]]; then
+      log_warn "If this is a distribution group it is invisible to dscl entirely."
+    fi
+  fi
+
+  exit 1
+}
+
+# Decode the groupType bitmask into something readable.
+#
+# groupType is a signed 32-bit flag field. Bit 0x80000000 marks a security group
+# and its absence a distribution group; that distinction matters a great deal here
+# because distribution groups are not returned by dscl or by id at all. The low
+# bits carry the scope: 0x2 global, 0x4 domain-local, 0x8 universal.
+describe_group_type() {
+  local -r raw="${1}"
+  local scope kind
+
+  [[ ${raw} =~ ^-?[0-9]+$ ]] || {
+    printf "unknown (%s)" "${raw}"
+    return 0
+  }
+
+  # Normalise the signed value into an unsigned 32-bit bitmask.
+  local mask=$((raw & 0xFFFFFFFF))
+
+  if ((mask & 0x80000000)); then kind="security"; else kind="distribution"; fi
+
+  if ((mask & 0x8)); then
+    scope="universal"
+  elif ((mask & 0x4)); then
+    scope="domain-local"
+  elif ((mask & 0x2)); then
+    scope="global"
+  else
+    scope="builtin"
+  fi
+
+  printf "%s %s" "${scope}" "${kind}"
+}
+
+# Decode the userAccountControl bitmask into the flags that matter day to day.
+describe_uac() {
+  local -r raw="${1}"
+  local flags=""
+
+  [[ ${raw} =~ ^[0-9]+$ ]] || {
+    printf "unknown (%s)" "${raw}"
+    return 0
+  }
+
+  ((raw & 0x0002)) && flags+=" DISABLED"
+  ((raw & 0x0010)) && flags+=" LOCKED_OUT"
+  ((raw & 0x0020)) && flags+=" PASSWD_NOTREQD"
+  ((raw & 0x0080)) && flags+=" ENCRYPTED_TEXT_PWD_ALLOWED"
+  ((raw & 0x10000)) && flags+=" DONT_EXPIRE_PASSWORD"
+  ((raw & 0x400000)) && flags+=" DONT_REQ_PREAUTH"
+  ((raw & 0x800000)) && flags+=" PASSWORD_EXPIRED"
+
+  if [[ -z ${flags} ]]; then
+    printf "enabled, normal"
+  else
+    printf "%s" "${flags# }"
+  fi
+}
+
+# Convert a Windows FILETIME (100ns ticks since 1601-01-01) to a readable date.
+#
+# 0 and 0x7FFFFFFFFFFFFFFF are both AD's way of encoding "never". 11644473600 is
+# the offset in seconds between the 1601 and 1970 epochs.
+filetime_to_date() {
+  local -r ticks="${1}"
+
+  [[ ${ticks} =~ ^[0-9]+$ ]] || {
+    printf "%s" "${ticks}"
+    return 0
+  }
+  if [[ ${ticks} == "0" || ${ticks} == "9223372036854775807" ]]; then
+    printf "never"
+    return 0
+  fi
+
+  local epoch=$(((ticks / 10000000) - 11644473600))
+  if ((epoch <= 0)); then
+    printf "never"
+    return 0
+  fi
+
+  date -r "${epoch}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || printf "%s" "${ticks}"
+}
+
+cmd_whoami() {
+  local -r node="${1}"
+  local ad_show domain forest computer
+
+  ad_show=$(dsconfigad -show 2>/dev/null) || true
+  domain=$(printf "%s\n" "${ad_show}" | awk -F'= ' '/Active Directory Domain/ { print $2 }' | tr -d ' ')
+  forest=$(printf "%s\n" "${ad_show}" | awk -F'= ' '/Active Directory Forest/ { print $2 }' | tr -d ' ')
+  computer=$(printf "%s\n" "${ad_show}" | awk -F'= ' '/Computer Account/ { print $2 }' | tr -d ' ')
+
+  heading "Session"
+  print_field "User" "$(id -un)"
+  print_field "UID" "$(id -u)"
+  print_field "SID" "$(dsmemberutil getsid -U "$(id -un)" 2>/dev/null | tr -d ' ')"
+
+  heading "Binding"
+  print_field "Node" "${node}"
+  print_field "Domain" "${domain}"
+  print_field "Forest" "${forest}"
+  print_field "Computer account" "${computer}"
+
+  # A Kerberos ticket is not needed for any lookup this script performs — the
+  # computer account's binding covers them all. It only matters for tools that
+  # bind over LDAP themselves, so report it without treating absence as a fault.
+  local ticket
+  ticket=$(klist 2>/dev/null | awk '/krbtgt/ { print $3; exit }') || true
+  print_field "Kerberos TGT" "${ticket:-none (not required for adq)}"
+
+  if [[ ${usage_groups:-false} == "true" ]]; then
+    heading "Effective groups (transitive, security only)"
+    effective_groups "$(id -un)" | sed 's|^|  |'
+  fi
+  printf "\n"
+}
+
+cmd_user() {
+  local -r node="${1}" user="${2}"
+  local -r record="/Users/${user}"
+
+  require_record "${node}" /Users "${user}" user
+
+  if [[ ${usage_raw:-false} == "true" ]]; then
+    dscl "${node}" -read "${record}" 2>/dev/null
+    return 0
+  fi
+
+  heading "Account: ${user}"
+  print_field "Display name" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:cn)"
+  print_field "Mail" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:mail)"
+  print_field "UPN" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:userPrincipalName)"
+  print_field "UID" "$(dscl_attr "${node}" "${record}" UniqueID)"
+  print_field "SID" "$(dsmemberutil getsid -U "${user}" 2>/dev/null | tr -d ' ')"
+  print_field "DN" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:distinguishedName)"
+
+  heading "Status"
+  local uac created expires lockout
+  uac=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:userAccountControl)
+  created=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:whenCreated)
+  expires=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:accountExpires)
+  lockout=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:lockoutTime)
+
+  print_field "Flags" "$([[ -n ${uac} ]] && describe_uac "${uac}")"
+  print_field "Created" "${created}"
+  print_field "Account expires" "$([[ -n ${expires} ]] && filetime_to_date "${expires}")"
+  print_field "Locked since" "$([[ -n ${lockout} ]] && filetime_to_date "${lockout}")"
+
+  heading "Membership summary"
+  local direct effective
+  direct=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:memberOf | split_dns | grep -c . || true)
+  effective=$(effective_groups "${user}" | grep -c . || true)
+  print_field "Direct (memberOf)" "${direct} — adq groups ${user}"
+  print_field "Effective (nested)" "${effective} — adq groups ${user} -e"
+  printf "\n"
+}
+
+cmd_groups() {
+  local -r node="${1}" user="${2}"
+  local -r record="/Users/${user}"
+
+  require_record "${node}" /Users "${user}" user
+
+  local direct direct_bare effective_bare
+  direct=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:memberOf)
+  direct_bare=$(printf "%s\n" "${direct}" | dn_to_cn | sort -u)
+
+  effective_bare=$(effective_groups "${user}")
+
+  if [[ ${usage_all:-false} == "true" ]]; then
+    heading "Direct — memberOf ($(printf "%s\n" "${direct_bare}" | grep -c . || true))"
+    printf "%s\n" "${direct_bare}" | grep . | sed 's|^|  |' || printf "  (none)\n"
+
+    heading "Effective — transitive security groups ($(printf "%s\n" "${effective_bare}" | grep -c . || true))"
+    printf "%s\n" "${effective_bare}" | grep . | sed 's|^|  |' || printf "  (none)\n"
+
+    # Almost always distribution groups: they carry no SID, so the OS never
+    # includes them in an identity's group set no matter how membership is set.
+    heading "Direct only — not granted by the OS"
+    comm -23 <(printf "%s\n" "${direct_bare}" | grep . || true) \
+      <(printf "%s\n" "${effective_bare}" | grep . || true) |
+      sed 's|^|  |' | grep . || printf "  (none)\n"
+
+    heading "Effective only — inherited through nesting"
+    comm -13 <(printf "%s\n" "${direct_bare}" | grep . || true) \
+      <(printf "%s\n" "${effective_bare}" | grep . || true) |
+      sed 's|^|  |' | grep . || printf "  (none)\n"
+    printf "\n"
+    return 0
+  fi
+
+  if [[ ${usage_effective:-false} == "true" ]]; then
+    printf "%s\n" "${effective_bare}" | grep . || true
+    return 0
+  fi
+
+  if [[ ${usage_dn:-false} == "true" ]]; then
+    printf "%s\n" "${direct}" | split_dns
+  else
+    printf "%s\n" "${direct_bare}" | grep . || true
+  fi
+}
+
+# Expand a group tree depth-first, printing leaf members only.
+#
+# AD tolerates membership cycles, so tracking what has been expanded is mandatory:
+# without it a group that transitively contains itself would recurse until the
+# stack gives out. The visited set is a newline-delimited string rather than an
+# associative array so this stays runnable under bash 3.2, the version macOS ships.
+expand_group() {
+  local -r node="${1}" group="${2}" depth="${3}" seen="${4}"
+
+  if ((depth > 32)); then
+    log_warn "Nesting deeper than 32 levels at '${group}' — stopping this branch"
+    return 0
+  fi
+  case "
+${seen}" in
+  *"
+${group}
+"*)
+    log_debug "already expanded '${group}', skipping (cycle or diamond)"
+    return 0
+    ;;
+  esac
+  local -r seen_now="${seen}
+${group}
+"
+
+  local members
+  members=$(dscl_attr "${node}" "/Groups/${group}" dsAttrTypeNative:member | dn_to_cn)
+  [[ -n ${members} ]] || return 0
+
+  local cn nested
+  while IFS= read -r cn; do
+    [[ -n ${cn} ]] || continue
+
+    # A member that resolves to a group record is a branch to descend into;
+    # anything else is a leaf worth printing.
+    nested=$(dscl_find "${node}" /Groups cn "${cn}" | head -1)
+    if [[ -n ${nested} ]]; then
+      log_debug "descending into nested group '${nested}' (depth $((depth + 1)))"
+      expand_group "${node}" "${nested}" $((depth + 1)) "${seen_now}"
+    elif [[ ${usage_login:-false} == "true" ]]; then
+      cn_to_login "${node}" "${cn}"
+      printf "\n"
+    else
+      printf "%s\n" "${cn}"
+    fi
+  done <<<"${members}"
+}
+
+cmd_members() {
+  local -r node="${1}" group="${2}"
+
+  require_record "${node}" /Groups "${group}" group
+
+  if [[ ${usage_recursive:-false} == "true" ]]; then
+    expand_group "${node}" "${group}" 0 "" | sort -u
+    return 0
+  fi
+
+  local members
+  members=$(dscl_attr "${node}" "/Groups/${group}" dsAttrTypeNative:member)
+
+  if [[ -z ${members} ]]; then
+    # An empty member attribute is not proof of an empty group: accounts whose
+    # primaryGroupID points here are not listed in it, and AD returns the
+    # attribute in 1500-value ranges that dscl does not page through.
+    log_warn "No 'member' values returned for '${group}'."
+    log_warn "It may be genuinely empty, hold members only via primaryGroupID,"
+    log_warn "or exceed the 1500-value range dscl reads in a single request."
+    return 0
+  fi
+
+  if [[ ${usage_dn:-false} == "true" ]]; then
+    printf "%s\n" "${members}" | split_dns
+    return 0
+  fi
+
+  if [[ ${usage_login:-false} == "true" ]]; then
+    local cn
+    printf "%s\n" "${members}" | dn_to_cn | while IFS= read -r cn; do
+      [[ -n ${cn} ]] || continue
+      cn_to_login "${node}" "${cn}"
+      printf "\n"
+    done
+    return 0
+  fi
+
+  printf "%s\n" "${members}" | dn_to_cn
+}
+
+cmd_group() {
+  local -r node="${1}" group="${2}"
+  local -r record="/Groups/${group}"
+
+  require_record "${node}" /Groups "${group}" group
+
+  if [[ ${usage_raw:-false} == "true" ]]; then
+    dscl "${node}" -read "${record}" 2>/dev/null
+    return 0
+  fi
+
+  heading "Group: ${group}"
+  print_field "Display name" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:displayName)"
+  print_field "Mail" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:mail)"
+  print_field "GID" "$(dscl_attr "${node}" "${record}" PrimaryGroupID)"
+  print_field "SID" "$(dscl_attr "${node}" "${record}" SMBSID)"
+  print_field "DN" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:distinguishedName)"
+
+  local gtype
+  gtype=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:groupType)
+  print_field "Type" "$([[ -n ${gtype} ]] && describe_group_type "${gtype}")"
+
+  heading "Ownership"
+  print_field "Managed by" "$(dscl_attr "${node}" "${record}" dsAttrTypeNative:managedBy | dn_to_cn)"
+  print_field "Comment" "$(dscl_attr "${node}" "${record}" Comment)"
+
+  heading "Size"
+  local members parents
+  members=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:member | split_dns | grep -c . || true)
+  parents=$(dscl_attr "${node}" "${record}" dsAttrTypeNative:memberOf | split_dns | grep -c . || true)
+  print_field "Direct members" "${members} — adq members ${group}"
+  print_field "Member of" "${parents} groups"
+  printf "\n"
+}
+
+cmd_check() {
+  local -r user="${1}" group="${2}"
+
+  # dsmemberutil resolves membership through the same identity layer the kernel
+  # uses, so it answers transitively and matches what authorisation will actually
+  # do — the reason to prefer it over comparing attribute values by hand.
+  log_debug "dsmemberutil checkmembership -U '${user}' -G '${group}'"
+  local result
+  result=$(dsmemberutil checkmembership -U "${user}" -G "${group}" 2>&1) || true
+
+  if [[ ${result} == *"is a member"* && ${result} != *"not a member"* ]]; then
+    [[ ${usage_quiet:-false} == "true" ]] ||
+      printf "%s✓%s %s is a member of %s\n" "${GREEN}" "${NC}" "${user}" "${group}"
+    return 0
+  fi
+
+  if [[ ${result} == *"not a member"* ]]; then
+    [[ ${usage_quiet:-false} == "true" ]] ||
+      printf "%s✗%s %s is NOT a member of %s\n" "${RED}" "${NC}" "${user}" "${group}"
+    return 1
+  fi
+
+  # Anything else means an identity failed to resolve. Reporting that as "not a
+  # member" would be dangerously wrong in a permission gate, so it exits 2.
+  log_error "Could not resolve membership: ${result}"
+  log_warn "Verify both names exist: 'adq user ${user}' and 'adq group ${group}'"
+  log_warn "Distribution groups have no SID and cannot be checked this way."
+  exit 2
+}
+
+cmd_search() {
+  local -r node="${1}" kind="${2}" pattern="${3}"
+  local -r attribute="${usage_attribute:-cn}"
+  local path
+
+  case "${kind}" in
+  user) path="/Users" ;;
+  group) path="/Groups" ;;
+  *)
+    log_error "Unknown search kind '${kind}' (expected 'user' or 'group')"
+    exit 1
+    ;;
+  esac
+
+  # dscl -search matches the whole value exactly and understands no wildcards at
+  # all, so a pattern like "Sass*" finds nothing through it. The workable approach
+  # is -readall, which streams every record's attribute plus its RecordName in one
+  # request and filters locally. On this directory that is a ~0.25s call, so the
+  # convenience of real pattern matching costs little.
+  #
+  # A shell glob is translated into a regex so the '*' users naturally reach for
+  # behaves as expected, and a pattern with no '*' is treated as a substring
+  # search — the behaviour that makes an exploratory lookup useful.
+  local regex="${pattern}"
+  if [[ ${pattern} == *"*"* ]]; then
+    # Anchor both ends so '*' is the only wildcard, then expand it to '.*'.
+    regex="^$(printf "%s" "${pattern}" | sed -e 's|[.[\()^$+?{}|]|\\&|g' -e 's|\*|.*|g')$"
+  fi
+
+  log_debug "dscl '${node}' -readall ${path} dsAttrTypeNative:${attribute} | match /${regex}/i"
+
+  # -readall emits one block per record, terminated by a lone '-' line. Each field
+  # appears in one of two shapes, and both must be handled: "key: value" inline
+  # when the value has no space, or a bare "key:" followed by the value on its own
+  # indented line when it does. Assuming only the inline form silently drops every
+  # record whose name contains a space, which is most of them.
+  #
+  # awk pairs the attribute with the RecordName so a match on a display name can
+  # report the RecordName that dscl -read will actually accept.
+  # Both -readall and -list stop at 1000 records, so this search sees only a prefix
+  # of a larger directory. The count is captured to warn about that explicitly:
+  # reporting "no match" from a truncated scan reads as "does not exist", which is a
+  # materially different and wrong answer. -read and -search are NOT limited, so a
+  # record past the cutoff is still reachable by its exact name.
+  local scanned
+  scanned=$(dscl "${node}" -readall "${path}" RecordName 2>/dev/null |
+    grep -c '^RecordName' || true)
+
+  local hits
+  hits=$(dscl "${node}" -readall "${path}" "dsAttrTypeNative:${attribute}" 2>/dev/null |
+    awk -v re="${regex}" -v attr="dsAttrTypeNative:${attribute}" '
+      function emit() {
+        if (val != "" && name != "" && tolower(val) ~ tolower(re))
+          printf "%-28s %s\n", name, val
+        val = ""; name = ""; field = ""
+      }
+      $0 == "-"                  { emit(); next }
+      $0 == attr ":"             { field = "val"; next }
+      $0 == "RecordName:"        { field = "name"; next }
+      index($0, attr ": ") == 1  { val = substr($0, length(attr) + 3); field = ""; next }
+      index($0, "RecordName: ") == 1 { name = substr($0, 13); field = ""; next }
+      /^ / && field == "val"     { sub(/^ +/, ""); val = val (val ? " " : "") $0; next }
+      /^ / && field == "name"    { sub(/^ +/, ""); name = name (name ? " " : "") $0; next }
+                                 { field = "" }
+      END                        { emit() }
+    ') || true
+
+  if [[ -z ${hits} ]]; then
+    log_warn "No ${kind} matched ${attribute} ~ '${pattern}'"
+    log_warn "Matching is case-insensitive; '*' is the only wildcard."
+    log_warn "Accents are literal: 'kovacs' will not match 'Kovács'. Try a"
+    log_warn "distinctive fragment instead, or search -A mail / -A sAMAccountName."
+    if ((scanned >= 1000)); then
+      log_warn "NOTE: this scanned only ${scanned} records — dscl caps enumeration"
+      log_warn "at 1000, so the directory tail was never examined. A record beyond"
+      log_warn "the cap is still reachable by exact name: adq ${kind} '<exact name>'"
+    fi
+    if [[ ${kind} == "group" ]]; then
+      log_warn "Distribution groups are not visible through dscl at all, so a"
+      log_warn "group that exists in AD can still be unfindable here."
+    fi
+    return 1
+  fi
+
+  # Results were found, but the scan was still partial — say so, or a short list
+  # reads as the complete set.
+  if ((scanned >= 1000)); then
+    log_warn "Partial scan: only ${scanned} of the directory's records were examined"
+    log_warn "(dscl caps enumeration at 1000). More matches may exist beyond it."
+  fi
+
+  printf "%s\n" "${hits}"
+}
+
+cmd_flush() {
+  log_info "Flushing Directory Services caches"
+  dsmemberutil flushcache
+  dscacheutil -flushcache
+  log_info "Done. Fresh lookups will hit a domain controller."
+  log_warn "A group change also needs a new login session to affect an active one:"
+  log_warn "the kernel caches an identity's group set for the life of the session."
+}
+
+main() {
+  local cmd
+  if ! cmd=$(detect_cmd "$@"); then
+    log_error "No command given. Run 'adq --help' for usage."
+    exit 1
+  fi
+
+  local node
+  node=$(resolve_node)
+
+  # usage(1) exports every parsed arg as usage_<name> before this script runs, so
+  # these are assigned by the runtime rather than anywhere in this file.
+  # shellcheck disable=SC2154
+  case "${cmd}" in
+  whoami) cmd_whoami "${node}" ;;
+  user) cmd_user "${node}" "${usage_user}" ;;
+  groups) cmd_groups "${node}" "${usage_user}" ;;
+  members) cmd_members "${node}" "${usage_group}" ;;
+  group) cmd_group "${node}" "${usage_group}" ;;
+  check) cmd_check "${usage_user}" "${usage_group}" ;;
+  search) cmd_search "${node}" "${usage_kind}" "${usage_pattern}" ;;
+  flush) cmd_flush ;;
+  esac
+}
+
+main "$@"
