@@ -16,11 +16,11 @@
 #USAGE flag "--mantle"                     help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; off by default — the Invoke API serves every model in models.json, and on bedrock-app a Mantle request would escape application-inference-profile attribution)"
 #USAGE flag "--no-mantle"                  help="Disable the Mantle endpoint (bedrock/bedrock-app; already the default, so this only overrides an earlier --mantle)"
 #USAGE example "claude_switch personal"                                                                                           header="Switch to personal subscription"
-#USAGE example "claude_switch bedrock --profile loxon-generative-ai-bedrock-opus --region us-west-2"                              header="Switch to Amazon Bedrock via global.* inference profiles (1M context by default)"
-#USAGE example "claude_switch bedrock-app --profile loxon-generative-ai --region us-west-2"                                       header="Switch to Amazon Bedrock via application inference profile ARNs (cost attribution)"
-#USAGE example "claude_switch bedrock-app --profile loxon-generative-ai --region us-west-2 --mantle"                              header="Same, but keep the Mantle endpoint reachable alongside the Invoke API"
-#USAGE example "claude_switch bedrock --profile loxon-generative-ai --region us-west-2 --wsl --no-long-context"                   header="Switch to Amazon Bedrock with WSL login and standard 200K context"
-#USAGE example "claude_switch platform --profile loxon-generative-ai --region us-west-2 --workspace-id wrkspc_01ABCDEF"           header="Switch to Claude Platform on AWS (1M context by default)"
+#USAGE example "claude_switch bedrock --profile <aws_profile> --region us-west-2"                                                 header="Switch to Amazon Bedrock via global.* inference profiles (1M context by default)"
+#USAGE example "claude_switch bedrock-app --profile <aws_profile> --region us-west-2"                                             header="Switch to Amazon Bedrock via application inference profile ARNs (cost attribution)"
+#USAGE example "claude_switch bedrock-app --profile <aws_profile> --region us-west-2 --mantle"                                    header="Same, but keep the Mantle endpoint reachable alongside the Invoke API"
+#USAGE example "claude_switch bedrock --profile <aws_profile> --region us-west-2 --wsl --no-long-context"                         header="Switch to Amazon Bedrock with WSL login and standard 200K context"
+#USAGE example "claude_switch platform --profile <aws_profile> --region us-west-2 --workspace-id wrkspc_01ABCDEF"                 header="Switch to Claude Platform on AWS (1M context by default)"
 #USAGE example "claude_switch status"                                                                                            header="Show current active profile"
 
 set -o errexit
