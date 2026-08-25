@@ -5,6 +5,7 @@ export DEFAULT_CONFIG_INSTALL=(
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/bat/config\" \"\${XDG_CONFIG_HOME}/bat/config\""
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/btop/btop.conf\" \"\${XDG_CONFIG_HOME}/btop/btop.conf\""
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/claude/statusline.sh\" \"\${HOME}/.claude/statusline.sh\""
+  "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/claude/subagent-statusline.sh\" \"\${HOME}/.claude/subagent-statusline.sh\""
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/fastfetch/config.jsonc\" \"\${XDG_CONFIG_HOME}/fastfetch/config.jsonc\""
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/fzf/config.sh\" \"\${XDG_CONFIG_HOME}/fzf/config.sh\""
   "ln -fns \"\${DOTFRIEDRICE_PATH}/.config/ghostty/config.local\" \"\${XDG_CONFIG_HOME}/ghostty/config.local\""

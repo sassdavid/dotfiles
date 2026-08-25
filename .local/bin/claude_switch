@@ -8,13 +8,12 @@
 #USAGE arg "[mode]" help="Profile to activate (default: status)" default="status" {
 #USAGE   choices "personal" "bedrock" "bedrock-app" "platform" "status"
 #USAGE }
-#USAGE flag "--profile <profile>"          help="AWS SSO profile name (required for bedrock/bedrock-app/platform; updates .local if changed)"
-#USAGE flag "--region <region>"            help="AWS region (required for bedrock/bedrock-app/platform; updates .local if changed)"
-#USAGE flag "--workspace-id <workspace_id>" help="Claude Platform on AWS workspace id, wrkspc_… (required for platform only)"
-#USAGE flag "--wsl"                        help="Use --no-browser for AWS SSO login (WSL/headless; bedrock/bedrock-app/platform only)"
-#USAGE flag "--no-long-context"            help="Disable 1M context (1M is the default): bedrock modes use non-[1m] model variants, platform omits the context-1m anthropic-beta header"
-#USAGE flag "--mantle"                     help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; off by default — the Invoke API serves every model in models.json, and on bedrock-app a Mantle request would escape application-inference-profile attribution)"
-#USAGE flag "--no-mantle"                  help="Disable the Mantle endpoint (bedrock/bedrock-app; already the default, so this only overrides an earlier --mantle)"
+#USAGE flag "--profile <profile>"          help_heading="AWS credentials" help="AWS SSO profile name (required for bedrock/bedrock-app/platform; updates .local if changed)"
+#USAGE flag "--region <region>"            help_heading="AWS credentials" help="AWS region (required for bedrock/bedrock-app/platform; updates .local if changed)"
+#USAGE flag "--wsl"                        help_heading="AWS credentials" help="Use --no-browser for AWS SSO login (WSL/headless; bedrock/bedrock-app/platform only)"
+#USAGE flag "--workspace-id <workspace_id>" help_heading="Provider options" help="Claude Platform on AWS workspace id, wrkspc_… (required for platform only)"
+#USAGE flag "--no-long-context"            help_heading="Provider options" help="Disable 1M context (1M is the default): bedrock modes use non-[1m] model variants, platform omits the context-1m anthropic-beta header"
+#USAGE flag "--mantle" negate="--no-mantle" default=#false help_heading="Provider options" help="Route Mantle-format model IDs to the Mantle endpoint alongside the Invoke API (bedrock/bedrock-app; off by default — the Invoke API serves every model in models.json, and on bedrock-app a Mantle request would escape application-inference-profile attribution)"
 #USAGE example "claude_switch personal"                                                                                           header="Switch to personal subscription"
 #USAGE example "claude_switch bedrock --profile <aws_profile> --region us-west-2"                                                 header="Switch to Amazon Bedrock via global.* inference profiles (1M context by default)"
 #USAGE example "claude_switch bedrock-app --profile <aws_profile> --region us-west-2"                                             header="Switch to Amazon Bedrock via application inference profile ARNs (cost attribution)"
@@ -22,6 +21,13 @@
 #USAGE example "claude_switch bedrock --profile <aws_profile> --region us-west-2 --wsl --no-long-context"                         header="Switch to Amazon Bedrock with WSL login and standard 200K context"
 #USAGE example "claude_switch platform --profile <aws_profile> --region us-west-2 --workspace-id wrkspc_01ABCDEF"                 header="Switch to Claude Platform on AWS (1M context by default)"
 #USAGE example "claude_switch status"                                                                                            header="Show current active profile"
+
+# No comments inside the #USAGE block: usage stops collecting at the first
+# non-#USAGE line and silently drops the rest.
+#
+# --mantle/--no-mantle is one negate= flag, so usage_mantle is always "true" or
+# "false" and must be compared, not tested with -n. required_if= against a
+# positional arg value is unenforced in usage 6.4.0, hence the manual checks below.
 
 set -o errexit
 set -o pipefail
@@ -36,107 +42,65 @@ platform="${dotfriedrice_claude}/settings_platform.json.local"
 cloud_example="${dotfriedrice_claude}/settings_cloud.json.example"
 models_table="${dotfriedrice_claude}/models.json"
 
-# Claude Code rewrites the settings file in its own schema key order whenever a
-# setting is changed in-session (/model, /config, …). Matching that order is what
-# keeps a generated file byte-stable across an in-app edit — an alphabetical sort
-# looks tidy but gets reshuffled the first time the model is switched, so every
-# later diff shows phantom key moves.
-#
-# The file being edited is the authority: whatever order it already has is, by
-# definition, the order the app last wrote. So reorder() preserves existing keys
-# where they are and only consults the reference list below to place keys this
-# script ADDS (modelOverrides, fallbackModel, …), which have no position yet.
-# Net effect: a new key introduced by a future Claude Code version keeps whatever
-# slot the app gave it, with no edit here.
-#
-# Two oracles were tested and rejected as the source for this list: the
-# schemastore.org schema the files reference is community-maintained and its
-# document order does not match the app (it puts model 16th and fallbackModel
-# 89th), and no claude subcommand reformats a settings file, so the app cannot be
-# invoked as a canonicaliser. This list is therefore read out of the schema key
-# table in the Claude Code binary (verified against 2.1.220). It only has to cover
-# the handful of keys this script writes itself — everything else is positioned by
-# the file, so this does not need updating when Claude Code adds a setting.
+# Claude Code rewrites settings in its own schema key order, so generated files
+# follow it to stay byte-stable across an in-app /model or /config change. Existing
+# keys keep their position; this only places keys the script adds. Read out of the
+# schema key table in the Claude Code binary (2.1.245).
 # shellcheck disable=SC2016  # "$schema" is a JSON key, not a shell expansion
 settings_key_order='[
-  "$schema", "apiKeyHelper", "awsCredentialExport", "awsAuthRefresh",
-  "gcpAuthRefresh", "env", "attribution", "includeCoAuthoredBy", "permissions",
-  "fallbackModel", "modelOverrides", "statusLine", "subagentStatusLine",
+  "$schema", "apiKeyHelper", "proxyAuthHelper", "awsCredentialExport",
+  "awsAuthRefresh", "gcpAuthRefresh", "processWrapper", "env", "attribution",
+  "includeCoAuthoredBy", "includeGitInstructions", "permissions", "model",
+  "fallbackModel", "availableModels", "modelOverrides", "deniedMcpServers",
+  "hooks", "disableAllHooks", "statusLine", "subagentStatusLine",
   "enabledPlugins", "extraKnownMarketplaces", "skipWebFetchPreflight",
-  "feedbackSurveyRate", "effortLevel", "tui", "theme", "model"
+  "sandbox", "feedbackSurveyRate", "promptCacheTtl", "subagentPromptCacheTtl",
+  "alwaysThinkingEnabled", "effortLevel", "autoCompactWindow", "tui", "theme"
 ]'
 
-# Opt out of every Anthropic-bound non-inference transmission. Applied to every
-# generated profile so a switch can never silently re-enable one.
+# Opts out of every Anthropic-bound non-inference transmission, re-asserted each
+# switch so it cannot be silently lost. Bedrock invocation logging is server-side
+# and unaffected, so Athena cost reconciliation keeps working. Privacy invariants
+# only; static settings live in settings_cloud.json.example.
 #
-# NOTE: this covers only Claude Code's own traffic. Bedrock model-invocation
-# logging is configured server-side in AWS and is untouched by any of this, so
-# the Athena cost-reconciliation pipeline keeps working.
-#
-# On Bedrock and Claude Platform on AWS, metrics, error reports and /feedback are
-# already off by default (they require the provider flag to be unset), so most of
-# this block is belt-and-braces there. It is load-bearing on `personal`, which
-# talks to the Claude API where telemetry defaults ON. Two paths ignore the
-# provider entirely and are the real gap on every profile: session quality
-# surveys, and the WebFetch hostname check.
+# Cost: these also disable feature-flag fetching, losing artifacts, /loop
+# self-pacing, cross-session messaging, /schedule, the advisor and the v2 MCP
+# runtime. The template re-enables the last one.
 # shellcheck disable=SC2016  # jq program text, no shell expansion intended
 settings_privacy_jq='
   def privacy:
-    # Master switch: telemetry, error reporting, /feedback, release notes, gateway
-    # model discovery, availability checks. Any non-empty value enables the
-    # opt-out — "0" would too, so this is set, never toggled.
+    # Any non-empty value opts out, so this is set, never toggled.
       .env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1"
-    # Set individually as well: each is the documented opt-out for one channel and
-    # stays correct if the master switch ever narrows its scope.
     | .env.DISABLE_TELEMETRY = "1"
     | .env.DISABLE_ERROR_REPORTING = "1"
-    # Covers /bug and /share too — they report through the same path.
     | .env.DISABLE_FEEDBACK_COMMAND = "1"
-    # Surveys are default-ON for every provider, Bedrock included, so this is
-    # required rather than redundant. feedbackSurveyRate: 0 also suppresses them;
-    # both are set because the env var wins if the settings key is ever dropped.
     | .env.CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY = "1"
-    # Cross-tool convention, same effect as DISABLE_TELEMETRY. Subprocesses
-    # inherit it, so other CLIs honouring DO_NOT_TRACK opt out as well.
     | .env.DO_NOT_TRACK = "1"
-    # Restores fast mode: the availability check goes straight to
-    # api.anthropic.com and is suppressed by the master switch, which would
-    # otherwise leave /fast reporting "currently unavailable".
+    # Without this the master switch leaves /fast reporting "currently unavailable".
     | .env.CLAUDE_CODE_SKIP_FAST_MODE_NETWORK_ERRORS = "1"
-    # Stops WebFetch sending each requested hostname to api.anthropic.com. This
-    # check runs on every provider and is deliberately NOT covered by the master
-    # switch, so it needs its own opt-out. Trade-off: Anthropic-maintained
-    # blocklist no longer consulted, so pair with WebFetch permission rules if
-    # the set of reachable domains needs constraining.
+    # Not covered by the master switch. Drops the Anthropic blocklist.
     | .skipWebFetchPreflight = true
     | .feedbackSurveyRate = 0;
 '
 
-# Places $added keys relative to keys the file already has, without disturbing
-# the existing ones. For each new key, $ref gives its rank; it lands just after
-# the last existing key that outranks it, which is where the app would put it.
-# A key with no $ref entry, or one added after every known key, goes to the end.
-# Idempotent: with nothing new to add, the input order is returned unchanged.
+# Places added keys without moving existing ones: a new key lands just before the
+# first key it outranks, or at the end if it outranks nothing present. Idempotent.
 # shellcheck disable=SC2016  # "$ref" is a jq parameter, not a shell expansion
 settings_reorder_jq='
-  # Insert $k into the key list so it follows the last key that outranks it.
   def _insert($ref; $k):
     ($ref | index($k)) as $rank
     | if $rank == null then . + [$k]
       else
         [ to_entries[]
-          | .key as $i
-          | .value as $existing
-          | ($ref | index($existing)) as $r
-          | select($r != null and $r < $rank)
-          | $i ] as $before
-        | ( if ($before | length) == 0 then 0 else ($before | max) + 1 end ) as $at
+          | select(.value as $existing
+                   | ($ref | index($existing)) as $r
+                   | $r != null and $r > $rank)
+          | .key ] as $after
+        | ( if ($after | length) == 0 then length else ($after | min) end ) as $at
         | .[0:$at] + [$k] + .[$at:]
       end;
 
-  # $prior is the key order the file had on entry — i.e. the order Claude Code
-  # itself last wrote. Those keys keep their relative positions verbatim. Only
-  # keys absent from $prior (the ones this script just added) are placed via $ref.
+  # $prior is the entry order; those keys keep their positions.
   def reorder($ref; $prior):
     . as $obj
     | ($obj | keys_unsorted) as $have
@@ -152,8 +116,7 @@ aws_region="${usage_region:-}"
 workspace_id="${usage_workspace_id:-}"
 use_wsl="${usage_wsl:-}"
 use_no_long_context="${usage_no_long_context:-}"
-use_mantle="${usage_mantle:-}"
-use_no_mantle="${usage_no_mantle:-}"
+use_mantle="${usage_mantle:-false}"
 
 # 1M context is the default; --no-long-context opts down to standard 200K.
 if [[ -n "${use_no_long_context}" ]]; then
@@ -236,12 +199,10 @@ _bootstrap() {
   fi
 }
 
-# Resolves the account's ACTIVE application inference profiles into a JSON object
-# keyed by the backing foundation-model ID, which is what models.json joins on:
+# ACTIVE application inference profiles keyed by backing foundation-model ID, the
+# join key in models.json, so a profile rename in Terraform is harmless:
 #   { "anthropic.claude-opus-5": { "name": "map-opus-5", "arn": "arn:…" }, … }
-# Keying on the backing model rather than the profile name means renaming a
-# profile in Terraform cannot silently break the mapping. Prints "{}" and warns
-# when AWS is unreachable, so an expired SSO session never blocks the switch.
+# Prints "{}" and warns when AWS is unreachable, so expired SSO never blocks a switch.
 _discover_app_profiles() {
   local profile="${1}" region="${2}" out
   if ! out="$(aws bedrock list-inference-profiles \
@@ -263,11 +224,8 @@ _discover_app_profiles() {
          | from_entries' <<<"${out}"
 }
 
-# The single place both bedrock modes derive their settings, so they cannot
-# drift: identical credential handling, identical env keys, identical model
-# table. Only the value each model ID maps to differs — a system-defined
-# global.* profile ID for `bedrock`, an application inference profile ARN for
-# `bedrock-app`.
+# Shared by both bedrock modes so they cannot drift. Only the mapped value differs:
+# a global.* profile ID for `bedrock`, an application profile ARN for `bedrock-app`.
 _update_bedrock_credentials() {
   local file="${1}" profile="${2}" region="${3}" wsl="${4}" lctx="${5}"
   local mode="${6}" arn_json="${7}" mantle="${8}"
@@ -287,9 +245,7 @@ _update_bedrock_credentials() {
     desired_auth_refresh="aws sso login --profile ${effective_profile}"
   fi
 
-  # A failed discovery yields {}. Credentials and provider routing do not depend
-  # on it, so still apply those — they are usually what the user came to fix —
-  # and leave the existing model config alone rather than wiping it.
+  # Failed discovery yields {}: apply credentials and routing, keep the model config.
   local apply_models="true"
   if [[ "${mode}" == "bedrock-app" && "${arn_json}" == "{}" ]]; then
     apply_models="false"
@@ -311,8 +267,7 @@ _update_bedrock_credentials() {
     --arg p "${effective_profile}" \
     --arg r "${effective_region}" \
     --arg auth "${desired_auth_refresh}" "${settings_privacy_jq}${settings_reorder_jq}"'
-    # Captured before any mutation, so it reflects how Claude Code last wrote the
-    # file; reorder() uses it to leave those keys exactly where they are.
+    # The order Claude Code last wrote.
     (keys_unsorted) as $prior
     | ($table[0].models) as $all
     | ( if $mode == "bedrock-app"
@@ -339,57 +294,41 @@ _update_bedrock_credentials() {
     | .awsAuthRefresh = $auth
 
     # --- provider routing ---
-    # CLAUDE_CODE_ENABLE_AUTO_MODE has had no effect since v2.1.207; auto mode is
-    # on by default on every provider. The platform-only keys are deleted so a
-    # file bootstrapped from a sibling profile converges to this shape.
+    # del() enforces mode shape: the provider shapes are mutually exclusive.
     | .env.CLAUDE_CODE_USE_BEDROCK = "1"
     | if $mantle then .env.CLAUDE_CODE_USE_MANTLE = "1"
                  else del(.env.CLAUDE_CODE_USE_MANTLE) end
-    | del(.env.CLAUDE_CODE_ENABLE_AUTO_MODE,
-          .env.CLAUDE_CODE_USE_ANTHROPIC_AWS,
+    | del(.env.CLAUDE_CODE_USE_ANTHROPIC_AWS,
           .env.ANTHROPIC_AWS_WORKSPACE_ID,
           .env.ANTHROPIC_BETAS)
 
     # --- models ---
-    # Skipped wholesale when discovery failed, so a transient AWS outage cannot
-    # wipe a working model config while still letting credentials be repaired.
     | if $applyModels then
-        # Clear every pin first so a family dropped from models.json, or the
-        # display companions left behind by the other bedrock mode, cannot
-        # survive a switch.
+        # Cleared first so a dropped family cannot survive a switch.
         (.env |= with_entries(select(.key | startswith("ANTHROPIC_DEFAULT_") | not)))
         | reduce $winners[] as $w (.;
             ("ANTHROPIC_DEFAULT_" + ($w.family | ascii_upcase) + "_MODEL") as $k
             | .env[$k] = ($w.value + (if ($lctx and $w.longContext) then "[1m]" else "" end))
-            # Display names are set in both modes so the /model picker reads the
-            # same way on either: without them the row shows the raw provider ID.
+            # Without this the picker row shows the raw provider ID.
             | .env[$k + "_NAME"] = (if $mode == "bedrock-app"
                                     then $w.id + " (" + $w.profile + ")"
                                     else $w.id end)
             | .env[$k + "_DESCRIPTION"] = (if $mode == "bedrock-app"
                                            then "Bedrock application inference profile " + $w.profile
                                            else "Bedrock system-defined inference profile " + $w.value end)
-            # _SUPPORTED_CAPABILITIES is deliberately bedrock-app only. Setting it
-            # REPLACES built-in detection with this static list, so it belongs
-            # only where detection cannot work: an application profile ARN
-            # carries no model name. A global.anthropic.claude-* ID does, so
-            # detection handles it and stays correct as capabilities evolve.
+            # bedrock-app only: this REPLACES built-in detection, which cannot read
+            # an opaque profile ARN. A global.anthropic.claude-* ID it can.
             | if $mode == "bedrock-app"
               then .env[$k + "_SUPPORTED_CAPABILITIES"] = $w.capabilities
               else . end
           )
         | (if ($overrides | length) > 0 then .modelOverrides = $overrides
                                         else del(.modelOverrides) end)
-        # Fallback targets are Anthropic model IDs so they resolve through
-        # modelOverrides and stay attributed to a profile.
+        # Anthropic IDs, so they resolve through modelOverrides and stay attributed.
         | (if ($fallback | length) > 0 then .fallbackModel = $fallback
                                        else del(.fallbackModel) end)
       else . end
-    # env sorts alphabetically — that is how Claude Code leaves it too, and it
-    # keeps a ~30-key block readable. The top level instead follows the app schema
-    # order, so an in-app /model change does not reshuffle the file. Both are
-    # needed: without them, jq appends new keys (modelOverrides, fallbackModel)
-    # wherever the last write left off, so layout would depend on write history.
+    # Without both, jq would append new keys wherever the last write left off.
     | privacy
     | .env |= (to_entries | sort_by(.key) | from_entries)
     | reorder($keyOrder; $prior)
@@ -429,8 +368,7 @@ _update_bedrock_credentials() {
   return 0
 }
 
-# Reports drift in both directions so a model added in Terraform but missing
-# from models.json (or vice versa) is visible rather than silently dropped.
+# Reports drift both ways: a model in only one of Terraform or models.json.
 _report_model_coverage() {
   local arn_json="${1}"
   [[ "${arn_json}" == "{}" ]] && return 0
@@ -452,11 +390,12 @@ _report_model_coverage() {
   return 0
 }
 
-# Transforms a (possibly bedrock-shaped) settings file into Claude Platform on
-# AWS shape, deterministically and idempotently. Anthropic operates this stack;
-# AWS only provides SigV4 auth + the workspace id, so the Bedrock/Mantle routing
-# flags MUST be absent and model IDs are the plain Claude API IDs (no prefix or
-# [1m] suffix — 1M context is requested via the context-1m anthropic-beta).
+# Claude Platform on AWS shape. Anthropic operates the stack and AWS only supplies
+# SigV4 auth plus the workspace id, so Bedrock/Mantle routing flags must be absent
+# and model IDs are plain Claude API IDs.
+#
+# The context-1m beta is likely redundant here, since the pinned models already run
+# at 1M on the Anthropic API. Kept because an unneeded beta value is harmless.
 _update_platform_credentials() {
   local file="${1}" profile="${2}" region="${3}" wsl="${4}" long_context="${5}" wid="${6}"
 
@@ -500,11 +439,11 @@ _update_platform_credentials() {
     | .env.ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-5"
     | .env.ANTHROPIC_DEFAULT_HAIKU_MODEL  = "claude-haiku-4-5"
     | .env.ANTHROPIC_DEFAULT_FABLE_MODEL  = "claude-fable-5"
+    # The body idle timeout is inactive here and the byte watchdog needs no opt-in.
     | del(.modelOverrides,
           .fallbackModel,
           .env.CLAUDE_CODE_USE_BEDROCK,
           .env.CLAUDE_CODE_USE_MANTLE,
-          .env.CLAUDE_CODE_ENABLE_AUTO_MODE,
           .env.ANTHROPIC_BEDROCK_SERVICE_TIER,
           .env.API_FORCE_IDLE_TIMEOUT,
           .env.CLAUDE_ENABLE_BYTE_WATCHDOG_BEDROCK)
@@ -545,14 +484,10 @@ if [[ -n "${use_wsl}" || -n "${use_no_long_context}" ]] &&
   exit 1
 fi
 
-if [[ -n "${use_mantle}" && -n "${use_no_mantle}" ]]; then
-  printf 'Error: --mantle and --no-mantle are mutually exclusive\n' >&2
-  exit 1
-fi
-
-if [[ -n "${use_mantle}" || -n "${use_no_mantle}" ]] &&
+# Only --mantle is gated: an explicit --no-mantle equals the default.
+if [[ "${use_mantle}" == "true" ]] &&
   [[ "${mode}" != "bedrock" && "${mode}" != "bedrock-app" ]]; then
-  printf 'Error: --mantle and --no-mantle are only supported for bedrock and bedrock-app modes\n' >&2
+  printf 'Error: --mantle is only supported for bedrock and bedrock-app modes\n' >&2
   exit 1
 fi
 
@@ -597,25 +532,19 @@ personal)
   ;;
 bedrock)
   _bootstrap "${bedrock}"
-  # Mantle defaults OFF in both bedrock modes: the Invoke API serves every model
-  # in models.json, so the second endpoint buys nothing here. --mantle opts in
-  # when a model is reachable only through the native-Anthropic-shape endpoint.
-  mantle_flag="false"
-  [[ -n "${use_mantle}" ]] && mantle_flag="true"
+  # Off by default: the Invoke API serves every model in models.json. The flag alone
+  # routes nothing, since Mantle needs Mantle-format IDs (anthropic.claude-sonnet-5).
   _update_bedrock_credentials "${bedrock}" "${aws_profile}" "${aws_region}" \
-    "${use_wsl:-false}" "${long_context}" "bedrock" "{}" "${mantle_flag}"
+    "${use_wsl:-false}" "${long_context}" "bedrock" "{}" "${use_mantle}"
   ln -fns "${bedrock}" "${target}"
   printf 'Switched to bedrock config (system-defined inference profiles)\n'
   ;;
 bedrock-app)
   _bootstrap "${bedrock_app}"
   app_profiles="$(_discover_app_profiles "${aws_profile}" "${aws_region}")"
-  # Also off by default here, with the extra reason that a Mantle request would
-  # escape application-inference-profile attribution entirely.
-  mantle_flag="false"
-  [[ -n "${use_mantle}" ]] && mantle_flag="true"
+  # Also off: a Mantle request would escape application-profile attribution.
   _update_bedrock_credentials "${bedrock_app}" "${aws_profile}" "${aws_region}" \
-    "${use_wsl:-false}" "${long_context}" "bedrock-app" "${app_profiles}" "${mantle_flag}"
+    "${use_wsl:-false}" "${long_context}" "bedrock-app" "${app_profiles}" "${use_mantle}"
   _report_model_coverage "${app_profiles}"
   ln -fns "${bedrock_app}" "${target}"
   printf 'Switched to bedrock-app config (application inference profiles)\n'
@@ -633,5 +562,10 @@ platform)
   ;;
 status)
   _status
+  ;;
+*)
+  # Unreachable unless a #USAGE choice is added without an arm here.
+  printf 'Error: unhandled mode: %s\n' "${mode}" >&2
+  exit 1
   ;;
 esac

@@ -1,27 +1,20 @@
 {
   "$comment": [
-    "Single source of truth for the Claude Code bedrock profiles managed by claude_switch.",
-    "Both `bedrock` (system-defined global inference profiles) and `bedrock-app`",
-    "(application inference profiles, resolved from AWS at switch time) are generated",
-    "from this table, so the two modes always expose the same model set.",
+    "Model table for the bedrock and bedrock-app profiles managed by claude_switch.",
     "",
-    "id              Anthropic model ID; used as the modelOverrides key. Dated IDs must",
-    "                carry the date suffix exactly as the Models overview lists it.",
+    "id              Anthropic model ID; the modelOverrides key. Dated IDs keep their suffix.",
     "family          Maps to ANTHROPIC_DEFAULT_<FAMILY>_MODEL: opus|sonnet|haiku|fable.",
-    "rank            Lowest rank in a family wins that family's alias pin. Re-order to",
-    "                change which version `opus`/`sonnet`/`haiku` resolve to.",
-    "bedrock         System-defined inference profile ID used by `bedrock` mode. Swap the",
-    "                global. prefix for us. here if you need regional routing.",
-    "foundationModel Join key that matches a discovered application inference profile to",
-    "                this row in `bedrock-app` mode (matched on the backing model, not the",
-    "                profile name, so renaming a profile cannot break the mapping).",
-    "longContext     Whether the [1m] extended-context suffix is appended to the pin.",
-    "capabilities    ANTHROPIC_DEFAULT_<FAMILY>_MODEL_SUPPORTED_CAPABILITIES. Listing this",
-    "                variable DISABLES every capability not listed, so each row carries",
-    "                exactly what that model supports. Verified per model: Opus 5/4.8/4.7,",
-    "                Sonnet 5 and Fable 5 are adaptive-only and reject thinking.type",
-    "                'enabled', so they omit `thinking`; Sonnet 4.6 supports low/medium/",
-    "                high/max but not xhigh; Haiku 4.5 has no interleaved thinking."
+    "rank            Lowest rank in a family wins that family's alias pin.",
+    "bedrock         System-defined inference profile ID used by `bedrock` mode.",
+    "foundationModel Join key matching a discovered application inference profile.",
+    "longContext     Whether the [1m] suffix is appended to the pin.",
+    "capabilities    ANTHROPIC_DEFAULT_<FAMILY>_MODEL_SUPPORTED_CAPABILITIES. Setting it",
+    "                DISABLES anything not listed. Valid tokens: effort, xhigh_effort,",
+    "                max_effort, thinking, adaptive_thinking, interleaved_thinking.",
+    "",
+    "Only the four family pins can carry capabilities, so in bedrock-app mode the older",
+    "versions reached through modelOverrides fall back to Claude Code's own detection,",
+    "which cannot read an opaque profile ARN. Use `bedrock` mode for those."
   ],
   "models": [
     {
@@ -31,7 +24,7 @@
       "bedrock": "global.anthropic.claude-opus-5",
       "foundationModel": "anthropic.claude-opus-5",
       "longContext": true,
-      "capabilities": "effort,xhigh_effort,max_effort,adaptive_thinking,interleaved_thinking"
+      "capabilities": "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking"
     },
     {
       "id": "claude-opus-4-8",
@@ -40,7 +33,7 @@
       "bedrock": "global.anthropic.claude-opus-4-8",
       "foundationModel": "anthropic.claude-opus-4-8",
       "longContext": true,
-      "capabilities": "effort,xhigh_effort,max_effort,adaptive_thinking,interleaved_thinking"
+      "capabilities": "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking"
     },
     {
       "id": "claude-opus-4-7",
@@ -49,7 +42,7 @@
       "bedrock": "global.anthropic.claude-opus-4-7",
       "foundationModel": "anthropic.claude-opus-4-7",
       "longContext": true,
-      "capabilities": "effort,xhigh_effort,max_effort,adaptive_thinking,interleaved_thinking"
+      "capabilities": "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking"
     },
     {
       "id": "claude-sonnet-5",
@@ -58,7 +51,7 @@
       "bedrock": "global.anthropic.claude-sonnet-5",
       "foundationModel": "anthropic.claude-sonnet-5",
       "longContext": true,
-      "capabilities": "effort,xhigh_effort,max_effort,adaptive_thinking,interleaved_thinking"
+      "capabilities": "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking"
     },
     {
       "id": "claude-sonnet-4-6",
@@ -94,7 +87,7 @@
       "bedrock": "global.anthropic.claude-fable-5",
       "foundationModel": "anthropic.claude-fable-5",
       "longContext": true,
-      "capabilities": "effort,xhigh_effort,max_effort,adaptive_thinking,interleaved_thinking"
+      "capabilities": "effort,xhigh_effort,max_effort,thinking,adaptive_thinking,interleaved_thinking"
     }
   ]
 }
