@@ -39,6 +39,9 @@
     "aws-core@claude-plugins-official": true,
     "aws-data-analytics@claude-plugins-official": true
   },
+  "enabledMcpjsonServers": [
+    "terraform"
+  ],
   "deniedMcpServers": [
     {
       "serverName": "plugin:aws-core:aws-mcp"
