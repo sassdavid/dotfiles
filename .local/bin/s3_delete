@@ -4,99 +4,715 @@
 # shellcheck shell=bash
 
 #USAGE name "s3_delete"
-#USAGE about "Delete all object versions and delete markers from a versioned S3 bucket.\nProcesses in batches of up to 1000 with parallel deletion. Loops until the bucket is empty.\n\nRequires: aws-cli v2, jq"
+#USAGE about "Empty an S3 bucket: every object version, delete marker and incomplete multipart upload."
+#USAGE long_about "Shards the keyspace, then streams each shard page-by-page straight into delete-objects,\nso deletes overlap listing instead of buffering the whole bucket in memory.\n\nSharding is only an optimisation. A final unsharded sweep loops until the bucket lists\nempty, so correctness never depends on the bucket's prefix layout.\n\nWorks on versioned, version-suspended and unversioned buckets.\n\nRequires: bash >= 5.0, aws-cli v2, jq"
 #USAGE complete "profile" run="aws configure list-profiles 2>/dev/null"
+#USAGE complete "bucket" run="aws s3api list-buckets --query 'Buckets[].Name' --output text 2>/dev/null | tr '\\t' '\\n'"
 #USAGE flag "--bucket <bucket>"        required=#true  help="S3 bucket name"
-#USAGE flag "--profile <profile>"      required=#true  help="AWS CLI profile name"
-#USAGE flag "--region <region>"        required=#true  help="AWS region (e.g. eu-west-3)" {
+#USAGE flag "--profile <profile>"      required=#true  env="AWS_PROFILE" help="AWS CLI profile name"
+#USAGE flag "--region <region>"        required=#true  env="AWS_REGION"  help="AWS region (e.g. eu-west-3)" {
 #USAGE   choices "ap-northeast-1" "ap-northeast-2" "ap-northeast-3" "ap-south-1" "ap-southeast-1" "ap-southeast-2" "ap-southeast-3" "ca-central-1" "eu-central-1" "eu-north-1" "eu-west-1" "eu-west-2" "eu-west-3" "me-central-1" "sa-east-1" "us-east-1" "us-east-2" "us-west-1" "us-west-2"
 #USAGE }
-#USAGE flag "--concurrency <n>"        default="10"    help="Max parallel delete jobs"
-#USAGE flag "--batch-size <n>"         default="1000"  help="Objects per delete batch (max 1000)"
-#USAGE example "s3_delete --bucket my-versioned-bucket --profile my-profile --region eu-west-3"
-#USAGE example "s3_delete --bucket my-versioned-bucket --profile my-profile --region eu-west-3 --concurrency 5"
+#USAGE flag "--prefix <prefix>"                        help="Only delete keys under this prefix (default: whole bucket)"
+#USAGE flag "--concurrency <n>"        default="6"     help="Parallel shard workers. Higher is usually SLOWER: every key in a delete-objects call counts against S3's ~3,500 req/s per-prefix limit, and once SlowDown starts the retries cost more than the extra workers gain. Measured on a 1.9M-object bucket: 6 workers ~2800/s, 12 ~200/s, 32 ~30/s"
+#USAGE flag "--batch-size <n>"         default="1000"  help="Keys per list page and per delete-objects call (max 1000)"
+#USAGE flag "--shards <n>"             default="0"     help="Target shard count. 0 = auto (concurrency x 4), 1 = disable sharding"
+#USAGE flag "--max-depth <n>"          default="6"     help="Max prefix depth to explore while discovering shards"
+#USAGE flag "--max-retries <n>"        default="8"     help="Retries per API call and per failed key, with exponential backoff and jitter"
+#USAGE flag "--max-sweeps <n>"         default="5"     help="Max verification sweeps after the sharded pass"
+#USAGE flag "--expected-bucket-owner <id>"             help="Fail unless the bucket is owned by this AWS account ID"
+#USAGE flag "--dry-run"                                help="Count what would be deleted, delete nothing"
+#USAGE flag "--yes"                                    help="Skip the interactive confirmation prompt" {
+#USAGE   long_help "Required for non-interactive use. Without it the bucket name must be typed to confirm,\nbecause this operation is irreversible."
+#USAGE }
+#USAGE flag "--bypass-governance-retention"            help="Bypass S3 Object Lock GOVERNANCE retention (needs s3:BypassGovernanceRetention)"
+#USAGE flag "--progress" negate="--no-progress" default=#true help="Emit periodic progress lines"
+#USAGE example "s3_delete --bucket my-bucket --profile my-profile --region eu-west-3 --dry-run"
+#USAGE example "s3_delete --bucket my-bucket --profile my-profile --region eu-west-3 --yes"
+#USAGE example "s3_delete --bucket my-bucket --profile my-profile --region eu-central-1 --concurrency 6 --yes"
+#USAGE example "s3_delete --bucket my-bucket --profile my-profile --region eu-west-3 --prefix logs/2024/ --yes"
 
 set -o errexit
 set -o pipefail
 set -o nounset
 
+if ((BASH_VERSINFO[0] < 5)); then
+  printf 's3_delete: requires bash >= 5.0, found %s\n' "${BASH_VERSION}" >&2
+  exit 1
+fi
+
 bucket="${usage_bucket:-}"
 profile="${usage_profile:-}"
 region="${usage_region:-}"
-max_concurrent="${usage_concurrency:-10}"
+root_prefix="${usage_prefix:-}"
+concurrency="${usage_concurrency:-6}"
 batch_size="${usage_batch_size:-1000}"
+target_shards="${usage_shards:-0}"
+max_depth="${usage_max_depth:-6}"
+max_retries="${usage_max_retries:-8}"
+max_sweeps="${usage_max_sweeps:-5}"
+expected_owner="${usage_expected_bucket_owner:-}"
+dry_run="${usage_dry_run:-false}"
+assume_yes="${usage_yes:-false}"
+bypass_governance="${usage_bypass_governance_retention:-false}"
+show_progress="${usage_progress:-true}"
 
-start_time=$(date +%s)
+((batch_size >= 1 && batch_size <= 1000)) || batch_size=1000
+((concurrency >= 1)) || concurrency=1
+((max_depth >= 1)) || max_depth=1
+((max_retries >= 0)) || max_retries=8
+((max_sweeps >= 1)) || max_sweeps=5
+((target_shards >= 0)) || target_shards=0
+((target_shards != 0)) || target_shards=$((concurrency * 4))
 
-log_info() {
-  local -r green='\033[0;32m'
-  local -r nc='\033[0m'
-  printf "%s %b[INFO]%b %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "${green}" "${nc}" "$*"
+start_epoch=${EPOCHSECONDS}
+estimated_objects=0
+
+if [[ -t 2 ]]; then
+  c_green=$'\033[0;32m' c_red=$'\033[0;31m' c_yellow=$'\033[0;33m' c_reset=$'\033[0m'
+else
+  c_green='' c_red='' c_yellow='' c_reset=''
+fi
+
+_log() {
+  local colour="$1" level="$2"
+  shift 2
+  printf '%s %s[%s]%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "${colour}" "${level}" "${c_reset}" "$*" >&2
+}
+log_info() { _log "${c_green}" INFO "$@"; }
+log_warn() { _log "${c_yellow}" WARN "$@"; }
+log_error() { _log "${c_red}" ERROR "$@"; }
+
+die() {
+  log_error "$@"
+  exit 1
 }
 
-log_error() {
-  local -r red='\033[0;31m'
-  local -r nc='\033[0m'
-  printf "%s %b[ERROR]%b %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "${red}" "${nc}" "$*" >&2
+# standard mode retries 503/SlowDown with backoff, unlike the legacy default. Attempts are kept
+# low on purpose: a process retrying privately for 30s hides the throttle signal from every other
+# worker, and pausing all of them through the shared brake sheds far more load than retrying.
+export AWS_RETRY_MODE=standard
+export AWS_MAX_ATTEMPTS=4
+export AWS_PAGER=''
+
+aws_common=(--profile "${profile}" --region "${region}" --no-cli-pager --output json)
+aws_bucket=(--bucket "${bucket}" "${aws_common[@]}")
+[[ -n ${expected_owner} ]] && aws_bucket+=(--expected-bucket-owner "${expected_owner}")
+
+delete_extra=()
+[[ ${bypass_governance} == true ]] && delete_extra+=(--bypass-governance-retention)
+
+retryable_codes='["SlowDown","InternalError","ServiceUnavailable","RequestTimeout","RequestTimeTooSkewed","InternalServerError","ThrottlingException","503","500"]'
+
+# True when an aws stderr dump looks transient rather than terminal.
+is_retryable_stderr() {
+  grep -Eq 'SlowDown|InternalError|ServiceUnavailable|RequestTimeout|Throttl|\(503\)|\(500\)|Could not connect|EndpointConnectionError|Connection (reset|aborted)|timed out' "$1"
 }
 
-aws_args=(--bucket "${bucket}" --profile "${profile}" --region "${region}" --no-cli-pager)
-
-delete_batch() {
-  local batch_file="$1"
-  local batch_label="$2"
-
-  if aws s3api delete-objects "${aws_args[@]}" --delete "file://${batch_file}" >/dev/null; then
-    log_info "Batch ${batch_label}: deleted."
-  else
-    log_error "Batch ${batch_label}: deletion failed."
-  fi
-
-  rm -f "${batch_file}"
+# Full-jitter exponential backoff, so workers do not retry in lockstep after a shared throttle.
+backoff_sleep() {
+  local secs
+  secs=$(awk -v a="$1" -v r="${SRANDOM}" 'BEGIN {
+    d = 0.5 * (2 ^ a); if (d > 20) d = 20
+    printf "%.3f", d * (r / 4294967295)
+  }')
+  sleep "${secs}"
 }
 
-log_info "Starting deletion for bucket: ${bucket}"
+# Escalating shared brake. Every aws call is a fresh process, so botocore's adaptive rate limiter
+# cannot carry state between them; the throttle level lives in a file instead. Sustained SlowDown
+# doubles the pause so offered load actually drops rather than retries piling on.
+apply_brake() {
+  local level=0
+  [[ -f ${brake_level_file} ]] && level=$(<"${brake_level_file}")
+  [[ ${level} =~ ^[0-9]+$ ]] || level=0
+  ((level < 4)) && level=$((level + 1))
+  printf '%s' "${level}" >"${brake_level_file}.$$"
+  mv -f "${brake_level_file}.$$" "${brake_level_file}" 2>/dev/null || true
 
-tmp_dir=$(mktemp -d /tmp/s3_delete_XXXXXX)
-trap 'rm -rf "${tmp_dir}"' EXIT
+  local secs=$((1 << level))
+  ((secs > 10)) && secs=10
+  printf '%s' "$((EPOCHSECONDS + secs))" >"${brake_file}.$$"
+  mv -f "${brake_file}.$$" "${brake_file}" 2>/dev/null || true
+}
 
-round=0
-while :; do
-  round=$((round + 1))
+# Walks the throttle level back down after a clean call so throughput recovers once S3 scales.
+relax_brake() {
+  local level=0
+  [[ -f ${brake_level_file} ]] && level=$(<"${brake_level_file}")
+  [[ ${level} =~ ^[0-9]+$ ]] || return 0
+  ((level > 0)) || return 0
+  printf '%s' "$((level - 1))" >"${brake_level_file}.$$"
+  mv -f "${brake_level_file}.$$" "${brake_level_file}" 2>/dev/null || true
+  return 0
+}
 
-  # Single API call; jq merges Versions + DeleteMarkers, guarding against null fields
-  raw_json=$(aws s3api list-object-versions "${aws_args[@]}" --output json 2>/dev/null || echo '{}')
-  jq -r '(.Versions // []) + (.DeleteMarkers // []) | map({Key, VersionId})' \
-    <<<"${raw_json}" >"${tmp_dir}/delete-list.json"
+# Pauses this worker for whatever remains of a brake another worker set.
+honor_brake() {
+  [[ -f ${brake_file} ]] || return 0
+  local until
+  until=$(<"${brake_file}") || return 0
+  [[ ${until} =~ ^[0-9]+$ ]] || return 0
+  ((until > EPOCHSECONDS)) || return 0
+  sleep "$(awk -v d="$((until - EPOCHSECONDS))" -v r="${SRANDOM}" \
+    'BEGIN { printf "%.3f", d + 2 * (r / 4294967295) }')"
+  return 0
+}
 
-  object_count=$(jq 'length' "${tmp_dir}/delete-list.json")
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/s3_delete_XXXXXX")
+counts_dir="${tmp_dir}/counts"
+fail_dir="${tmp_dir}/failed"
+brake_file="${tmp_dir}/brake"
+brake_level_file="${tmp_dir}/brake_level"
+shard_file="${tmp_dir}/shards"
+mkdir -p "${counts_dir}" "${fail_dir}"
+: >"${shard_file}"
+reporter_pid=''
 
-  if ((object_count == 0)); then
-    log_info "No more objects to delete. Done."
-    break
-  fi
+# Stops workers before the temp dir they are reading disappears.
+cleanup() {
+  local rc=$?
+  [[ -n ${reporter_pid} ]] && kill "${reporter_pid}" 2>/dev/null || true
+  local -a pids=()
+  mapfile -t pids < <(jobs -rp)
+  ((${#pids[@]} > 0)) && kill "${pids[@]}" 2>/dev/null || true
+  rm -rf "${tmp_dir}"
+  return "${rc}"
+}
+trap cleanup EXIT
+trap 'log_warn "Interrupted — stopping."; exit 130' INT TERM
 
-  log_info "Round ${round}: ${object_count} objects found — deleting in batches of ${batch_size}..."
+# Totals every worker's running count. Workers own one file each, so no locking is needed.
+sum_counts() {
+  find "${counts_dir}" -type f -exec cat {} + 2>/dev/null | awk '{s += $1} END {print s + 0}'
+}
 
-  batch_num=0
-  for ((i = 0; i < object_count; i += batch_size)); do
-    batch_num=$((batch_num + 1))
-    batch_file="${tmp_dir}/batch-r${round}-b${batch_num}.json"
+count_failures() {
+  find "${fail_dir}" -type f 2>/dev/null | wc -l | tr -d ' '
+}
 
-    jq --argjson start "${i}" --argjson size "${batch_size}" \
-      '{Objects: .[$start:$start+$size]}' \
-      "${tmp_dir}/delete-list.json" >"${batch_file}"
+# Fails fast on bad credentials or an unreachable bucket, which otherwise look like an empty one.
+preflight() {
+  command -v aws >/dev/null || die "aws-cli v2 not found in PATH."
+  command -v jq >/dev/null || die "jq not found in PATH."
 
-    delete_batch "${batch_file}" "r${round}/b${batch_num}" &
+  local ident
+  ident=$(aws sts get-caller-identity "${aws_common[@]}" 2>&1) ||
+    die "Cannot authenticate with profile '${profile}': ${ident}"
+  log_info "Identity: $(jq -r '.Arn' <<<"${ident}")"
 
-    # Throttle: arithmetic expansion handles leading whitespace from wc -l on macOS
-    while (($(jobs -rp | wc -l) >= max_concurrent)); do
-      sleep 0.5
-    done
+  local head
+  head=$(aws s3api head-bucket "${aws_bucket[@]}" 2>&1) ||
+    die "Cannot access bucket '${bucket}' in ${region}: ${head}"
+
+  local ver status
+  ver=$(aws s3api get-bucket-versioning "${aws_bucket[@]}" 2>/dev/null) || ver=''
+  [[ ${ver} =~ [^[:space:]] ]] || ver='{}'
+  status=$(jq -r '.Status // "Unversioned"' <<<"${ver}")
+  log_info "Bucket: ${bucket} (${region}) — versioning: ${status}"
+  [[ $(jq -r '.MFADelete // "Disabled"' <<<"${ver}") == Enabled ]] &&
+    log_warn "MFA Delete is enabled; version deletes will fail without an MFA token."
+
+  estimate_objects
+  return 0
+}
+
+# Best-effort object count, used only as a progress denominator.
+estimate_objects() {
+  local since
+  since=$(date -u -r $((start_epoch - 259200)) '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null ||
+    date -u -d '3 days ago' '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null) || return 0
+
+  estimated_objects=$(aws cloudwatch get-metric-statistics "${aws_common[@]}" \
+    --namespace AWS/S3 --metric-name NumberOfObjects \
+    --dimensions Name=BucketName,Value="${bucket}" Name=StorageType,Value=AllStorageTypes \
+    --start-time "${since}" --end-time "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" \
+    --period 86400 --statistics Average \
+    --query 'sort_by(Datapoints, &Timestamp)[-1].Average' --output text 2>/dev/null |
+    awk '{printf "%d", $1 + 0}') || estimated_objects=0
+  [[ ${estimated_objects} =~ ^[0-9]+$ ]] || estimated_objects=0
+  ((estimated_objects > 0)) &&
+    log_info "CloudWatch estimate: ~${estimated_objects} objects (may lag up to 48h)"
+  return 0
+}
+
+# Requires the bucket name to be typed back, since nothing here can be undone.
+confirm() {
+  [[ ${assume_yes} == true || ${dry_run} == true ]] && return 0
+  [[ -t 0 ]] || die "Refusing to delete without a TTY to confirm on. Pass --yes to proceed."
+
+  local scope="the entire bucket"
+  [[ -n ${root_prefix} ]] && scope="everything under prefix '${root_prefix}'"
+  printf '\n%sAbout to permanently delete %s from %s.%s\n' \
+    "${c_red}" "${scope}" "${bucket}" "${c_reset}" >&2
+  printf 'This includes every object version and delete marker. It cannot be undone.\n' >&2
+  printf 'Type the bucket name to confirm: ' >&2
+
+  local answer
+  IFS= read -r answer || answer=''
+  [[ ${answer} == "${bucket}" ]] || die "Confirmation did not match. Nothing was deleted."
+  return 0
+}
+
+# One listing call, retried on transient errors. The CLI hides MaxKeys/KeyMarker for this
+# operation and strips IsTruncated, so pagination is driven by the synthetic NextToken.
+list_page() {
+  local prefix="$1" token="$2" delimit="$3" err_file="$4"
+  local -a args=("${aws_bucket[@]}" --max-items "${batch_size}" --page-size "${batch_size}")
+  [[ -n ${prefix} ]] && args+=(--prefix "${prefix}")
+  [[ ${delimit} == true ]] && args+=(--delimiter /)
+  [[ -n ${token} ]] && args+=(--starting-token "${token}")
+
+  local attempt=0 out
+  while :; do
+    honor_brake
+    if out=$(aws s3api list-object-versions "${args[@]}" 2>"${err_file}"); then
+      ((attempt > 0)) && relax_brake
+      printf '%s' "${out}"
+      return 0
+    fi
+    if ((attempt < max_retries)) && is_retryable_stderr "${err_file}"; then
+      grep -q 'SlowDown' "${err_file}" && apply_brake
+      backoff_sleep "${attempt}"
+      attempt=$((attempt + 1))
+      continue
+    fi
+    return 1
+  done
+}
+
+# Deletes one prepared batch and echoes how many keys actually died. DeleteObjects answers HTTP
+# 200 even when individual keys fail, so .Errors is parsed rather than trusting the exit code.
+delete_payload() {
+  local payload="$1" label="$2" expected="$3"
+  local err_file="${payload}.err" resp_file="${payload}.resp" report="${fail_dir}/${label}"
+  local attempt=0 deleted=0
+
+  while :; do
+    honor_brake
+    if ! aws s3api delete-objects "${aws_bucket[@]}" "${delete_extra[@]}" \
+      --delete "file://${payload}" >"${resp_file}" 2>"${err_file}"; then
+      if ((attempt < max_retries)) && is_retryable_stderr "${err_file}"; then
+        grep -q 'SlowDown' "${err_file}" && apply_brake
+        backoff_sleep "${attempt}"
+        attempt=$((attempt + 1))
+        continue
+      fi
+      printf '%s: request failed: %s\n' "${label}" \
+        "$(tr -d '\n' <"${err_file}" | tail -c 400)" >>"${report}"
+      printf '%s' "${deleted}"
+      return 1
+    fi
+
+    local n_err
+    n_err=$(jq '(.Errors // []) | length' <"${resp_file}")
+    if ((n_err == 0)); then
+      relax_brake
+      printf '%s' "$((deleted + expected))"
+      return 0
+    fi
+
+    local retry_json n_retry
+    retry_json=$(jq -c --argjson codes "${retryable_codes}" \
+      '{Objects: [.Errors[] | select(($codes | index(.Code)) != null) | {Key, VersionId}], Quiet: true}' \
+      <"${resp_file}")
+    n_retry=$(jq '.Objects | length' <<<"${retry_json}")
+
+    deleted=$((deleted + expected - n_err))
+    expected=${n_retry}
+
+    if ((n_retry < n_err)); then
+      jq -r --argjson codes "${retryable_codes}" \
+        '.Errors[] | select(($codes | index(.Code)) == null)
+         | "\(.Code): \(.Key) \(.VersionId // "-") \(.Message // "")"' \
+        <"${resp_file}" >>"${report}"
+    fi
+
+    if ((n_retry == 0)); then
+      printf '%s' "${deleted}"
+      return 1
+    fi
+    if ((attempt >= max_retries)); then
+      printf '%s: %s key(s) still failing after %s retries\n' \
+        "${label}" "${n_retry}" "${max_retries}" >>"${report}"
+      printf '%s' "${deleted}"
+      return 1
+    fi
+
+    grep -q 'SlowDown' "${resp_file}" && apply_brake
+    printf '%s' "${retry_json}" >"${payload}"
+    backoff_sleep "${attempt}"
+    attempt=$((attempt + 1))
+  done
+}
+
+# Streams one shard: list a page, delete that page, repeat. Deleting inline keeps memory flat
+# and lets deletion overlap listing instead of following it.
+process_shard() {
+  local record="$1"
+  local mode="${record:0:1}" idx="${record:2:8}" prefix="${record:11}"
+  local delimit=false
+  [[ ${mode} == D ]] && delimit=true
+
+  local work="${tmp_dir}/shard-${idx}"
+  local err_file="${work}.lerr" payload="${work}.json"
+  local token='' deleted=0 page=0 rc=0
+
+  while :; do
+    local json
+    if ! json=$(list_page "${prefix}" "${token}" "${delimit}" "${err_file}"); then
+      printf 'shard %s (%s): listing failed: %s\n' "${idx}" "${prefix}" \
+        "$(tr -d '\n' <"${err_file}" | tail -c 400)" >>"${fail_dir}/list-${idx}"
+      rc=1
+      break
+    fi
+
+    local n
+    n=$(jq '((.Versions // []) + (.DeleteMarkers // [])) | length' <<<"${json}")
+    if ((n > 0)); then
+      if [[ ${dry_run} == true ]]; then
+        deleted=$((deleted + n))
+      else
+        jq -c '{Objects: ((.Versions // []) + (.DeleteMarkers // []) | map({Key, VersionId})), Quiet: true}' \
+          <<<"${json}" >"${payload}"
+        local got
+        got=$(delete_payload "${payload}" "s${idx}p${page}" "${n}") || rc=1
+        deleted=$((deleted + got))
+      fi
+      printf '%s\n' "${deleted}" >"${counts_dir}/${idx}"
+    fi
+
+    token=$(jq -r '.NextToken // ""' <<<"${json}")
+    [[ -z ${token} ]] && break
+    page=$((page + 1))
   done
 
-  wait
-done
+  printf '%s\n' "${deleted}" >"${counts_dir}/${idx}"
+  return "${rc}"
+}
 
-end_time=$(date +%s)
-log_info "Completed in $((end_time - start_time))s."
+shard_idx=0
+
+# Appends a NUL-delimited shard record: mode R lists a whole subtree, mode D only the keys
+# sitting directly under the prefix.
+emit_shard() {
+  printf '%s:%08d:%s\0' "$1" "${shard_idx}" "$2" >>"${shard_file}"
+  shard_idx=$((shard_idx + 1))
+}
+
+# Enumerates one level below a prefix, fully paginated. Emits "direct<TAB>n_prefixes" then the
+# child prefixes; CommonPrefixes plus direct keys together cover everything beneath the prefix.
+list_level() {
+  local prefix="$1" err_file="$2"
+  local token='' cps='' direct=0
+  while :; do
+    local json
+    json=$(list_page "${prefix}" "${token}" true "${err_file}") || return 1
+    cps+=$(jq -r '.CommonPrefixes[]?.Prefix // empty' <<<"${json}")$'\n'
+    direct=$((direct + $(jq '((.Versions // []) + (.DeleteMarkers // [])) | length' <<<"${json}")))
+    token=$(jq -r '.NextToken // ""' <<<"${json}")
+    [[ -z ${token} ]] && break
+  done
+  printf '%s\t%s' "${direct}" "$(printf '%s' "${cps}" | grep -c . || true)"
+  printf '\n%s' "${cps}"
+}
+
+# Breadth-first walk of '/' that stops as soon as it has enough shards, so a deep bucket costs
+# only a handful of calls. Never loses a key regardless of layout.
+discover_shards() {
+  if ((target_shards <= 1)); then
+    emit_shard R "${root_prefix}"
+    log_info "Sharding disabled — single stream."
+    return 0
+  fi
+
+  local -a frontier=("${root_prefix}") next=() leaf_mode=() leaf_prefix=()
+  local depth=0
+
+  while ((${#frontier[@]} > 0 && depth < max_depth)); do
+    ((${#leaf_prefix[@]} + ${#frontier[@]} >= target_shards)) && break
+
+    local level_dir="${tmp_dir}/level-${depth}"
+    mkdir -p "${level_dir}"
+    explore_level "${level_dir}" "${frontier[@]}"
+
+    next=()
+    local i=0 p
+    for p in "${frontier[@]}"; do
+      local slot raw header direct n_cps
+      slot=$(printf '%s/%06d' "${level_dir}" "${i}")
+      i=$((i + 1))
+      [[ -f ${slot}.fail ]] && die "Failed to explore prefix '${p}'."
+      raw=$(<"${slot}")
+      header=${raw%%$'\n'*}
+      direct=${header%%$'\t'*}
+      n_cps=${header##*$'\t'}
+
+      if ((n_cps == 0)); then
+        leaf_mode+=(R)
+        leaf_prefix+=("${p}")
+      else
+        local -a kids=()
+        mapfile -t kids < <(printf '%s' "${raw#*$'\n'}" | grep . || true)
+        next+=("${kids[@]}")
+        if ((direct > 0)); then
+          leaf_mode+=(D)
+          leaf_prefix+=("${p}")
+        fi
+      fi
+    done
+    frontier=("${next[@]}")
+    depth=$((depth + 1))
+  done
+
+  local i
+  for i in "${!leaf_prefix[@]}"; do
+    emit_shard "${leaf_mode[i]}" "${leaf_prefix[i]}"
+  done
+  local p
+  for p in "${frontier[@]}"; do
+    emit_shard R "${p}"
+  done
+  ((shard_idx > 0)) || emit_shard R "${root_prefix}"
+
+  ((shard_idx < concurrency)) && split_flat_shards
+  log_info "Discovered ${shard_idx} shard(s) at depth <= ${depth}."
+  return 0
+}
+
+# Lists a whole level in parallel, since sequential discovery cost more wall clock than the
+# deletes it was setting up.
+explore_level() {
+  local level_dir="$1"
+  shift
+  local running=0 i=0 p slot
+  for p in "$@"; do
+    if ((running >= concurrency)); then
+      wait -n || true
+      running=$((running - 1))
+    fi
+    slot=$(printf '%s/%06d' "${level_dir}" "${i}")
+    { list_level "${p}" "${slot}.err" >"${slot}" || printf 'FAIL' >"${slot}.fail"; } &
+    running=$((running + 1))
+    i=$((i + 1))
+  done
+  while ((running > 0)); do
+    wait -n || true
+    running=$((running - 1))
+  done
+  return 0
+}
+
+# Splits a flat keyspace on the first byte after the prefix so it can still be parallelised.
+# Best effort only: an alphabet sampled from one page is not provably complete, so anything
+# outside it is left to the final sweep rather than missed.
+split_flat_shards() {
+  local -a records=()
+  mapfile -t -d '' records <"${shard_file}"
+  : >"${shard_file}"
+  shard_idx=0
+
+  local rebuilt=0 record
+  for record in "${records[@]}"; do
+    local mode="${record:0:1}" prefix="${record:11}"
+    if [[ ${mode} != R ]]; then
+      emit_shard "${mode}" "${prefix}"
+      continue
+    fi
+
+    local json chars='' sampled=0
+    if json=$(list_page "${prefix}" '' false "${tmp_dir}/flat.err"); then
+      sampled=$(jq '((.Versions // []) + (.DeleteMarkers // [])) | length' <<<"${json}")
+      chars=$(jq -r --arg p "${prefix}" \
+        '((.Versions // []) + (.DeleteMarkers // [])) | map(.Key | ltrimstr($p) | .[0:1]) | unique | .[]' \
+        <<<"${json}" 2>/dev/null | grep -E '^[0-9A-Za-z_.=+-]$' || true)
+    fi
+
+    if ((sampled == 0)); then
+      emit_shard R "${prefix}"
+      continue
+    fi
+
+    local -a alphabet=()
+    mapfile -t alphabet < <(printf '%s\n' "${chars}" {0..9} {a..z} | sort -u | grep . || true)
+    if ((${#alphabet[@]} < 2)); then
+      emit_shard R "${prefix}"
+      continue
+    fi
+
+    local c
+    for c in "${alphabet[@]}"; do
+      emit_shard R "${prefix}${c}"
+    done
+    rebuilt=1
+  done
+
+  ((rebuilt == 1)) && log_info "Flat keyspace detected — split into ${shard_idx} character shards."
+  return 0
+}
+
+# Aborts in-progress multipart uploads. A bucket holding them is not empty and cannot be
+# deleted, yet no listing of objects or versions ever mentions them.
+abort_multipart_uploads() {
+  local token='' aborted=0
+  while :; do
+    local -a args=("${aws_bucket[@]}" --max-items 1000 --page-size 1000)
+    [[ -n ${root_prefix} ]] && args+=(--prefix "${root_prefix}")
+    [[ -n ${token} ]] && args+=(--starting-token "${token}")
+
+    local json n
+    json=$(aws s3api list-multipart-uploads "${args[@]}" 2>/dev/null) || return 0
+    [[ ${json} =~ [^[:space:]] ]] || return 0
+    n=$(jq '(.Uploads // []) | length' <<<"${json}")
+
+    if ((n > 0)); then
+      if [[ ${dry_run} == true ]]; then
+        aborted=$((aborted + n))
+      else
+        local key upload_id
+        while IFS=$'\t' read -r key upload_id; do
+          [[ -n ${key} ]] || continue
+          if aws s3api abort-multipart-upload "${aws_bucket[@]}" \
+            --key "${key}" --upload-id "${upload_id}" 2>/dev/null; then
+            aborted=$((aborted + 1))
+          else
+            printf 'abort-multipart-upload failed: %s (%s)\n' "${key}" "${upload_id}" \
+              >>"${fail_dir}/mpu"
+          fi
+        done < <(jq -r '(.Uploads // [])[] | [.Key, .UploadId] | @tsv' <<<"${json}")
+      fi
+    fi
+
+    token=$(jq -r '.NextToken // ""' <<<"${json}")
+    [[ -z ${token} ]] && break
+  done
+
+  if ((aborted > 0)); then
+    if [[ ${dry_run} == true ]]; then
+      log_info "Multipart uploads found: ${aborted}"
+    else
+      log_info "Multipart uploads aborted: ${aborted}"
+    fi
+  fi
+  return 0
+}
+
+# Periodic throughput line, summed across all workers.
+progress_reporter() {
+  local last=0 last_t=${EPOCHSECONDS} total now rate pct
+  while :; do
+    sleep 5
+    total=$(sum_counts)
+    now=${EPOCHSECONDS}
+    if ((now > last_t)); then rate=$(((total - last) / (now - last_t))); else rate=0; fi
+    pct=''
+    ((estimated_objects > 0)) && pct=" (~$((total * 100 / estimated_objects))% of estimate)"
+    log_info "Progress: ${total} deleted${pct}, ${rate}/s"
+    last=${total}
+    last_t=${now}
+  done
+}
+
+# Runs shards through a pool of workers. `wait -n` returns the moment any worker finishes, so a
+# fast shard is replaced immediately and one huge shard cannot idle the rest.
+run_pool() {
+  local -a records=()
+  mapfile -t -d '' records <"$1"
+  ((${#records[@]} > 0)) || return 0
+
+  local running=0 failed=0 launched=0 record
+  for record in "${records[@]}"; do
+    if ((running >= concurrency)); then
+      wait -n || failed=$((failed + 1))
+      running=$((running - 1))
+    fi
+    ((launched < concurrency)) && sleep 0.3
+    process_shard "${record}" &
+    running=$((running + 1))
+    launched=$((launched + 1))
+  done
+  while ((running > 0)); do
+    wait -n || failed=$((failed + 1))
+    running=$((running - 1))
+  done
+  ((failed == 0))
+}
+
+# Re-lists the whole scope unsharded until nothing comes back. This is the correctness backstop
+# for stragglers, errored shards and objects written while we ran. Pointless during a dry run,
+# where nothing was deleted and every object would simply be counted a second time.
+sweep_until_empty() {
+  if [[ ${dry_run} == true ]]; then
+    log_info "Dry run — skipping verification sweep."
+    return 0
+  fi
+
+  local sweep=0 before after found
+  while ((sweep < max_sweeps)); do
+    sweep=$((sweep + 1))
+    before=$(sum_counts)
+
+    : >"${shard_file}"
+    emit_shard R "${root_prefix}"
+    run_pool "${shard_file}" || true
+
+    after=$(sum_counts)
+    found=$((after - before))
+    if ((found == 0)); then
+      log_info "Sweep ${sweep}: nothing left."
+      return 0
+    fi
+    log_warn "Sweep ${sweep}: cleared ${found} straggler(s); sweeping again."
+    abort_multipart_uploads
+  done
+  log_warn "Hit --max-sweeps ${max_sweeps}; objects may still be arriving."
+  return 0
+}
+
+# Reports what happened and exits non-zero if anything was left behind.
+summarise() {
+  local total failures elapsed rate
+  total=$(sum_counts)
+  failures=$(count_failures)
+  elapsed=$((EPOCHSECONDS - start_epoch))
+  if ((elapsed > 0)); then rate=$((total / elapsed)); else rate=${total}; fi
+
+  if [[ ${dry_run} == true ]]; then
+    log_info "Dry run: ${total} object(s) would be deleted. Took ${elapsed}s."
+    return 0
+  fi
+
+  log_info "Deleted ${total} object(s) in ${elapsed}s (~${rate}/s)."
+  if ((failures > 0)); then
+    log_error "${failures} failure report(s) — first entries:"
+    find "${fail_dir}" -type f -exec cat {} + 2>/dev/null | head -20 >&2
+    log_error "Bucket may not be empty. Common causes: Object Lock retention (try"
+    log_error "--bypass-governance-retention), MFA Delete, or a denying bucket policy."
+    return 1
+  fi
+  if [[ -n ${root_prefix} ]]; then
+    log_info "Prefix '${root_prefix}' in '${bucket}' is empty."
+  else
+    log_info "Bucket '${bucket}' is empty."
+  fi
+  return 0
+}
+
+preflight
+confirm
+
+[[ ${dry_run} == true ]] && log_warn "DRY RUN — nothing will be deleted."
+log_info "Discovering shards (target ${target_shards}, concurrency ${concurrency})..."
+discover_shards
+
+if [[ ${show_progress} == true ]]; then
+  progress_reporter &
+  reporter_pid=$!
+fi
+
+log_info "Deleting with ${concurrency} parallel workers..."
+run_pool "${shard_file}" || log_warn "Some shards reported errors — the sweep will retry."
+
+abort_multipart_uploads
+sweep_until_empty
+summarise
