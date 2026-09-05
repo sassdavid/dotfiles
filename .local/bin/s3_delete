@@ -172,10 +172,14 @@ reporter_pid=''
 # Stops workers before the temp dir they are reading disappears.
 cleanup() {
   local rc=$?
-  [[ -n ${reporter_pid} ]] && kill "${reporter_pid}" 2>/dev/null || true
+  if [[ -n ${reporter_pid} ]]; then
+    kill "${reporter_pid}" 2>/dev/null || true
+  fi
   local -a pids=()
   mapfile -t pids < <(jobs -rp)
-  ((${#pids[@]} > 0)) && kill "${pids[@]}" 2>/dev/null || true
+  if ((${#pids[@]} > 0)); then
+    kill "${pids[@]}" 2>/dev/null || true
+  fi
   rm -rf "${tmp_dir}"
   return "${rc}"
 }
