@@ -25,6 +25,17 @@
     "pr": "",
     "sessionUrl": false
   },
+  "enabledMcpjsonServers": [
+    "terraform"
+  ],
+  "deniedMcpServers": [
+    {
+      "serverName": "plugin:aws-core:aws-mcp"
+    },
+    {
+      "serverName": "plugin:aws-data-analytics:aws-mcp"
+    }
+  ],
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
@@ -42,27 +53,6 @@
     "aws-core@claude-plugins-official": true,
     "aws-data-analytics@claude-plugins-official": true
   },
-  "enabledMcpjsonServers": [
-    "terraform"
-  ],
-  "deniedMcpServers": [
-    {
-      "serverName": "plugin:aws-core:aws-mcp"
-    },
-    {
-      "serverName": "plugin:aws-data-analytics:aws-mcp"
-    },
-    {
-      "serverCommand": [
-        "uvx",
-        "mcp-proxy-for-aws@1.6.3",
-        "https://aws-mcp.us-east-1.api.aws/mcp",
-        "--skip-auth",
-        "--metadata",
-        "INSTALL_SOURCE=agent-toolkit"
-      ]
-    }
-  ],
   "extraKnownMarketplaces": {
     "anthropic-agent-skills": {
       "source": {
